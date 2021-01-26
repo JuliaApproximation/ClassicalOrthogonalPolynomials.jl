@@ -37,7 +37,7 @@ InfiniteArrays = "0.9"
 InfiniteLinearAlgebra = "0.4.6"
 IntervalSets = "0.3.1, 0.4, 0.5"
 LazyArrays = "0.20"
-QuasiArrays = "0.4"
+QuasiArrays = "0.4, 0.3"
 SpecialFunctions = "0.10, 1"
 julia = "1.5"
 
