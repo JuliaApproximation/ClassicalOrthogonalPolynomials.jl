@@ -47,8 +47,6 @@ include("interlace.jl")
 cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
 cardinality(::EuclideanDomain) = ℵ₁
 
-checkpoints(::ChebyshevInterval) = [-0.823972,0.01,0.3273484]
-checkpoints(::UnitInterval) = [0.823972,0.01,0.3273484]
 
 transform_ldiv(A, f, ::Tuple{<:Any,Infinity})  = adaptivetransform_ldiv(A, f)
 
