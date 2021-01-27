@@ -290,6 +290,8 @@ end
 getindex(M::Clenshaw, k::Int, j::Int) = M[k:k,j][1]
 
 transposelayout(M::ClenshawLayout) = ClenshawLayout()
+# TODO: generalise for layout, use Base.PermutedDimsArray
+Base.permutedims(M::Clenshaw{<:Number}) = transpose(M)
 
 
 function materialize!(M::MatMulVecAdd{<:ClenshawLayout,<:PaddedLayout,<:PaddedLayout})

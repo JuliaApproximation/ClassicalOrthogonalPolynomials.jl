@@ -61,7 +61,7 @@ singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
 singularitiesbroadcast(_, L::LegendreWeight) = L # Assume we stay smooth
 singularitiesbroadcast(::typeof(exp), L::LegendreWeight) = L
 singularitiesbroadcast(::typeof(Base.literal_pow), ::typeof(^), L::LegendreWeight, ::Val) = L
-for op in (:+, :-)
+for op in (:+, :-, :*)
     @eval begin
         singularitiesbroadcast(::typeof($op), ::LegendreWeight{T}, ::LegendreWeight{V}) where {T,V} = LegendreWeight{promote_type(T,V)}()
         singularitiesbroadcast(::typeof($op), L::LegendreWeight, ::NoSingularities) = L
