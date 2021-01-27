@@ -76,3 +76,118 @@ end
     c = inv(2*kr.A)
     T[kr,:] * Diagonal(Vcat(2*convert(V,π)*c*log(c), 2c*D.diag.args[2]))
 end
+
+#################################################
+# ∫f(x)g(x)(t-x)^a dx evaluation where f and g in Legendre
+#################################################
+const PowKernelPoint{T,V,D,F} =  BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
+
+struct PowerLawMatrix{T} #<: AbstractMatrix{T} # TODO
+    a::T
+    t::T
+end
+
+############
+# METHODS
+############
+function dot(f::AbstractVector{T},K::PowKernelPoint{Float64,Float64,ChebyshevInterval{Float64}},g::AbstractVector{T}) where T
+    (lf, lg) = (length(f),length(g))
+    a = K.args[2]
+    t = (K.args[1])[0.] # there must be something better than this? 
+                        # maybe something in the spirit of (K.args[1]).args[1]?
+    t<1 && error("t must be greater than 1.")
+    (lf<∞) && (lg<∞) && return pointwisedot(f,g,a,t)
+    ((lf<∞) || (lg<∞)) && error("TODO: Currently only both finite or both infinite.")
+    # seek naive convergence for infinite input.
+    (i,conv1,conv2) = (0,1,2)
+    while abs(conv1-conv2)>1e-12
+        i = i+1
+        conv1 = pointwisedot(f[1:i*20],g[1:i*20],a,t)
+        conv2 = pointwisedot(f[1:2*i*20],g[1:2*i*20],a,t)
+    end
+    return conv2
+end
+function dot(f::AbstractVector,M::PowerLawMatrix,g::AbstractVector)
+    return dot(f,(M.t .- axes(Legendre(),1)).^M.a,g)
+end
+function *(P::Legendre,M::PowerLawMatrix)
+    return (M.t .- axes(P,1)).^M.a.*P
+end
+function *(g::Adjoint,K::PowKernelPoint{<:Any,<:Any,<:ChebyshevInterval},f::AbstractVector)
+    return dot(g',K,f)
+end
+
+############
+# EVALUATE RECURRENCE
+############
+# experimental pointwise power law integral of Legendre product by recurrence
+function pointwisedot(f::AbstractVector{T},g::AbstractVector{T},a::Real,t::Real) where T
+    # initialization
+    ℓ = max(length(f),length(g))
+    f = pad(f,ℓ)
+    g = pad(g,ℓ)
+    coeff = zeros(ℓ,ℓ)
+
+    # load in explicit initial cases
+    coeff[1,1] = PLinitial00(t,a)
+    coeff[1,2] = PLinitial01(t,a)
+    coeff[2,2] = PLinitial11(t,a)
+    coeff[2,3] = PLinitial12(t,a)
+
+    # we have to build these two cases with some care
+    coeff[1,3] = t/((a+3)/3)*coeff[1,2]+(a/3)/((a+3)/3)*coeff[1,1]
+    m=1
+    coeff[3,m+2] = t/((m+1)*(a+m+4)/((2*m+1)*(m+3)))*coeff[m+1,3]+((a+1)*2/(6-m*(m+1)))/((m+1)*(a+m+4)/((2*m+1)*(m+3)))*coeff[2,m+1]-(m*(a+3-m)/((2*m+1)*(2-m)))*1/((m+1)*(a+m+4)/((2*m+1)*(m+3)))*coeff[m,3]
+
+    # the remaining cases can be constructed iteratively
+    for m = 2:ℓ-2
+        # first row
+        coeff[1,m+2] = (t/((a+m+2)/(2*m+1))*coeff[1,m+1]+((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*coeff[1,m])
+        # second row
+        coeff[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*coeff[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*coeff[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*coeff[2,m])
+        # build remaining row elements
+        for j=1:m-1
+            n = j
+            coeff[j+2,m+1] = (t/((n+1)*(a+m+n+2)/((2*n+1)*(m+n+1)))*coeff[n+1,m+1]+((a+1)*m/(m*(m+1)-n*(n+1)))/((n+1)*(a+m+n+2)/((2*n+1)*(m+n+1)))*coeff[n+1,m]-(n*(a+m-n+1)/((2*n+1)*(m-n)))*1/((n+1)*(a+m+n+2)/((2*n+1)*(m+n+1)))*coeff[n,m+1])
+        end
+    end
+    # apply the coefficients
+    for n = 1:ℓ
+        coeff[n,n] = f[n]*g[n]*coeff[n,n]
+        for m=1:n-1
+            coeff[m,n] = (f[m]*g[n]+f[n]*g[m])*coeff[m,n]
+        end
+    end
+    return sum(coeff)
+end
+
+############
+# HELPERS
+############
+# these explicit initial cases are needed to kick off the recurrence
+function PLinitial00(t::Real,a::Real)
+    return ((t+1)^(a+1)-(t-1)^(a+1))/(a+1)
+end
+function PLinitial01(t::Real,a::Real)
+    return ((t+1)^(a+1)*(-a+t-1)-(a+t+1)*(t-1)^(a+1))/((a+1)*(a+2))
+end
+function PLinitial11(t::Real,a::Real)
+    return ((t+1)^(a+1)*(a^2+a*(3-2*t)+2*(t-1)*t+2)-(t-1)^(a+1)*(a^2+a*(2*t+3)+2*(t^2+t+1)))/((a+1)*(a+2)*(a+3))
+end
+function PLinitial12(t::Real,a::Real)
+    return -(((1+t)^(1+a)*((1+a)^2*(3+a)-(3+2*a*(5+2*a))*t+9*(1+a)*t^2-9*t^3)+(-1+t)^(1+a)*((1+a)^2*(3+a)+(3+2*a*(5+2*a))*t+9*(1+a)*t^2+9*t^3))/((1+a)*(2+a)*(3+a)*(4+a)))
+end
+
+# pad helper function from ApproxFun
+function pad(f::AbstractVector{T},n::Integer) where T
+	if n > length(f)
+	   ret=Vector{T}(undef, n)
+	   ret[1:length(f)]=f
+	   for j=length(f)+1:n
+	       ret[j]=zero(T)
+	   end
+       ret
+	else
+        f[1:n]
+	end
+end
