@@ -1,7 +1,7 @@
 # ClassicalOrthogonalPolynomials.jl
 A Julia package for classical orthogonal polynomials and expansions
 
-[![Build Status](https://github.com/JuliaApproximation/ClassicalOrthogonalPolynomials.jl/workflows/CI/badge.svg)](https://github.com/JuliaApproximation/FastGaussQuadrature.jl/actions)
+[![Build Status](https://github.com/JuliaApproximation/ClassicalOrthogonalPolynomials.jl/workflows/CI/badge.svg)](https://github.com/JuliaApproximation/ClassicalOrthogonalPolynomials.jl/actions)
 [![codecov](https://codecov.io/gh/JuliaApproximation/ClassicalOrthogonalPolynomials.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaApproximation/ClassicalOrthogonalPolynomials.jl)
 
 
