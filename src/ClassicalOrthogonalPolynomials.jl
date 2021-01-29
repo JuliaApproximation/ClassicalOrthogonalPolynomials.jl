@@ -47,7 +47,6 @@ include("interlace.jl")
 cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
 cardinality(::EuclideanDomain) = ℵ₁
 
-
 transform_ldiv(A, f, ::Tuple{<:Any,Infinity})  = adaptivetransform_ldiv(A, f)
 
 function chop!(c::AbstractVector, tol::Real)

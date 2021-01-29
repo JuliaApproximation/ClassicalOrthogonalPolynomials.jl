@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, QuasiArrays, LazyArrays, FastGaussQuadrature, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix
 
 @testset "Jacobi" begin
     @testset "JacobiWeight" begin
