@@ -80,53 +80,96 @@ end
 #################################################
 # ∫f(x)g(x)(t-x)^a dx evaluation where f and g in Legendre
 #################################################
-const PowKernelPoint{T,V,D,F} =  BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
-
-struct PowerLawMatrix{T} #<: AbstractMatrix{T} # TODO
-    a::T
-    t::T
-end
+const PowKernelPoint{T,V,D,F} = BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
 
 ############
 # METHODS
 ############
-function dot(f::AbstractVector{T},K::PowKernelPoint{Float64,Float64,ChebyshevInterval{Float64}},g::AbstractVector{T}) where T
-    (lf, lg) = (length(f),length(g))
-    a = K.args[2]
-    t = (K.args[1])[0.] # there must be something better than this? 
-                        # maybe something in the spirit of (K.args[1]).args[1]?
-    t<1 && error("t must be greater than 1.")
-    (lf<∞) && (lg<∞) && return pointwisedot(f,g,a,t)
-    ((lf<∞) || (lg<∞)) && error("TODO: Currently only both finite or both infinite.")
-    # seek naive convergence for infinite input.
-    (i,conv1,conv2) = (0,1,2)
-    while abs(conv1-conv2)>1e-12
-        i = i+1
-        conv1 = pointwisedot(f[1:i*20],g[1:i*20],a,t)
-        conv2 = pointwisedot(f[1:2*i*20],g[1:2*i*20],a,t)
+
+# This will need re-adjustments now that the cached version exists, so I'm commenting it out for now
+
+# function dot(f::AbstractVector{T}, K::PowKernelPoint, g::AbstractVector{T}) where T
+#     (lf, lg) = (length(f),length(g))
+#     a = K.args[2]
+#     t = (K.args[1])[0.] # there must be something better than this? 
+#                         # maybe something in the spirit of (K.args[1]).args[1]?
+#     t<1 && error("t must be greater than 1.")
+#     (lf<∞) && (lg<∞) && return pointwisedot(f,g,a,t)
+#     ((lf<∞) || (lg<∞)) && error("TODO: Currently only both finite or both infinite.")
+#     # for now, seek naive convergence for infinite input.
+#     (i,conv1,conv2) = (0,1,2)
+#     while abs(conv1-conv2)>1e-15
+#         i = i+1
+#         conv1 = pointwisedot(f[1:i*20],g[1:i*20],a,t)
+#         conv2 = pointwisedot(f[1:2*i*20],g[1:2*i*20],a,t)
+#     end
+#     return conv2
+# end
+# function *(g::Adjoint, K::PowKernelPoint{<:Any,<:Any,<:ChebyshevInterval}, f::AbstractVector)
+#     return dot(g',K,f)
+# end
+
+
+############
+# IMPLEMENT CACHED VERSION
+############
+# Constructors support BigFloat and it's recommended to use them for high orders.
+mutable struct PowerLawIntegral{T, PP<:AbstractQuasiMatrix} <: AbstractCachedMatrix{T}
+    P::PP # OPs - only Legendre supported for now
+    a::T  # naming scheme follows (t-x)^a
+    t::T
+    data::Matrix{T}
+    datasize::Tuple{Int,Int}
+    array
+
+    function PowerLawIntegral{T, PP}(P::PP,a::T,t::T) where {T,PP<:AbstractQuasiMatrix}
+        new{T, PP}(P,a,t, ClassicalOrthogonalPolynomials.pointwisecoeffmatrixdense(a,t,10),(10,10))
     end
-    return conv2
 end
-function dot(f::AbstractVector,M::PowerLawMatrix,g::AbstractVector)
-    return dot(f,(M.t .- axes(Legendre(),1)).^M.a,g)
+PowerLawIntegral(P::AbstractQuasiMatrix,a::T,t::T) where T = PowerLawIntegral{T,typeof(P)}(P,a,t)
+size(K::PowerLawIntegral) = (∞,∞) # potential to add maximum size of operator
+
+# data filling
+function _legendrepowerlaw_fill_data!(K::PowerLawIntegral, inds)
+    ClassicalOrthogonalPolynomials.fillcoeffmatrix!(K, inds)
 end
-function *(P::Legendre,M::PowerLawMatrix)
-    return (M.t .- axes(P,1)).^M.a.*P
+cache_filldata!(K::PowerLawIntegral, inds) = _legendrepowerlaw_fill_data!(K, inds)
+
+# because it really only makes sense to compute this symmetric operator in square blocks, we have to slightly rework some of LazyArrays caching and resizing
+function Base.getindex(A::PowerLawIntegral{T, PP}, I::CartesianIndex) where {T,PP<:AbstractQuasiMatrix}
+    resizedata!(A, Tuple(I))
+    A.data[I]
 end
-function *(g::Adjoint,K::PowKernelPoint{<:Any,<:Any,<:ChebyshevInterval},f::AbstractVector)
-    return dot(g',K,f)
+function getindex(A::PowerLawIntegral{T,PP}, I::Vararg{Int,2}) where {T,PP<:AbstractQuasiMatrix}
+    # @boundscheck checkbounds(A, I...)
+    resizedata!(A, Tuple([I...]))
+    A.data[I...]
+end
+function resizedata!(A::PowerLawIntegral, nm) 
+    olddata = A.data
+    νμ = size(olddata)
+    nm = (maximum(nm),maximum(nm))
+    nm = max.(νμ,nm)
+    nm = (maximum(nm),maximum(nm))
+    if νμ ≠ nm
+        A.data = similar(A.data, nm...)
+        A.data[axes(olddata)...] = olddata
+    end
+    inds = Array(maximum(νμ):maximum(nm))
+    cache_filldata!(A, inds)
+    A.datasize = nm
+    A
 end
 
 ############
-# EVALUATE RECURRENCE
+# RECURRENCE EVALUATION
 ############
-# experimental pointwise power law integral of Legendre product by recurrence
-function pointwisedot(f::AbstractVector{T},g::AbstractVector{T},a::Real,t::Real) where T
+# this function actually evaluates the recurrence and returns the full operator. 
+# We don't use this outside of the initial block.
+function pointwisecoeffmatrixdense(a::Real, t::Real, ℓ::Integer)
     # initialization
-    ℓ = max(length(f),length(g))
-    f = pad(f,ℓ)
-    g = pad(g,ℓ)
-    coeff = zeros(ℓ,ℓ)
+    ℓ = ℓ+1
+    coeff = convert.(typeof(a),zeros(ℓ,ℓ))
 
     # load in explicit initial cases
     coeff[1,1] = PLinitial00(t,a)
@@ -140,54 +183,56 @@ function pointwisedot(f::AbstractVector{T},g::AbstractVector{T},a::Real,t::Real)
     coeff[3,m+2] = t/((m+1)*(a+m+4)/((2*m+1)*(m+3)))*coeff[m+1,3]+((a+1)*2/(6-m*(m+1)))/((m+1)*(a+m+4)/((2*m+1)*(m+3)))*coeff[2,m+1]-(m*(a+3-m)/((2*m+1)*(2-m)))*1/((m+1)*(a+m+4)/((2*m+1)*(m+3)))*coeff[m,3]
 
     # the remaining cases can be constructed iteratively
-    for m = 2:ℓ-2
+    @inbounds for m = 2:ℓ-2
         # first row
         coeff[1,m+2] = (t/((a+m+2)/(2*m+1))*coeff[1,m+1]+((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*coeff[1,m])
         # second row
         coeff[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*coeff[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*coeff[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*coeff[2,m])
         # build remaining row elements
-        for j=1:m-1
+        @inbounds for j=1:m-1
             n = j
             coeff[j+2,m+1] = (t/((n+1)*(a+m+n+2)/((2*n+1)*(m+n+1)))*coeff[n+1,m+1]+((a+1)*m/(m*(m+1)-n*(n+1)))/((n+1)*(a+m+n+2)/((2*n+1)*(m+n+1)))*coeff[n+1,m]-(n*(a+m-n+1)/((2*n+1)*(m-n)))*1/((n+1)*(a+m+n+2)/((2*n+1)*(m+n+1)))*coeff[n,m+1])
         end
     end
-    # apply the coefficients
-    for n = 1:ℓ
-        coeff[n,n] = f[n]*g[n]*coeff[n,n]
-        for m=1:n-1
-            coeff[m,n] = (f[m]*g[n]+f[n]*g[m])*coeff[m,n]
+    @inbounds for m=1:ℓ
+        @inbounds for n=m+1:ℓ
+            coeff[n,m] = coeff[m,n]
         end
     end
-    return sum(coeff)
+    return coeff[1:ℓ-1,1:ℓ-1]
 end
-
-############
-# HELPERS
-############
 # these explicit initial cases are needed to kick off the recurrence
-function PLinitial00(t::Real,a::Real)
+function PLinitial00(t, a)
     return ((t+1)^(a+1)-(t-1)^(a+1))/(a+1)
 end
-function PLinitial01(t::Real,a::Real)
+function PLinitial01(t, a)
     return ((t+1)^(a+1)*(-a+t-1)-(a+t+1)*(t-1)^(a+1))/((a+1)*(a+2))
 end
-function PLinitial11(t::Real,a::Real)
+function PLinitial11(t, a)
     return ((t+1)^(a+1)*(a^2+a*(3-2*t)+2*(t-1)*t+2)-(t-1)^(a+1)*(a^2+a*(2*t+3)+2*(t^2+t+1)))/((a+1)*(a+2)*(a+3))
 end
-function PLinitial12(t::Real,a::Real)
+function PLinitial12(t, a)
     return -(((1+t)^(1+a)*((1+a)^2*(3+a)-(3+2*a*(5+2*a))*t+9*(1+a)*t^2-9*t^3)+(-1+t)^(1+a)*((1+a)^2*(3+a)+(3+2*a*(5+2*a))*t+9*(1+a)*t^2+9*t^3))/((1+a)*(2+a)*(3+a)*(4+a)))
 end
-
-# pad helper function from ApproxFun
-function pad(f::AbstractVector{T},n::Integer) where T
-	if n > length(f)
-	   ret=Vector{T}(undef, n)
-	   ret[1:length(f)]=f
-	   for j=length(f)+1:n
-	       ret[j]=zero(T)
-	   end
-       ret
-	else
-        f[1:n]
-	end
+# the following version takes a previously computed block that's been resized and fills in the missing data guided by indices in inds
+function fillcoeffmatrix!(K, inds)
+    # the remaining cases can be constructed iteratively
+    a = K.a
+    t = K.t
+    @inbounds for m in inds
+        m=m-2
+        # first row
+        K.data[1,m+2] = (t/((a+m+2)/(2*m+1))*K.data[1,m+1]+((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*K.data[1,m])
+        # second row
+        K.data[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*K.data[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*K.data[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*K.data[2,m])
+        # build remaining row elements
+        @inbounds for j=1:m
+            n = j
+            K.data[j+2,m+2] = (t/((n+1)*(a+m+1+n+2)/((2*n+1)*(m+1+n+1)))*K.data[n+1,m+2]+((a+1)*(m+1)/((m+1)*(m+2)-n*(n+1)))/((n+1)*(a+m+1+n+2)/((2*n+1)*(m+1+n+1)))*K.data[n+1,m+1]-(n*(a+m+1-n+1)/((2*n+1)*(m+1-n)))*1/((n+1)*(a+m+1+n+2)/((2*n+1)*(m+1+n+1)))*K.data[n,m+2])
+        end
+    end
+    # matrix is symmetric
+    @inbounds for m in reverse(inds)
+        K.data[m,1:end] = K.data[1:end,m]
+    end
 end
