@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, ContinuumArrays, DomainSets, Test
-import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, PowerLawIntegral, PowKernelPoint, pointwisecoeffmatrixdensedot, *
+import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, PowerLawIntegral, PowKernelPoint, pointwisecoeffmatrixdense, *
 
 @testset "Stieltjes" begin
     T = Chebyshev()
@@ -79,7 +79,7 @@ end
     t = 1.0000000001
     Acached = PowerLawIntegral(Legendre(),a,t)
     @test size(Acached) == (∞,∞)
-    @test Acached[1:10,1:10] == ClassicalOrthogonalPolynomials.pointwisecoeffmatrixdense(a,t,10)
+    @test Acached[1:10,1:10] == pointwisecoeffmatrixdense(a,t,10)
 end
 
 # TODO: make these tests work again with new cached variant

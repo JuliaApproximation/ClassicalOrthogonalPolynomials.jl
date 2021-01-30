@@ -80,7 +80,7 @@ end
 #################################################
 # ∫f(x)g(x)(t-x)^a dx evaluation where f and g in Legendre
 #################################################
-const PowKernelPoint{T,V,D,F} = BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
+const PowKernelPoint{T, V, D, F} = BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
 
 ############
 # METHODS
@@ -122,16 +122,16 @@ mutable struct PowerLawIntegral{T, PP<:AbstractQuasiMatrix} <: AbstractCachedMat
     datasize::Tuple{Int,Int}
     array
 
-    function PowerLawIntegral{T, PP}(P::PP,a::T,t::T) where {T,PP<:AbstractQuasiMatrix}
-        new{T, PP}(P,a,t, ClassicalOrthogonalPolynomials.pointwisecoeffmatrixdense(a,t,10),(10,10))
+    function PowerLawIntegral{T, PP}(P::PP, a::T, t::T) where {T, PP<:AbstractQuasiMatrix}
+        new{T, PP}(P,a,t, pointwisecoeffmatrixdense(a,t,10),(10,10))
     end
 end
-PowerLawIntegral(P::AbstractQuasiMatrix,a::T,t::T) where T = PowerLawIntegral{T,typeof(P)}(P,a,t)
+PowerLawIntegral(P::AbstractQuasiMatrix, a::T, t::T) where T = PowerLawIntegral{T,typeof(P)}(P,a,t)
 size(K::PowerLawIntegral) = (∞,∞) # potential to add maximum size of operator
 
 # data filling
 function _legendrepowerlaw_fill_data!(K::PowerLawIntegral, inds)
-    ClassicalOrthogonalPolynomials.fillcoeffmatrix!(K, inds)
+    fillcoeffmatrix!(K, inds)
 end
 cache_filldata!(K::PowerLawIntegral, inds) = _legendrepowerlaw_fill_data!(K, inds)
 
