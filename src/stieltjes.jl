@@ -141,7 +141,6 @@ function Base.getindex(A::PowerLawIntegral{T, PP}, I::CartesianIndex) where {T,P
     A.data[I]
 end
 function getindex(A::PowerLawIntegral{T,PP}, I::Vararg{Int,2}) where {T,PP<:AbstractQuasiMatrix}
-    # @boundscheck checkbounds(A, I...)
     resizedata!(A, Tuple([I...]))
     A.data[I...]
 end
@@ -155,9 +154,11 @@ function resizedata!(A::PowerLawIntegral, nm)
         A.data = similar(A.data, nm...)
         A.data[axes(olddata)...] = olddata
     end
-    inds = Array(maximum(νμ):maximum(nm))
-    cache_filldata!(A, inds)
-    A.datasize = nm
+    if maximum(nm) > maximum(νμ)
+        inds = Array(maximum(νμ):maximum(nm))
+        cache_filldata!(A, inds)
+        A.datasize = nm
+    end
     A
 end
 
