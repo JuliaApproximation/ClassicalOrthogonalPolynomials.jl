@@ -38,7 +38,7 @@ import BandedMatrices: bandwidths
 export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial, Hermite, Jacobi, Legendre, Chebyshev, ChebyshevT, ChebyshevU, ChebyshevInterval, Ultraspherical, Fourier,
             HermiteWeight, JacobiWeight, ChebyshevWeight, ChebyshevGrid, ChebyshevTWeight, ChebyshevUWeight, UltrasphericalWeight, LegendreWeight,
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
-            ∞, Derivative, .., Inclusion, chebyshevt, chebyshevu, legendre, jacobi, legendrep, jacobip, jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight
+            ∞, Derivative, .., Inclusion, chebyshevt, chebyshevu, legendre, jacobi, legendrep, jacobip, ultrasphericalp, jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight
 
 
 include("interlace.jl")
