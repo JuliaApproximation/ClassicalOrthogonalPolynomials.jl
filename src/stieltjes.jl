@@ -130,10 +130,7 @@ PowerLawIntegral(P::AbstractQuasiMatrix, a::T, t::T) where T = PowerLawIntegral{
 size(K::PowerLawIntegral) = (∞,∞) # potential to add maximum size of operator
 
 # data filling
-function _legendrepowerlaw_fill_data!(K::PowerLawIntegral, inds)
-    fillcoeffmatrix!(K, inds)
-end
-cache_filldata!(K::PowerLawIntegral, inds) = _legendrepowerlaw_fill_data!(K, inds)
+cache_filldata!(K::PowerLawIntegral, inds) = fillcoeffmatrix!(K, inds)
 
 # because it really only makes sense to compute this symmetric operator in square blocks, we have to slightly rework some of LazyArrays caching and resizing
 function Base.getindex(A::PowerLawIntegral{T, PP}, I::CartesianIndex) where {T,PP<:AbstractQuasiMatrix}
