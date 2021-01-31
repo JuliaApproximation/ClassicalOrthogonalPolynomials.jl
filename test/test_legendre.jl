@@ -129,4 +129,8 @@ import QuasiArrays: MulQuasiArray
         β = X[n,n+1]*Mi[n+1,n+1]
         @test (x-y) * P[x,1:n]'Mi[1:n,1:n]*P[y,1:n] ≈ P[x,n:n+1]' * [0 -β; β 0] * P[y,n:n+1]
     end
+
+    @testset "special syntax" begin
+        @test legendrep.(0:5, 0.3) == Legendre()[0.3, 1:6]
+    end
 end

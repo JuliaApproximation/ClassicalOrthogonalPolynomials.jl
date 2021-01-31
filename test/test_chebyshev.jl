@@ -319,6 +319,16 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test Base.BroadcastStyle(typeof(v)) isa LazyArrays.LazyArrayStyle{1}
         @test (v./v)[1:10] == ones(10)
     end
+
+    @testset "special syntax" begin
+        @test chebyshevt.(0:5, 0.1) == ChebyshevT()[0.1, 1:6]
+        @test chebyshevt.(0:5, BigFloat(1)/10) == ChebyshevT{BigFloat}()[BigFloat(1)/10, 1:6]
+        @test chebyshevt.(0:5, 2) == Base.unsafe_getindex(ChebyshevT(), 2, 1:6)
+
+        @test chebyshevu.(0:5, 0.1) == ChebyshevU()[0.1, 1:6]
+        @test chebyshevu.(0:5, BigFloat(1)/10) == ChebyshevU{BigFloat}()[BigFloat(1)/10, 1:6]
+        @test chebyshevu.(0:5, 2) == Base.unsafe_getindex(ChebyshevU(), 2, 1:6)
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end

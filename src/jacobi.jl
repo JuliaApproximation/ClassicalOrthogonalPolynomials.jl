@@ -93,6 +93,14 @@ Legendre() = Legendre{Float64}()
 legendre() = Legendre()
 legendre(d::AbstractInterval{T}) where T = Legendre{float(T)}()[affine(d,ChebyshevInterval{T}()), :]
 
+"""
+     legendrep(n, z)
+
+computes the `n`-th Legendre polynomial at `z`.
+"""
+legendrep(n::Integer, z::Number) = Base.unsafe_getindex(Legendre{typeof(z)}(), z, n+1)
+
+
 ==(::Legendre, ::Legendre) = true
 
 OrthogonalPolynomial(w::LegendreWeight{T}) where {T} = Legendre{T}()
@@ -115,6 +123,14 @@ jacobi(a,b) = Jacobi(a,b)
 jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi(a,b)[affine(d,ChebyshevInterval{T}()), :]
 
 Jacobi(P::Legendre{T}) where T = Jacobi(zero(T), zero(T))
+
+"""
+     jacobip(n, a, b, z)
+
+computes the `n`-th Jacobi polynomial, orthogonal with 
+respec to `(1-x)^a*(1+x)^b`, at `z`.
+"""
+jacobip(n::Integer, a, b, z::Number) = Base.unsafe_getindex(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b), z, n+1)
 
 OrthogonalPolynomial(w::JacobiWeight) = Jacobi(w.a, w.b)
 orthogonalityweight(P::Jacobi) = JacobiWeight(P.a, P.b)

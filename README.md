@@ -5,10 +5,23 @@ A Julia package for classical orthogonal polynomials and expansions
 [![codecov](https://codecov.io/gh/JuliaApproximation/ClassicalOrthogonalPolynomials.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaApproximation/ClassicalOrthogonalPolynomials.jl)
 
 
-This package implements classical orthogonal polynomials as quasi-arrays where one one axes is continuous and the other axis is discrete (countably infinite), as implemented in [QuasiArrays.jl](https://github.com/JuliaApproximation/QuasiArrays.jl) and  [ContinuumArrays.jl](https://github.com/JuliaApproximation/ContinuumArrays.jl).  
+This package implements classical orthogonal polynomials.
 ```julia
 julia> using ClassicalOrthogonalPolynomials, ContinuumArrays
 
+julia> chebyshevt.(0:5,0.1)
+6-element Array{Float64,1}:
+  1.0
+  0.1
+ -0.98
+ -0.296
+  0.9208
+  0.48016
+```
+Other examples include `chebyshevu`, `legendrep`, `jacobip`, and `ultrasphericalp`.
+
+For expansion, it supports usafe as quasi-arrays where one one axes is continuous and the other axis is discrete (countably infinite), as implemented in [QuasiArrays.jl](https://github.com/JuliaApproximation/QuasiArrays.jl) and  [ContinuumArrays.jl](https://github.com/JuliaApproximation/ContinuumArrays.jl).  
+```julia
 julia> P = Legendre(); # Legendre polynomials
 
 julia> size(P) # uncountable ∞ x countable ∞

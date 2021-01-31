@@ -338,4 +338,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test (x-y) * P[x,1:n]'Mi[1:n,1:n]*Base.unsafe_getindex(P,y,1:n) ≈ P[x,n:n+1]' * [0 -β; β 0] * Base.unsafe_getindex(P,y,n:n+1)
         end
     end
+
+    @testset "special syntax" begin
+        @test jacobip.(0:5, 0.1, 0.2, 0.3) == Jacobi(0.1, 0.2)[0.3, 1:6]
+    end
 end
