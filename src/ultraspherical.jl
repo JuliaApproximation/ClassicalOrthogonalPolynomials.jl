@@ -40,7 +40,7 @@ WeightedUltraspherical(λ) = UltrasphericalWeight(λ) .* Ultraspherical(λ)
 WeightedUltraspherical{T}(λ) where T = UltrasphericalWeight{T}(λ) .* Ultraspherical{T}(λ)
 
 
-ultrasphericalp(n::Integer, λ, z::Number) = Base.unsafe_getindex(Ultraspherical{promote_type(typeof(λ),typeof(z))}(λ), z, n+1
+ultrasphericalp(n::Integer, λ, z::Number) = Base.unsafe_getindex(Ultraspherical{promote_type(typeof(λ),typeof(z))}(λ), z, n+1)
 
 ==(a::Ultraspherical, b::Ultraspherical) = a.λ == b.λ
 ==(::Ultraspherical, ::ChebyshevT) = false
