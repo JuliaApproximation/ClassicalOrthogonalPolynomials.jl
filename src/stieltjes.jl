@@ -64,7 +64,6 @@ end
     apply(*, inv.(x .- x'), P)[parentindices(wT)...]
 end
 
-
 @simplify function *(L::LogKernel, wT::SubQuasiArray{<:Any,2,<:WeightedBasis,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}}) 
     V = promote_type(eltype(L), eltype(wT))
     P = parent(wT)
@@ -78,41 +77,41 @@ end
 end
 
 #################################################
-# ∫f(x)g(x)(t-x)^a dx evaluation where f and g in Legendre
+# ∫f(x)g(x)(t-x)^a dx evaluation where f and g given in coefficients
 #################################################
-const PowKernelPoint{T, V, D, F} = BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
+# recognize structure of W = P' * ((t .- x).^a .* P)
+const PowKernelIntegralPoint{T, V, D, F} = QuasiArrays.ApplyQuasiArray{T, 2, typeof(*), Tuple{QuasiArrays.QuasiAdjoint{T, Legendre{Float64}}, QuasiArrays.BroadcastQuasiArray{T, 2, typeof(*), Tuple{QuasiArrays.BroadcastQuasiArray{T, 1, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}, Legendre{Float64}}}}} # method only works for Legendre for now, so require Legendre OPs.
 
-############
-# METHODS
-############
+####
+# methods
+####
+# if needed repeatedly due to caching it's generally faster to store PowerLawIntegral directly and use that
+function dot(f::AbstractVector{T}, K::PowKernelIntegralPoint, g::AbstractVector{T}) where T
+    # generate operator
+    a = K.args[2].args[1].args[2]
+    t = K.args[2].args[1].args[1][0.]
+    PP = K.args[2].args[2]
+    K = PowerLawIntegral(PP,BigFloat("$a"),BigFloat("$t"))
+    # check if infinite
+    (lf, lg) = (length(f),length(g))
+    maxl = maximum((lf, lg))
+    (maxl<∞) && return dot(pad(f,maxl),K[1:maxl,1:maxl],pad(g,maxl))
+    ((lf<∞) || (lg<∞)) && error("TODO: Currently only both finite or both infinite.")
+    (i,conv1,conv2) = (0,1,2)
+    while abs(conv1-conv2)>1e-15
+        i = i+1
+        conv1 = dot(f[1:i*20],K[1:i*20,1:i*20],g[1:i*20])
+        conv2 = dot(f[1:2*i*20],K[1:2*i*20,1:2*i*20],g[1:2*i*20])
+    end
+    return conv2
+end
+function *(g::Adjoint, K::PowKernelIntegralPoint, f::AbstractVector)
+    return dot(g',K,f)
+end
 
-# This will need re-adjustments now that the cached version exists, so I'm commenting it out for now
-
-# function dot(f::AbstractVector{T}, K::PowKernelPoint, g::AbstractVector{T}) where T
-#     (lf, lg) = (length(f),length(g))
-#     a = K.args[2]
-#     t = (K.args[1])[0.] # there must be something better than this? 
-#                         # maybe something in the spirit of (K.args[1]).args[1]?
-#     t<1 && error("t must be greater than 1.")
-#     (lf<∞) && (lg<∞) && return pointwisedot(f,g,a,t)
-#     ((lf<∞) || (lg<∞)) && error("TODO: Currently only both finite or both infinite.")
-#     # for now, seek naive convergence for infinite input.
-#     (i,conv1,conv2) = (0,1,2)
-#     while abs(conv1-conv2)>1e-15
-#         i = i+1
-#         conv1 = pointwisedot(f[1:i*20],g[1:i*20],a,t)
-#         conv2 = pointwisedot(f[1:2*i*20],g[1:2*i*20],a,t)
-#     end
-#     return conv2
-# end
-# function *(g::Adjoint, K::PowKernelPoint{<:Any,<:Any,<:ChebyshevInterval}, f::AbstractVector)
-#     return dot(g',K,f)
-# end
-
-
-############
-# IMPLEMENT CACHED VERSION
-############
+####
+# cached operator implementation
+####
 # Constructors support BigFloat and it's recommended to use them for high orders.
 mutable struct PowerLawIntegral{T, PP<:AbstractQuasiMatrix} <: AbstractCachedMatrix{T}
     P::PP # OPs - only Legendre supported for now
@@ -121,7 +120,6 @@ mutable struct PowerLawIntegral{T, PP<:AbstractQuasiMatrix} <: AbstractCachedMat
     data::Matrix{T}
     datasize::Tuple{Int,Int}
     array
-
     function PowerLawIntegral{T, PP}(P::PP, a::T, t::T) where {T, PP<:AbstractQuasiMatrix}
         new{T, PP}(P,a,t, pointwisecoeffmatrixdense(a,t,10),(10,10))
     end
@@ -137,49 +135,46 @@ function Base.getindex(A::PowerLawIntegral{T, PP}, I::CartesianIndex) where {T,P
     resizedata!(A, Tuple(I))
     A.data[I]
 end
-function getindex(A::PowerLawIntegral{T,PP}, I::Vararg{Int,2}) where {T,PP<:AbstractQuasiMatrix}
-    resizedata!(A, Tuple([I...]))
-    A.data[I...]
+function getindex(K::PowerLawIntegral{T,PP}, I::Vararg{Int,2}) where {T,PP<:AbstractQuasiMatrix}
+    resizedata!(K, Tuple([I...]))
+    K.data[I...]
 end
-function resizedata!(A::PowerLawIntegral, nm) 
-    olddata = A.data
+function resizedata!(K::PowerLawIntegral, nm) 
+    olddata = K.data
     νμ = size(olddata)
     nm = (maximum(nm),maximum(nm))
     nm = max.(νμ,nm)
     nm = (maximum(nm),maximum(nm))
     if νμ ≠ nm
-        A.data = similar(A.data, nm...)
-        A.data[axes(olddata)...] = olddata
+        K.data = similar(K.data, nm...)
+        K.data[axes(olddata)...] = olddata
     end
     if maximum(nm) > maximum(νμ)
         inds = Array(maximum(νμ):maximum(nm))
-        cache_filldata!(A, inds)
-        A.datasize = nm
+        cache_filldata!(K, inds)
+        K.datasize = nm
     end
-    A
+    K
 end
 
-############
-# RECURRENCE EVALUATION
-############
-# this function actually evaluates the recurrence and returns the full operator. 
+####
+# recurrence evaluation
+####
+# this function evaluates the recurrence and returns the full operator. 
 # We don't use this outside of the initial block.
 function pointwisecoeffmatrixdense(a::Real, t::Real, ℓ::Integer)
     # initialization
     ℓ = ℓ+1
     coeff = convert.(typeof(a),zeros(ℓ,ℓ))
-
     # load in explicit initial cases
     coeff[1,1] = PLinitial00(t,a)
     coeff[1,2] = PLinitial01(t,a)
     coeff[2,2] = PLinitial11(t,a)
     coeff[2,3] = PLinitial12(t,a)
-
     # we have to build these two cases with some care
     coeff[1,3] = t/((a+3)/3)*coeff[1,2]+(a/3)/((a+3)/3)*coeff[1,1]
     m=1
     coeff[3,m+2] = t/((m+1)*(a+m+4)/((2*m+1)*(m+3)))*coeff[m+1,3]+((a+1)*2/(6-m*(m+1)))/((m+1)*(a+m+4)/((2*m+1)*(m+3)))*coeff[2,m+1]-(m*(a+3-m)/((2*m+1)*(2-m)))*1/((m+1)*(a+m+4)/((2*m+1)*(m+3)))*coeff[m,3]
-
     # the remaining cases can be constructed iteratively
     @inbounds for m = 2:ℓ-2
         # first row
@@ -192,6 +187,7 @@ function pointwisecoeffmatrixdense(a::Real, t::Real, ℓ::Integer)
             coeff[j+2,m+1] = (t/((n+1)*(a+m+n+2)/((2*n+1)*(m+n+1)))*coeff[n+1,m+1]+((a+1)*m/(m*(m+1)-n*(n+1)))/((n+1)*(a+m+n+2)/((2*n+1)*(m+n+1)))*coeff[n+1,m]-(n*(a+m-n+1)/((2*n+1)*(m-n)))*1/((n+1)*(a+m+n+2)/((2*n+1)*(m+n+1)))*coeff[n,m+1])
         end
     end
+    # matrix is symmetric
     @inbounds for m=1:ℓ
         @inbounds for n=m+1:ℓ
             coeff[n,m] = coeff[m,n]
@@ -212,7 +208,7 @@ end
 function PLinitial12(t, a)
     return -(((1+t)^(1+a)*((1+a)^2*(3+a)-(3+2*a*(5+2*a))*t+9*(1+a)*t^2-9*t^3)+(-1+t)^(1+a)*((1+a)^2*(3+a)+(3+2*a*(5+2*a))*t+9*(1+a)*t^2+9*t^3))/((1+a)*(2+a)*(3+a)*(4+a)))
 end
-# the following version takes a previously computed block that's been resized and fills in the missing data guided by indices in inds
+# the following version takes a previously computed block that has been resized and fills in the missing data guided by indices in inds
 function fillcoeffmatrix!(K, inds)
     # the remaining cases can be constructed iteratively
     a = K.a
@@ -234,3 +230,17 @@ function fillcoeffmatrix!(K, inds)
         K.data[m,1:end] = K.data[1:end,m]
     end
 end
+
+# pad helper function from ApproxFun
+function pad(f::AbstractVector{T},n::Integer) where T
+	if n > length(f)
+	   ret=Vector{T}(undef, n)
+	   ret[1:length(f)]=f
+	   for j=length(f)+1:n
+	       ret[j]=zero(T)
+	   end
+       ret
+	else
+        f[1:n]
+	end
+end 
