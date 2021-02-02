@@ -1,5 +1,6 @@
 using ClassicalOrthogonalPolynomials, ContinuumArrays, DomainSets, Test
-import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, PowerLawIntegral, PowKernelIntegralPoint, pointwisecoeffmatrixdense, *, dot
+import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, PowerLawIntegral, pointwisecoeffmatrixdense, *, dot, PowerLawMatrix, PowKernelPoint
+import InfiniteArrays: I
 
 @testset "Stieltjes" begin
     T = Chebyshev()
@@ -74,73 +75,79 @@ end
 #################################################
 
 @testset "dot() for PowerKernelPoint of Legendre" begin
-    @testset "Cached Legendre power law integral" begin
+    @testset "Multiplication methods" begin
+    P=Legendre()
+    x = axes(P,1)
+        for i = 1:5
+            a = 2*rand(1)[1]
+            t = 1+rand(1)[1]
+            @test (t.-x).^a isa PowKernelPoint
+            @test (t.-x).^a*P isa typeof(P*PowerLawMatrix(P,a,t))
+        end
+    end
+    @testset "Equivalence to multiplication in integer case" begin
+        P=Legendre()
+        x = axes(P,1)
+        a = 1
+        t = 1.2
+        @test PowerLawMatrix(Legendre(),Float64(a),t)[1:20,1:20] ≈ ((t*I-jacobimatrix(P))^a)[1:20,1:20]
+        a = 2
+        t = 1.0001
+        @test PowerLawMatrix(Legendre(),BigFloat("$a"),BigFloat("$t"))[1:60,1:60] ≈ ((t*I-jacobimatrix(P))^a)[1:60,1:60]
+        a = 3
+        t = 1.82087482
+        @test PowerLawMatrix(Legendre(),BigFloat("$a"),BigFloat("$t"))[1:60,1:60] ≈ ((t*I-jacobimatrix(P))^a)[1:60,1:60]
+    end
+    @testset "Cached Legendre power law integral operator" begin
+        P = Legendre()
         a = 2*rand(1)[1]
         t = 1.0000000001
-        Acached = PowerLawIntegral(Legendre(),a,t)
+        Acached = PowerLawIntegral(P,a,t)
         @test size(Acached) == (∞,∞)
-        @test Acached[1:20,1:20] == pointwisecoeffmatrixdense(a,t,20)
+        @test Acached[1:20,1:20] ≈ pointwisecoeffmatrixdense(a,t,20) ≈ ((P'P)*PowerLawMatrix(P,a,t))[1:20,1:20]
     end
-    @testset "PowKernelPoint dot evaluation finite" begin
-        # basis
+    @testset "PowKernelPoint dot evaluation, set 1" begin
         P = Legendre()
         x = axes(P,1)
-        # set 1, same length coefficient vectors
-        f = P \ abs.(π*x.^7)
-        g = P \ (cosh.(x.^3).*exp.(x.^(2)))
-        f = f[1:30]
-        g = g[1:30]
-        a = 1.9127
-        t = 1.211
-        W = P' * ((t .- x).^a .* P)
-        @test W isa PowKernelIntegralPoint
-        @test dot(f,W,g) ≈ 5.082145576355614 # Mathematica
-        # set 2, different length coefficient vectors
-        f = P \ exp.(x.^2)
-        g = P \ (sin.(x).*exp.(x.^(2)))
-        f = f[1:20]
-        g = g[1:40]
-        a = 1.23
-        t = 1.00001
-        W = P' * ((t .- x).^a .* P)
-        @test W isa PowKernelIntegralPoint
-        @test dot(f,W,g) ≈ -2.656108697646584 # Mathematica
-    end
-    @testset "PowKernelPoint dot evaluation infinite" begin
-        # basis
-        P = Legendre()
-        x = axes(P,1)
-        # set 1
         f = P \ abs.(π*x.^7)
         g = P \ (cosh.(x.^3).*exp.(x.^(2)))
         a = 1.9127
         t = 1.211
-        W = P' * ((t .- x).^a .* P)
-        @test W isa PowKernelIntegralPoint
-        @test dot(f,W,g) ≈ 5.082145576355614 # Mathematica
-        # set 2
+        W = (BigFloat("$t") .- x).^BigFloat("$a")
+        PW = P'*(W*P)
+        @test W isa PowKernelPoint
+        @test PW[1:20,1:20] ≈ PowerLawIntegral(P,a,t)[1:20,1:20]
+        # this is slower than directly using PowerLawIntegral but it works
+        @test dot(f[1:20],PW[1:20,1:20],g[1:20]) ≈ 5.082145576355614 # Mathematica
+    end
+    @testset "PowKernelPoint dot evaluation, set 2" begin
+        P = Legendre()
+        x = axes(P,1)
         f = P \ exp.(x.^2)
         g = P \ (sin.(x).*exp.(x.^(2)))
         a = 1.23
         t = 1.00001
-        W = P' * ((t .- x).^a .* P)
-        @test W isa PowKernelIntegralPoint
+        W = PowerLawIntegral(P,a,t)
         @test dot(f,W,g) ≈ -2.656108697646584 # Mathematica
-       # set 3
+    end
+    @testset "PowKernelPoint dot evaluation, set 3" begin
+        P = Legendre()
+        x = axes(P,1)
         t = 1.2
         a = 1.1
-        W = P' * ((t .- x).^a .* P)
+        W = PowerLawIntegral(P,a,t)
         f = P \ exp.(x)
         g = P \ exp.(x.^2)
-        @test W isa PowKernelIntegralPoint
         @test dot(f,W,g) ≈ 2.916955525390389 # Mathematica
-        # set 4
+    end
+    @testset "PowKernelPoint dot evaluation, set 4" begin
+        P = Legendre()
+        x = axes(P,1)
         t = 1.001
         a = 1.001
-        W = P' * ((t .- x).^a .* P)
+        W = PowerLawIntegral(P,a,t)
         f = P \ (sinh.(x).*exp.(x))
         g = P \ cos.(x.^3)
-        @test W isa PowKernelIntegralPoint
         @test dot(f,W,g) ≈ -0.1249375144525209 # Mathematica
     end
     @testset "more explicit evaluation tests" begin
@@ -149,15 +156,14 @@ end
         t = 1.000001
         P = Legendre()
         x = axes(P,1)
-            # operator
-        W = P' * ((t .- x).^a .* P)
-        @test W isa PowKernelIntegralPoint
-            # functions
+        # operator
+        W = PowerLawIntegral(P,a,t)
+        # functions
         f = P \ exp.(x)
         g = P \ sin.(x)
         const1(x) = 1
         onevec = P \ const1.(x)
-            # dot() and * methods tests, explicit values via Mathematica
+        # dot() and * methods tests, explicit values via Mathematica
         @test -2.062500116206712 ≈ dot(onevec,W,g) == onevec'*W*g
         @test 2.266485452423447 ≈ dot(onevec,W,f) == onevec'*W*f
         @test -0.954305839543464 ≈ g'*W*f == dot(g,W,f)
