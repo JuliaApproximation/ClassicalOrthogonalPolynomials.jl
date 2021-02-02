@@ -79,35 +79,8 @@ end
 #################################################
 # ∫f(x)g(x)(t-x)^a dx evaluation where f and g given in coefficients
 #################################################
-# recognize structure of W = P' * ((t .- x).^a .* P)
-const PowKernelIntegralPoint{T, V, D, F} = QuasiArrays.ApplyQuasiArray{T, 2, typeof(*), Tuple{QuasiArrays.QuasiAdjoint{T, Legendre{Float64}}, QuasiArrays.BroadcastQuasiArray{T, 2, typeof(*), Tuple{QuasiArrays.BroadcastQuasiArray{T, 1, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}, Legendre{Float64}}}}} # method only works for Legendre for now, so require Legendre OPs.
-
-####
-# methods
-####
-# if needed repeatedly due to caching it's generally faster to store PowerLawIntegral directly and use that
-function dot(f::AbstractVector{T}, K::PowKernelIntegralPoint, g::AbstractVector{T}) where T
-    # generate operator
-    a = K.args[2].args[1].args[2]
-    t = K.args[2].args[1].args[1][0.]
-    PP = K.args[2].args[2]
-    K = PowerLawIntegral(PP,BigFloat("$a"),BigFloat("$t"))
-    # check if infinite
-    (lf, lg) = (length(f),length(g))
-    maxl = maximum((lf, lg))
-    (maxl<∞) && return dot(pad(f,maxl),K[1:maxl,1:maxl],pad(g,maxl))
-    ((lf<∞) || (lg<∞)) && error("TODO: Currently only both finite or both infinite.")
-    (i,conv1,conv2) = (0,1,2)
-    while abs(conv1-conv2)>1e-15
-        i = i+1
-        conv1 = dot(f[1:i*20],K[1:i*20,1:i*20],g[1:i*20])
-        conv2 = dot(f[1:2*i*20],K[1:2*i*20,1:2*i*20],g[1:2*i*20])
-    end
-    return conv2
-end
-function *(g::Adjoint, K::PowKernelIntegralPoint, f::AbstractVector)
-    return dot(g',K,f)
-end
+# recognize structure of W = ((t .- x).^a
+const PowKernelPoint{T,V,D,F} =  BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
 
 ####
 # cached operator implementation
@@ -126,18 +99,42 @@ mutable struct PowerLawIntegral{T, PP<:AbstractQuasiMatrix} <: AbstractCachedMat
 end
 PowerLawIntegral(P::AbstractQuasiMatrix, a::T, t::T) where T = PowerLawIntegral{T,typeof(P)}(P,a,t)
 size(K::PowerLawIntegral) = (∞,∞) # potential to add maximum size of operator
+mutable struct PowerLawMatrix{T, PP<:AbstractQuasiMatrix} <: AbstractCachedMatrix{T}
+    P::PP # OPs - only Legendre supported for now
+    a::T  # naming scheme follows (t-x)^a
+    t::T
+    data::Matrix{T}
+    datasize::Tuple{Int,Int}
+    array
+    function PowerLawMatrix{T, PP}(P::PP, a::T, t::T) where {T, PP<:AbstractQuasiMatrix}
+        new{T, PP}(P,a,t, pointwisecoeffmatrixdense(a,t,10),(10,10))
+    end
+end
+PowerLawMatrix(P::AbstractQuasiMatrix, a::T, t::T) where T = PowerLawMatrix{T,typeof(P)}(P,a,t)
+size(K::PowerLawMatrix) = (∞,∞) # potential to add maximum size of operator
 
 # data filling
 cache_filldata!(K::PowerLawIntegral, inds) = fillcoeffmatrix!(K, inds)
+cache_filldata!(K::PowerLawMatrix, inds) = fillcoeffmatrix!(K, inds)
 
 # because it really only makes sense to compute this symmetric operator in square blocks, we have to slightly rework some of LazyArrays caching and resizing
-function Base.getindex(A::PowerLawIntegral{T, PP}, I::CartesianIndex) where {T,PP<:AbstractQuasiMatrix}
-    resizedata!(A, Tuple(I))
-    A.data[I]
+function getindex(K::PowerLawIntegral{T, PP}, I::CartesianIndex) where {T,PP<:AbstractQuasiMatrix}
+    resizedata!(K, Tuple(I))
+    K.data[I]
 end
 function getindex(K::PowerLawIntegral{T,PP}, I::Vararg{Int,2}) where {T,PP<:AbstractQuasiMatrix}
     resizedata!(K, Tuple([I...]))
     K.data[I...]
+end
+function getindex(K::PowerLawMatrix{T, PP}, I::CartesianIndex) where {T,PP<:AbstractQuasiMatrix}
+    resizedata!(K, Tuple(I))
+    ℓ = K.datasize[1]
+    return (InfiniteArrays.Diagonal((2 .* (0:ℓ-1) .+1)/2)*(K.data))[I]
+end
+function getindex(K::PowerLawMatrix{T,PP}, I::Vararg{Int,2}) where {T,PP<:AbstractQuasiMatrix}
+    resizedata!(K, Tuple([I...]))
+    ℓ = K.datasize[1]
+    return (InfiniteArrays.Diagonal((2 .* (0:ℓ-1) .+1)/2)*(K.data))[I...]
 end
 function resizedata!(K::PowerLawIntegral, nm) 
     olddata = K.data
@@ -155,6 +152,44 @@ function resizedata!(K::PowerLawIntegral, nm)
         K.datasize = nm
     end
     K
+end
+function resizedata!(K::PowerLawMatrix, nm) 
+    olddata = K.data
+    νμ = size(olddata)
+    nm = (maximum(nm),maximum(nm))
+    nm = max.(νμ,nm)
+    nm = (maximum(nm),maximum(nm))
+    if νμ ≠ nm
+        K.data = similar(K.data, nm...)
+        K.data[axes(olddata)...] = olddata
+    end
+    if maximum(nm) > maximum(νμ)
+        inds = Array(maximum(νμ):maximum(nm))
+        cache_filldata!(K, inds)
+        K.datasize = nm
+    end
+    K
+end
+
+####
+# methods
+####
+function *(K::PowKernelPoint,Q::Legendre{T}) where T
+    t = K.args[1][0.]
+    a = K.args[2]
+    return Q*PowerLawMatrix(Q,a,t)
+end
+function dot(f::AbstractVector{T}, K::PowerLawIntegral, g::AbstractVector{T}) where T
+    (i,conv1,conv2) = (0,1,2)
+    while abs(conv1-conv2)>1e-15
+        i = i+1
+        conv1 = dot(f[1:i*10],K[1:i*10,1:i*10],g[1:i*10])
+        conv2 = dot(f[1:i*20],K[1:i*20,1:i*20],g[1:i*20])
+    end
+    return conv2
+end
+function *(g::Adjoint, K::PowerLawIntegral, f::AbstractVector)
+    return dot(g',K,f)
 end
 
 ####
@@ -230,17 +265,3 @@ function fillcoeffmatrix!(K, inds)
         K.data[m,1:end] = K.data[1:end,m]
     end
 end
-
-# pad helper function from ApproxFun
-function pad(f::AbstractVector{T},n::Integer) where T
-	if n > length(f)
-	   ret=Vector{T}(undef, n)
-	   ret[1:length(f)]=f
-	   for j=length(f)+1:n
-	       ret[j]=zero(T)
-	   end
-       ret
-	else
-        f[1:n]
-	end
-end 
