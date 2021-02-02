@@ -138,18 +138,6 @@ function *(K::PowKernelPoint,Q::Normalized{<:Any,<:Legendre{<:Any}})
     a = K.args[2]
     return Q*PowerLawMatrix(Q,a,t)
 end
-function dot(f::AbstractVector{T}, K::PowerLawMatrix, g::AbstractVector{T}) where T
-    (i,conv1,conv2) = (0,1,2)
-    while abs(conv1-conv2)>1e-15
-        i = i+1
-        conv1 = dot(f[1:i*10],K[1:i*10,1:i*10],g[1:i*10])
-        conv2 = dot(f[1:i*20],K[1:i*20,1:i*20],g[1:i*20])
-    end
-    return conv2
-end
-function *(g::Adjoint, K::PowerLawMatrix, f::AbstractVector)
-    return dot(g',K,f)
-end
 
 ####
 # recurrence evaluation
@@ -219,7 +207,7 @@ function fillcoeffmatrix!(K, inds)
         K.data[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnadd1(m)*K.data[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pmnmix(1,m)*K.data[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnsub1(m)*K.data[2,m])
         # build remaining row elements
         @inbounds for j=1:m
-            K.data[j+2,m+2] = (t/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+1+j+1)))*normconst_Pnadd1(j)*K.data[j+1,m+2]+((a+1)*(m+1)/((m+1)*(m+2)-j*(j+1)))/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+j+2)))*normconst_Pmnmix(m,j)*K.data[j+1,m+1]-(j*(a+m+1-j+1)/((2*j+1)*(m+1-j)))*1/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+1+j+1)))*normconst_Pnsub1(j)*K.data[j,m+2])
+            K.data[j+2,m+2] = (t/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+1+j+1)))*normconst_Pnadd1(j)*K.data[j+1,m+2]+((a+1)*(m+1)/((m+1)*(m+2)-j*(j+1)))/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+j+2)))*normconst_Pmnmix(m+1,j)*K.data[j+1,m+1]-(j*(a+m+1-j+1)/((2*j+1)*(m+1-j)))*1/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+1+j+1)))*normconst_Pnsub1(j)*K.data[j,m+2])
         end
     end
     # matrix is symmetric
