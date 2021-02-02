@@ -3,8 +3,6 @@ import ClassicalOrthogonalPolynomials: NormalizationConstant, NormalizedBasisLay
 import LazyArrays: CachedVector, PaddedLayout
 import ContinuumArrays: MappedWeightedBasisLayout
 
-
-
 @testset "Normalized" begin
     @testset "Legendre" begin
         P = Legendre()
@@ -12,7 +10,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
         @testset "Basic" begin
             @test MemoryLayout(Q) isa NormalizedBasisLayout
-            @test_broken @inferred(Q\Q) ≡ Eye(∞)
+            @test Q\Q ≡ Eye(∞)
             @test Q == Q
             @test P ≠ Q
             @test Q ≠ P
