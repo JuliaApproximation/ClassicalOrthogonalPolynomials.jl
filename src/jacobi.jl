@@ -197,7 +197,7 @@ end
 ########
 
 jacobimatrix(::Legendre{T}) where T = _BandedMatrix(Vcat(((zero(T):∞)./(1:2:∞))', Zeros{T}(1,∞), ((one(T):∞)./(1:2:∞))'), ∞, 1,1)
-function jacobimatrix(Q::Normalized{<:Any,<:Legendre})
+function jacobimatrix(::Normalized{<:Any,<:Legendre})
     b = (1:∞) ./sqrt.(4 .*(1:∞).^2 .-1)
     Symmetric(_BandedMatrix(Vcat(zeros(∞)', (b)'), ∞, 1, 0), :L)
 end
