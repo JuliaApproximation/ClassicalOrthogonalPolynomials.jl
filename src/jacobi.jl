@@ -197,11 +197,20 @@ end
 ########
 
 jacobimatrix(::Legendre{T}) where T = _BandedMatrix(Vcat(((zero(T):∞)./(1:2:∞))', Zeros{T}(1,∞), ((one(T):∞)./(1:2:∞))'), ∞, 1,1)
+function jacobimatrix(Q::Normalized{<:Any,<:Legendre})
+    b = (1:∞) ./sqrt.(4 .*(1:∞).^2 .-1)
+    Symmetric(_BandedMatrix(Vcat(zeros(∞)', (b)'), ∞, 1, 0), :L)
+end
 
 # These return vectors A[k], B[k], C[k] are from DLMF. Cause of MikaelSlevinsky we need an extra entry in C ... for now.
 function recurrencecoefficients(::Legendre{T}) where T
     n = zero(T):∞
     ((2n .+ 1) ./ (n .+ 1), Zeros{T}(∞), n ./ (n .+ 1))
+end
+function recurrencecoefficients(::Normalized{<:Any,<:Legendre{T}}) where T
+    n = zero(T):∞
+    nn = one(T):∞
+    ((2n .+ 1) ./ (n .+ 1) ./ sqrt.(1 .-2 ./(3 .+2n)), Zeros{T}(∞), Vcat(zero(T),nn ./ (nn .+ 1) ./ sqrt.(1 .-4 ./(3 .+2nn))))
 end
 
 function jacobimatrix(J::Jacobi)
@@ -213,7 +222,6 @@ function jacobimatrix(J::Jacobi)
 
     _BandedMatrix(Vcat(C',A',B'), ∞, 1,1)
 end
-
 function recurrencecoefficients(P::Jacobi)
     n = 0:∞
     ñ = 1:∞
