@@ -81,6 +81,19 @@ end
             @test (t.-x).^a isa PowKernelPoint
             @test (t.-x).^a*P isa typeof(P*PowerLawMatrix(P,a,t))
         end
+    # basis
+    P = Normalized(Legendre())
+    x = axes(P,1)
+    # some functions
+    f = P \ exp.(x.^2)
+    g = P \ (sin.(x).*exp.(x.^(2)))
+    # some parameters for (t-x)^a
+    a = BigFloat("1.23")
+    t = BigFloat("1.00001")
+    # define powerlaw multiplication
+    W = (t.-x).^a
+    # check if it can compute the integral correctly
+    @test g'*(P'*(W*P)*f) ≈ -2.656108697646584 # Mathematica
 end
 @testset "Equivalence to multiplication in integer case" begin
         P=Normalized(Legendre())
@@ -159,9 +172,9 @@ end
         const1(x) = 1
         onevec = P \ const1.(x)
         # dot() and * methods tests, explicit values via Mathematica
-        @test -2.062500116206712 ≈ dot(onevec,W,g) == onevec'*W*g
-        @test 2.266485452423447 ≈ dot(onevec,W,f) == onevec'*W*f
-        @test -0.954305839543464 ≈ g'*W*f == dot(g,W,f)
-        @test 1.544769699288028 ≈ f'*W*f == dot(f,W,f)
-        @test 1.420460011606107 ≈ g'*W*g == dot(g,W,g)
+        @test -2.062500116206712 ≈ dot(onevec,W,g)
+        @test 2.266485452423447 ≈ dot(onevec,W,f)
+        @test -0.954305839543464 ≈ dot(g,W,f)
+        @test 1.544769699288028 ≈ dot(f,W,f)
+        @test 1.420460011606107 ≈ dot(g,W,g)
 end
