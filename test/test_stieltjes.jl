@@ -158,7 +158,7 @@ end
         g = P \ cos.(x.^3)
         @test dot(f,W,g) ≈ -0.1249375144525209 # Mathematica
 end
-@testset "more explicit evaluation tests" begin
+@testset "More explicit evaluation tests" begin
         # basis
         a = 2.9184
         t = 1.000001
@@ -177,4 +177,27 @@ end
         @test -0.954305839543464 ≈ dot(g,W,f)
         @test 1.544769699288028 ≈ dot(f,W,f)
         @test 1.420460011606107 ≈ dot(g,W,g)
+end
+@testset "Tests for -1<a<0" begin
+    P = Normalized(Legendre())
+    x = axes(P,1)
+    a=-0.7
+    t=1.271
+    # operator
+    W = PowerLawMatrix(P,a,t)
+    WB = PowerLawMatrix(P,BigFloat("$a"),BigFloat("$t"))
+    # functions
+    f0 = P \ exp.(2 .*x.^2)
+    g0 = P \ sin.(x)
+    @test dot(f0,W,g0) ≈  dot(f0,WB,g0) ≈ 1.670106472636101 # Mathematica
+    f1 = P \ ((x.^2)./3 .+(x.^3)./3)
+    g1 = P \ (x.*exp.(x.^3))
+    @test dot(f1,W,g1) ≈ dot(f1,WB,g1) ≈ 0.5362428541997497 # Mathematica
+    a = -0.08488959029015586
+    t = 1.000001
+    W = PowerLawMatrix(P,a,t)
+    WB = PowerLawMatrix(P,BigFloat("$a"),BigFloat("$t"))
+    f2 = P \ ((x.^2)./3 .+ cosh.(x.^4).*(x.^3)./3)
+    g2 = P \ (x.*exp.(x.^3))
+    @test dot(f2,W,g2) ≈ dot(f2,WB,g2) ≈ 0.3841478354955073 # Mathematica
 end
