@@ -161,6 +161,10 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         J = T\(x.*T)
         @test J isa BandedMatrix
         @test J[1:10,1:10] == jacobimatrix(T)[1:10,1:10]
+
+        @testset "inv" begin
+            @test (T \ U)[1:10,1:10] ≈ inv((U \ T)[1:10,1:10])
+        end
     end
 
     @testset "test on functions" begin

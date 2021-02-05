@@ -276,6 +276,8 @@ function \(A::Jacobi, B::Jacobi)
     elseif A.b ≥ b+1
         J = Jacobi(a,b+1)
         (A \ J) * (J \ B)
+    elseif isinteger(A.a-a) && isinteger(A.b-b)
+        inv(B \ A)
     else
         error("not implemented for $A and $B")
     end
