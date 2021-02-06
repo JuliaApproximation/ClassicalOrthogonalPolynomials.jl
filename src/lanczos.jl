@@ -83,6 +83,8 @@ getindex(R::LanczosConversion, k::AbstractUnitRange, j::AbstractUnitRange) = _la
 inv(R::LanczosConversion) = ApplyArray(inv, R)
 
 struct LanczosConversionLayout <: AbstractLazyLayout end
+
+LazyArrays.simplifiable(::Mul{LanczosConversionLayout,<:PaddedLayout}) = Val(true)
 function copy(M::Mul{LanczosConversionLayout,<:PaddedLayout})
     resizedata!(M.A.data, maximum(colsupport(M.B)))
     M.A.data.R * M.B
