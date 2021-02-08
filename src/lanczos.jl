@@ -82,6 +82,9 @@ getindex(R::LanczosConversion, k::AbstractUnitRange, j::AbstractUnitRange) = _la
 
 inv(R::LanczosConversion) = ApplyArray(inv, R)
 
+
+Base.BroadcastStyle(::Type{<:LanczosConversion}) = LazyArrays.LazyArrayStyle{2}()
+
 struct LanczosConversionLayout <: AbstractLazyLayout end
 
 LazyArrays.simplifiable(::Mul{LanczosConversionLayout,<:PaddedLayout}) = Val(true)
@@ -109,7 +112,7 @@ function sub_paddeddata(::LanczosConversionLayout, S::SubArray{<:Any,1,<:Abstrac
     P = parent(S)
     (kr,j) = parentindices(S)
     resizedata!(P.data, j)
-    paddeddata(view(P.data.R, kr, j))
+    paddeddata(view(UpperTriangular(P.data.R.data.data), kr, j))
 end
 
 # struct LanczosJacobiMatrix{T,XX,WW} <: AbstractBandedMatrix{T}
