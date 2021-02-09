@@ -12,7 +12,7 @@ struct Hermite{T} <: OrthogonalPolynomial{T} end
 Hermite() = Hermite{Float64}()
 
 ==(::Hermite, ::Hermite) = true
-axes(::Hermite{T}) where T = (Inclusion(ℝ), OneTo(∞))
+axes(::Hermite{T}) where T = (Inclusion(ℝ), oneto(∞))
 
 # H_{n+1} = 2x H_n - 2n H_{n-1}
 # 1/2 * H_{n+1} + n H_{n-1} = x H_n 

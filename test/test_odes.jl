@@ -56,9 +56,9 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         B = BroadcastArray(+, Δ, (P\WS)'*(P'P)*(P\WS))
         @test colsupport(B,1) == 1:3
 
-        @test axes(B.args[2].args[1]) == (Base.OneTo(∞),Base.OneTo(∞))
-        @test axes(B.args[2]) == (Base.OneTo(∞),Base.OneTo(∞))
-        @test axes(B) == (Base.OneTo(∞),Base.OneTo(∞))
+        @test axes(B.args[2].args[1]) == (oneto(∞),oneto(∞))
+        @test axes(B.args[2]) == (oneto(∞),oneto(∞))
+        @test axes(B) == (oneto(∞),oneto(∞))
 
         @test BandedMatrix(view(B,1:10,13:20)) == zeros(10,8)
 

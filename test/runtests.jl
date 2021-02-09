@@ -8,7 +8,7 @@ import ClassicalOrthogonalPolynomials: jacobimatrix, ∞, ChebyshevInterval, Leg
 import LazyArrays: ApplyStyle, colsupport, MemoryLayout, arguments
 import SemiseparableMatrices: VcatAlmostBandedLayout
 import QuasiArrays: MulQuasiMatrix
-import Base: OneTo
+import ClassicalOrthogonalPolynomials: oneto
 import InfiniteLinearAlgebra: KronTrav, Block
 import FastTransforms: clenshaw!
 

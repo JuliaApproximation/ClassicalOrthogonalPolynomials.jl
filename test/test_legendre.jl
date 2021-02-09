@@ -12,7 +12,7 @@ import QuasiArrays: MulQuasiArray
 
     @testset "basics" begin
         P = Legendre()
-        @test axes(P) == (Inclusion(ChebyshevInterval()),Base.OneTo(∞))
+        @test axes(P) == (Inclusion(ChebyshevInterval()),oneto(∞))
         @test P == P == Legendre{Float32}()
         A,B,C = recurrencecoefficients(P)
         @test B isa Zeros
