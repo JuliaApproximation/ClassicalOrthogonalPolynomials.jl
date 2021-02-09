@@ -3,7 +3,7 @@ import ClassicalOrthogonalPolynomials: jacobimatrix
 
 @testset "Hermite" begin
     H = Hermite()
-    @test axes(H) == (Inclusion(ℝ), Base.OneTo(∞))
+    @test axes(H) == (Inclusion(ℝ), oneto(∞))
     x = axes(H,1)
     X = jacobimatrix(H)
 

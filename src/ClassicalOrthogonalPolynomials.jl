@@ -40,9 +40,15 @@ export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomia
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
             ∞, Derivative, .., Inclusion, chebyshevt, chebyshevu, legendre, jacobi, legendrep, jacobip, ultrasphericalp, jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight
 
+if VERSION < v"1.6-"
+    oneto(n) = Base.OneTo(n)
+else
+    import Base: oneto
+end
+
 
 include("interlace.jl")
-    
+
 
 cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
 cardinality(::EuclideanDomain) = ℵ₁
@@ -75,7 +81,7 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiArray{
     tol = 20eps(real(T))
 
     for n = 2 .^ (4:∞)
-        An = A[:,OneTo(n)]
+        An = A[:,oneto(n)]
         cfs = An \ f
         maxabsc = maximum(abs, cfs)
         if maxabsc == 0 && maxabsfr == 0
@@ -121,9 +127,9 @@ satisfying for `x in axes(P,1)`
 P[x,2] == (A[1]*x + B[1])*P[x,1]
 P[x,n+1] == (A[n]*x + B[n])*P[x,n] - C[n]*P[x,n-1]
 ```
-Note that `C[1]`` is unused. 
+Note that `C[1]`` is unused.
 
-The relationship with the Jacobi matrix is: 
+The relationship with the Jacobi matrix is:
 ```julia
 1/A[n] == X[n+1,n]
 -B[n]/A[n] == X[n,n]
@@ -234,7 +240,7 @@ factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{<:Inclusion,<:OneT
 
 function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{<:Inclusion,<:AbstractUnitRange}}) where T
     _,jr = parentindices(L)
-    ProjectionFactorization(factorize(parent(L)[:,Base.OneTo(maximum(jr))]), jr)
+    ProjectionFactorization(factorize(parent(L)[:,oneto(maximum(jr))]), jr)
 end
 
 function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})

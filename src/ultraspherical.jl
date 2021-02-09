@@ -141,6 +141,8 @@ function \(U::Ultraspherical{<:Any,<:Integer}, C::ChebyshevU)
     U\Ultraspherical(C)
 end
 
+\(T::Chebyshev, C::Ultraspherical) = inv(C \ T)
+
 function \(C2::Ultraspherical{<:Any,<:Integer}, C1::Ultraspherical{<:Any,<:Integer})
     λ = C1.λ
     T = promote_type(eltype(C2), eltype(C1))
@@ -162,6 +164,11 @@ function \(C2::Ultraspherical, C1::Ultraspherical)
         _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ∞, 0, 2)
     elseif C2.λ == λ
         Eye{T}(∞)
+    elseif isinteger(C2.λ-λ) && C2.λ > λ
+        Cm = Ultraspherical{T}(λ+1)
+        (C2 \ Cm) * (Cm \ C1)
+    elseif isinteger(C2.λ-λ)
+        inv(C1 \ C2)
     else
         error("Not implemented")
     end

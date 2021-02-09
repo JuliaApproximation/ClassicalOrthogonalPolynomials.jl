@@ -141,7 +141,7 @@ WeightedJacobi(a,b) = JacobiWeight(a,b) .* Jacobi(a,b)
 WeightedJacobi{T}(a,b) where T = JacobiWeight{T}(a,b) .* Jacobi{T}(a,b)
 
 
-axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), OneTo(∞))
+axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b
 ==(P::Legendre, Q::Jacobi) = Jacobi(P) == Q
 ==(P::Jacobi, Q::Legendre) = P == Jacobi(Q)
@@ -276,6 +276,8 @@ function \(A::Jacobi, B::Jacobi)
     elseif A.b ≥ b+1
         J = Jacobi(a,b+1)
         (A \ J) * (J \ B)
+    elseif isinteger(A.a-a) && isinteger(A.b-b)
+        inv(B \ A)
     else
         error("not implemented for $A and $B")
     end

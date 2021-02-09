@@ -105,6 +105,16 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test A[1:10,1:10] == I
         end
 
+        @testset "Conversion" begin
+            A,B = Jacobi(0.25,-0.7), Jacobi(3.25,1.3)
+            R = B \ A
+            c = [[1,2,3,4,5]; zeros(∞)]
+            @test B[0.1,:]' * (R * c) ≈ A[0.1,:]' * c
+            Ri = A \ B
+            @test Ri[1:10,1:10] ≈ inv(R[1:10,1:10])
+            @test A[0.1,:]' * (Ri * c) ≈ B[0.1,:]' * c
+        end
+
         @testset "Derivative" begin
             a,b,c = 0.1,0.2,0.3
             S = Jacobi(a,b)
