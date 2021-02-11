@@ -183,4 +183,19 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
         @test (pϕ.P' * (ϕw .* pϕ.P))[1:3,1:3] ≈ [2 -0.5 0; -0.5 2 -0.5; 0 -0.5 2]
         @test (pϕ' * (ϕw .* pϕ))[1:5,1:5] ≈ I
     end
+
+    @testset "weighted Chebyshev" begin
+        T = ChebyshevT()
+        x = axes(T,1)
+        t = 2
+        Q = LanczosPolynomial((t .- x).^(-1) .* ChebyshevWeight())
+        # perturbation of Toeplitz
+        @test jacobimatrix(Q)[3:10,3:10] ≈ Symmetric(BandedMatrix(1 => Fill(0.5,7)))
+
+        Q = LanczosPolynomial((t .- x) .^ (-1))
+        @test Q[0.1,2] ≈ -0.1327124082839674
+
+        R = LanczosPolynomial((t .- x).^(-1/2) .* ChebyshevWeight())
+        @test R[0.1,2] ≈ -0.03269577983003056
+    end
 end

@@ -68,6 +68,7 @@ for op in (:+, :-, :*)
         singularitiesbroadcast(::typeof($op), ::NoSingularities, L::LegendreWeight) = L
     end
 end
+singularitiesbroadcast(::typeof(^), L::LegendreWeight, ::NoSingularities) = L
 singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # can't find roots
 
 _parent(::NoSingularities) = NoSingularities()
@@ -78,8 +79,8 @@ singularitiesbroadcast(F::Function, G::Function, V::SubQuasiArray, K) = singular
 singularitiesbroadcast(F, V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(F, map(_parent,V)...)[_parentindices(V...)...]
 
 
-singularitiesbroadcast(::typeof(*), ::LegendreWeight, b::JacobiWeight) = b
-singularitiesbroadcast(::typeof(*), a::JacobiWeight, ::LegendreWeight) = a
+singularitiesbroadcast(::typeof(*), ::LegendreWeight, b::AbstractJacobiWeight) = b
+singularitiesbroadcast(::typeof(*), a::AbstractJacobiWeight, ::LegendreWeight) = a
 
 abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
 
