@@ -88,6 +88,17 @@ end
 
 # q_{n+1}/h[n+1] = (A_n * x + B_n) * q_n/h[n] - C_n * p_{n-1}/h[n-1]
 # q_{n+1} = (h[n+1]/h[n] * A_n * x + h[n+1]/h[n] * B_n) * q_n - h[n+1]/h[n-1] * C_n * p_{n-1}
+
+struct NormalizedJacobiMatrix{T, XX<:AbstractMatrix, NC<:NormalizationConstant} <: AbstractCachedMatrix{T}
+    data::SymTridiagonal{T, Vector{T}}    
+    X::XX
+    scaling::NC
+end
+
+# function resizedata!(X::NormalizedJacobiMatrix, 
+
+jacobimatrix(Q::Normalized) = NormalizedJacobiMatrix(jacobimatrix(Q), Q.scaling)
+
 function jacobimatrix(Q::Normalized)
     X = jacobimatrix(Q.P)
     a,b = X[band(0)], X[band(-1)]
