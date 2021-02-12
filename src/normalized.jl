@@ -89,37 +89,11 @@ end
 # q_{n+1}/h[n+1] = (A_n * x + B_n) * q_n/h[n] - C_n * p_{n-1}/h[n-1]
 # q_{n+1} = (h[n+1]/h[n] * A_n * x + h[n+1]/h[n] * B_n) * q_n - h[n+1]/h[n-1] * C_n * p_{n-1}
 
-struct SymTridiagonalized{T, XX<:AbstractMatrix, NC<:NormalizationConstant} <: AbstractCachedMatrix{T}
-    data::SymTridiagonal{T, Vector{T}}    
-    X::XX
-    scaling::NC
+function symtridagonalize(X)
+    c,a,b = X[band(-1)],X[band(0)],X[band(1)]
+    Symmetric(_BandedMatrix(Vcat(a', (sqrt.(b .* c))'), ∞, 1, 0), :L)
 end
-
-SymTridiagonalized(X::AbstractMatrix{T}, scaling) where T = SymTridiagonalized(SymTridiagonal(X[1:1,1], T[]), X, scaling)
-
-datasize(X::SymTridiagonalized) = (length(X.data.dv), length(X.data.dv))
-bandwidths(::SymTridiagonalized) = (1,1)
-size(::SymTridiagonalized) = (∞,∞)
-MemoryLayout(::Type{<:SymTridiagonalized}) = BandedMatrices.BandedLayout() # SymTridiagonalLayout?
-
-function resizedata!(X::SymTridiagonalized, n, m)
-    n = max(n,m)
-    n_old = datasize(X)[1]
-    if n > n_old
-        a,b = X.X[band(0)], X.X[band(-1)]
-        resizedata!(X.scaling, n)
-        h = X.scaling.data
-        resize!(X.data.dv, n)
-        resize!(X.data.ev, n-1)
-
-        copyto!(view(X.data.dv, n_old:n), view(a, n_old:n))
-        kr = max(n_old-1,1):n-1
-        view(X.data.ev, kr) .= view(b, kr) .* view(h, kr) ./ view(h, kr .+ 1)
-    end
-    X
-end
-
-jacobimatrix(Q::Normalized) = SymTridiagonalized(jacobimatrix(Q.P), Q.scaling)
+jacobimatrix(Q::Normalized) = symtridagonalize(jacobimatrix(Q.P))
 
 orthogonalityweight(Q::Normalized) = orthogonalityweight(Q.P)
 singularities(Q::Normalized) = singularities(Q.P)
