@@ -77,9 +77,9 @@ _p0(Q::Normalized) = Q.scaling[1]
 # q_{n+1} = (h[n+1]/h[n] * A_n * x + h[n+1]/h[n] * B_n) * q_n - h[n+1]/h[n-1] * C_n * p_{n-1}
 
 function recurrencecoefficients(Q::Normalized)
-    A,B,C = recurrencecoefficients(Q.P)
-    h = Q.scaling
-    h[2:∞] ./ h .* A, h[2:∞] ./ h .* B, Vcat(zero(eltype(Q)), h[3:∞] ./ h .* C[2:∞])
+    X = jacobimatrix(Q.P)
+    c,a,b = X[band(-1)], X[band(0)], X[band(1)]
+    inv.(sqrt.(b .* c)), -(a ./ sqrt.(b .* c)), Vcat(zero(eltype(Q)), sqrt.(b .* c) ./ sqrt.(b[2:end] .* c[2:end]))
 end
 
 # x * p[n] = c[n-1] * p[n-1] + a[n] * p[n] + b[n] * p[n+1]
