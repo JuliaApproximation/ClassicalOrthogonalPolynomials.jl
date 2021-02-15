@@ -20,6 +20,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
         @testset "recurrencecoefficients" begin
             A,B,C = recurrencecoefficients(Q)
+            @test B isa Zeros
             @test A[3:∞][1:10] == A[3:12]
             @test B[3:∞] ≡ Zeros(∞)
         end

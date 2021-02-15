@@ -177,8 +177,8 @@ end
 
 getindex(A::LanczosRecurrence, I::Integer) = _lanczos_getindex(A, I)
 getindex(A::LanczosRecurrence, I::AbstractVector) = _lanczos_getindex(A, I)
-getindex(K::LanczosRecurrence, k::AbstractInfUnitRange) = view(K, k)
-getindex(K::SubArray{<:Any,1,<:LanczosRecurrence}, k::AbstractInfUnitRange) = view(K, k)
+getindex(K::LanczosRecurrence, k::InfRanges{<:Integer}) = view(K, k)
+getindex(K::SubArray{<:Any,1,<:LanczosRecurrence}, k::InfRanges{<:Integer}) = view(K, k)
 
 
 struct LanczosPolynomial{T,XX,WW,Weight,Basis} <: OrthogonalPolynomial{T}

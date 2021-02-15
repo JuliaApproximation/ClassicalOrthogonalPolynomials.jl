@@ -19,7 +19,7 @@ axes(::Hermite{T}) where T = (Inclusion(ℝ), oneto(∞))
 # x*[H_0 H_1 H_2 …] = [H_0 H_1 H_2 …] * [0    1; 1/2  0     2; 1/2   0  3; …]   
 function jacobimatrix(H::Hermite{T}) where T
     # X = BandedMatrix(1 => 1:∞, -1 => Fill(one(T)/2,∞))
-    _BandedMatrix(Vcat((0:∞)', Zeros(1,∞), Fill(one(T)/2,1,∞)), ∞, 1, 1)
+    _BandedMatrix(Vcat((0:∞)', Zeros(1,∞), Fill(one(T)/2,1,∞)), ℵ₀, 1, 1)
 end
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:Hermite}, B::WeightedBasis{<:Any,<:HermiteWeight,<:Hermite})  
@@ -33,6 +33,6 @@ end
 
 @simplify function *(D::Derivative, H::Hermite)
     T = promote_type(eltype(D),eltype(H))
-    D = _BandedMatrix((zero(T):2:∞)', ∞, -1,1)
+    D = _BandedMatrix((zero(T):2:∞)', ℵ₀, -1,1)
     H*D
 end

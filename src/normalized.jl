@@ -12,7 +12,7 @@ end
 
 NormalizationConstant(P::AbstractQuasiMatrix{T}) where T = NormalizationConstant{T,typeof(P)}(P)
 
-size(K::NormalizationConstant) = (∞,)
+size(K::NormalizationConstant) = (ℵ₀,)
 
 # How we populate the data
 # function _normalizationconstant_fill_data!(K::NormalizationConstant, J::Union{BandedMatrix,Symmetric{<:Any,BandedMatrix},Tridiagonal,SymTridiagonal}, inds)
@@ -91,7 +91,7 @@ end
 
 function symtridagonalize(X)
     c,a,b = X[band(-1)],X[band(0)],X[band(1)]
-    Symmetric(_BandedMatrix(Vcat(a', (sqrt.(b .* c))'), ∞, 1, 0), :L)
+    Symmetric(_BandedMatrix(Vcat(a', (sqrt.(b .* c))'), ℵ₀, 1, 0), :L)
 end
 jacobimatrix(Q::Normalized) = symtridagonalize(jacobimatrix(Q.P))
 
@@ -131,7 +131,7 @@ _mul_arguments(Q::QuasiAdjoint{<:Any,<:Normalized}) = arguments(ApplyLayout{type
 
 # table stable identity if A.P == B.P
 @inline _normalized_ldiv(An, C, Bn) = An \ (C * Bn)
-@inline _normalized_ldiv(An, C::Eye{T}, Bn) where T = FillArrays.SquareEye{promote_type(eltype(An),T,eltype(Bn))}(∞)
+@inline _normalized_ldiv(An, C::Eye{T}, Bn) where T = FillArrays.SquareEye{promote_type(eltype(An),T,eltype(Bn))}(ℵ₀)
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,<:NormalizedBasisLayout}) = _normalized_ldiv(Diagonal(L.A.scaling), L.A.P \ L.B.P, Diagonal(L.B.scaling))
 @inline copy(L::Ldiv{Lay,<:NormalizedBasisLayout}) where Lay = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,Lay}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))

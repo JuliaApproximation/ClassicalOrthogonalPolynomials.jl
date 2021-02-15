@@ -63,7 +63,7 @@ function jacobimatrix(P::Ultraspherical{T}) where T
     λ = P.λ
     _BandedMatrix(Vcat((((2λ-1):∞) ./ (2 .*((zero(T):∞) .+ λ)))',
                         Zeros{T}(1,∞),
-                        ((one(T):∞) ./ (2 .*((zero(T):∞) .+ λ)))'), ∞, 1, 1)
+                        ((one(T):∞) ./ (2 .*((zero(T):∞) .+ λ)))'), ℵ₀, 1, 1)
 end
 
 # These return vectors A[k], B[k], C[k] are from DLMF. Cause of MikaelSlevinsky we need an extra entry in C ... for now.
@@ -84,14 +84,14 @@ end
 # Ultraspherical(1/2)\(D*Legendre())
 @simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::Legendre)
     T = promote_type(eltype(D),eltype(S))
-    A = _BandedMatrix(Ones{T}(1,∞), ∞, -1,1)
+    A = _BandedMatrix(Ones{T}(1,∞), ℵ₀, -1,1)
     ApplyQuasiMatrix(*, Ultraspherical{T}(3/2), A)
 end
 
 
 # Ultraspherical(λ+1)\(D*Ultraspherical(λ))
 @simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::Ultraspherical)
-    A = _BandedMatrix(Fill(2S.λ,1,∞), ∞, -1,1)
+    A = _BandedMatrix(Fill(2S.λ,1,∞), ℵ₀, -1,1)
     ApplyQuasiMatrix(*, Ultraspherical{eltype(S)}(S.λ+1), A)
 end
 
@@ -103,11 +103,11 @@ end
     if iszero(w.λ)
         D*S
     elseif w.λ == λ == 1
-        A = _BandedMatrix((-(1:∞))', ∞, 1,-1)
+        A = _BandedMatrix((-(1:∞))', ℵ₀, 1,-1)
         ApplyQuasiMatrix(*, ChebyshevTWeight{T}() .* ChebyshevT{T}(), A)
     elseif w.λ == λ
         n = (0:∞)
-        A = _BandedMatrix((-one(T)/(2*(λ-1)) * ((n.+1) .* (n .+ (2λ-1))))', ∞, 1,-1)
+        A = _BandedMatrix((-one(T)/(2*(λ-1)) * ((n.+1) .* (n .+ (2λ-1))))', ℵ₀, 1,-1)
         ApplyQuasiMatrix(*, WeightedUltraspherical{T}(λ-1), A)
     else
         error("Not implemented")
@@ -147,7 +147,7 @@ function \(C2::Ultraspherical{<:Any,<:Integer}, C1::Ultraspherical{<:Any,<:Integ
     λ = C1.λ
     T = promote_type(eltype(C2), eltype(C1))
     if C2.λ == λ+1
-        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ∞, 0, 2)
+        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ℵ₀, 0, 2)
     elseif C2.λ == λ
         Eye{T}(∞)
     elseif C2.λ > λ
@@ -161,7 +161,7 @@ function \(C2::Ultraspherical, C1::Ultraspherical)
     λ = C1.λ
     T = promote_type(eltype(C2), eltype(C1))
     if C2.λ == λ+1
-        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ∞, 0, 2)
+        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ℵ₀, 0, 2)
     elseif C2.λ == λ
         Eye{T}(∞)
     elseif isinteger(C2.λ-λ) && C2.λ > λ
@@ -184,7 +184,7 @@ function \(w_A::WeightedUltraspherical, w_B::WeightedUltraspherical)
         λ = A.λ
         _BandedMatrix(Vcat(((2λ:∞) .* ((2λ+1):∞) ./ (4λ .* (λ+1:∞)))',
                             Zeros(1,∞),
-                            (-(1:∞) .* (2:∞) ./ (4λ .* (λ+1:∞)))'), ∞, 2,0)
+                            (-(1:∞) .* (2:∞) ./ (4λ .* (λ+1:∞)))'), ℵ₀, 2,0)
     else
         error("not implemented for $A and $wB")
     end
