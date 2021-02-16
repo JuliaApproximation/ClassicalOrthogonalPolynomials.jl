@@ -106,15 +106,11 @@ factorize(L::SubQuasiArray{T,2,<:ChebyshevU,<:Tuple{<:Inclusion,<:OneTo}}) where
 # Jacobi Matrix
 ########
 
-jacobimatrix(C::ChebyshevT{T}) where T =
-    _BandedMatrix(Vcat(Fill(one(T)/2,1,∞),
-                        Zeros{T}(1,∞),
-                        Hcat(one(T), Fill(one(T)/2,1,∞))), ℵ₀, 1, 1)
+jacobimatrix(C::ChebyshevT{T}) where T = 
+    Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(∞), Vcat(one(T), Fill(one(T)/2,∞)))
 
 jacobimatrix(C::ChebyshevU{T}) where T =
-    _BandedMatrix(Vcat(Fill(one(T)/2,1,∞),
-                        Zeros{T}(1,∞),
-                        Fill(one(T)/2,1,∞)), ℵ₀, 1, 1)
+    Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(1,∞), Fill(one(T)/2,1,∞))
 
 
 

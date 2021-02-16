@@ -90,8 +90,8 @@ end
 # q_{n+1} = (h[n+1]/h[n] * A_n * x + h[n+1]/h[n] * B_n) * q_n - h[n+1]/h[n-1] * C_n * p_{n-1}
 
 function symtridagonalize(X)
-    c,a,b = X[band(-1)],X[band(0)],X[band(1)]
-    Symmetric(_BandedMatrix(Vcat(a', (sqrt.(b .* c))'), ℵ₀, 1, 0), :L)
+    c,a,b = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
+    SymTridiagonal(a, sqrt.(b .* c))
 end
 jacobimatrix(Q::Normalized) = symtridagonalize(jacobimatrix(Q.P))
 

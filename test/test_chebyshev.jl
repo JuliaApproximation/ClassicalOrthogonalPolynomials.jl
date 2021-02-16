@@ -2,7 +2,7 @@ using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatric
         FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays
 import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix
 import LazyArrays: ApplyStyle
-import QuasiArrays: MulQuasiMatrix
+import QuasiArrays: MulQuasiMatrix, oneto
 import Base: OneTo
 import ContinuumArrays: MappedWeightedBasisLayout, Map
 
