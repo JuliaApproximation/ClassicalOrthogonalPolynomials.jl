@@ -61,9 +61,9 @@ Jacobi(C::Ultraspherical{T}) where T = Jacobi(C.λ-one(T)/2,C.λ-one(T)/2)
 
 function jacobimatrix(P::Ultraspherical{T}) where T
     λ = P.λ
-    Tridiagonal(((2λ-1):∞) ./ (2 .*((zero(T):∞) .+ λ)),
+    Tridiagonal((one(T):∞) ./ (2 .*((zero(T):∞) .+ λ)),
                 Zeros{T}(∞),
-                (one(T):∞) ./ (2 .*((zero(T):∞) .+ λ)))
+                ((2λ):∞) ./ (2 .*((one(T):∞) .+ λ)))
 end
 
 # These return vectors A[k], B[k], C[k] are from DLMF. Cause of MikaelSlevinsky we need an extra entry in C ... for now.

@@ -64,7 +64,8 @@ end
 function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), c::BroadcastQuasiVector{<:Any,typeof(cos),<:Tuple{<:Inclusion{<:Any,<:FullSpace}}}, F::Fourier)
     axes(c,1) == axes(F,1) || throw(DimensionMismatch())
     T = promote_type(eltype(c), eltype(F))
-    F*mortar(Tridiagonal(Vcat([reshape([0; one(T)],2,1)], Fill(Matrix(one(T)/2*I,2,2),∞)),
+    # Use LinearAlgebra.Tridiagonal for now since broadcasting support not complete for LazyBandedMatrices.Tridiagonal
+    F*mortar(LinearAlgebra.Tridiagonal(Vcat([reshape([0; one(T)],2,1)], Fill(Matrix(one(T)/2*I,2,2),∞)),
                         Vcat([zeros(T,1,1)], Fill(Matrix(zero(T)I,2,2),∞)),
                         Vcat([[0 one(T)/2]], Fill(Matrix(one(T)/2*I,2,2),∞))))
 end
@@ -73,7 +74,8 @@ end
 function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), s::BroadcastQuasiVector{<:Any,typeof(sin),<:Tuple{<:Inclusion{<:Any,<:FullSpace}}}, F::Fourier)
     axes(s,1) == axes(F,1) || throw(DimensionMismatch())
     T = promote_type(eltype(s), eltype(F))
-    F*mortar(Tridiagonal(Vcat([reshape([one(T); 0],2,1)], Fill([0 one(T)/2; -one(T)/2 0],∞)),
+    # Use LinearAlgebra.Tridiagonal for now since broadcasting support not complete for LazyBandedMatrices.Tridiagonal
+    F*mortar(LinearAlgebra.Tridiagonal(Vcat([reshape([one(T); 0],2,1)], Fill([0 one(T)/2; -one(T)/2 0],∞)),
                         Vcat([zeros(T,1,1)], Fill(Matrix(zero(T)*I,2,2),∞)),
                         Vcat([[one(T)/2 0]], Fill([0 -one(T)/2; one(T)/2 0],∞))))
 end

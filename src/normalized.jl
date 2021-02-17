@@ -78,7 +78,7 @@ _p0(Q::Normalized) = Q.scaling[1]
 
 function recurrencecoefficients(Q::Normalized)
     X = jacobimatrix(Q.P)
-    c,a,b = X[band(-1)], X[band(0)], X[band(1)]
+    c,a,b = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
     inv.(sqrt.(b .* c)), -(a ./ sqrt.(b .* c)), Vcat(zero(eltype(Q)), sqrt.(b .* c) ./ sqrt.(b[2:end] .* c[2:end]))
 end
 

@@ -110,6 +110,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             R = B \ A
             c = [[1,2,3,4,5]; zeros(∞)]
             @test B[0.1,:]' * (R * c) ≈ A[0.1,:]' * c
+            R \ c
             Ri = A \ B
             @test Ri[1:10,1:10] ≈ inv(R[1:10,1:10])
             @test A[0.1,:]' * (Ri * c) ≈ B[0.1,:]' * c
@@ -199,13 +200,13 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         S = Jacobi(true,true)
         w̃ = JacobiWeight(false,true)
         A = Jacobi(true,false)\(w̃ .* S)
-        @test A isa BandedMatrix
+        @test A isa LazyBandedMatrices.Bidiagonal
         @test size(A) == (∞,∞)
         @test A[1:10,1:10] ≈ (Jacobi(1.0,0.0) \ (JacobiWeight(0.0,1.0) .* Jacobi(1.0,1.0)))[1:10,1:10]
 
         w̄ = JacobiWeight(true,false)
         A = Jacobi(false,true)\(w̄.*S)
-        @test A isa BandedMatrix
+        @test A isa LazyBandedMatrices.Bidiagonal
         @test size(A) == (∞,∞)
         @test A[1:10,1:10] ≈ (Jacobi(0.0,1.0) \ (JacobiWeight(1.0,0.0) .* Jacobi(1.0,1.0)))[1:10,1:10]
 

@@ -107,10 +107,10 @@ factorize(L::SubQuasiArray{T,2,<:ChebyshevU,<:Tuple{<:Inclusion,<:OneTo}}) where
 ########
 
 jacobimatrix(C::ChebyshevT{T}) where T = 
-    Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(∞), Vcat(one(T), Fill(one(T)/2,∞)))
+    Tridiagonal(Vcat(one(T), Fill(one(T)/2,∞)), Zeros{T}(∞), Fill(one(T)/2,∞))
 
 jacobimatrix(C::ChebyshevU{T}) where T =
-    Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(∞), Fill(one(T)/2,∞))
+    SymTridiagonal(Zeros{T}(∞), Fill(one(T)/2,∞))
 
 
 

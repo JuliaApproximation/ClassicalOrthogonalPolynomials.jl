@@ -213,7 +213,7 @@ end
 # Jacobi Matrix
 ########
 
-jacobimatrix(::Legendre{T}) where T =  Tridiagonal((zero(T):∞)./(1:2:∞), Zeros{T}(∞), (one(T):∞)./(1:2:∞))
+jacobimatrix(::Legendre{T}) where T =  Tridiagonal((one(T):∞)./(1:2:∞), Zeros{T}(∞), (one(T):∞)./(3:2:∞))
 
 # These return vectors A[k], B[k], C[k] are from DLMF. Cause of MikaelSlevinsky we need an extra entry in C ... for now.
 function recurrencecoefficients(::Legendre{T}) where T
@@ -226,9 +226,9 @@ function jacobimatrix(J::Jacobi)
     n = 0:∞
     B = Vcat(2 / (a+b+2),  2 .* (n .+ 2) .* (n .+ (a+b+2)) ./ ((2n .+ (a+b+3)) .* (2n .+ (a+b+4))))
     A = Vcat((b-a) / (a+b+2), (b^2-a^2) ./ ((2n .+ (a+b+2)) .* (2n .+ (a+b+4))))
-    C = 2 .* (n .+ a) .* (n .+ b) ./ ((2n .+ (a+b)) .* (2n .+ (a+b+1)))
+    C = 2 .* (n .+ (a + 1)) .* (n .+ (b + 1)) ./ ((2n .+ (a+b+2)) .* (2n .+ (a+b+3)))
 
-    Tridiagonal(C,A,B)
+    Tridiagonal(B,A,C)
 end
 
 function recurrencecoefficients(P::Jacobi)
@@ -260,17 +260,13 @@ function \(A::Jacobi, B::Jacobi)
     if A.a ≈ a && A.b ≈ b
         Eye{T}(∞)
     elseif isone(-a-b) && A.a == a && A.b == b+1
-        Bidiagonal(((0:∞) .+ a) ./ ((1:2:∞) .+ (a+b)),
-                    ((2:∞) .+ (a+b)) ./ ((3:2:∞) .+ (a+b)), :U)
+        Bidiagonal(Vcat(1, ((2:∞) .+ (a+b)) ./ ((3:2:∞) .+ (a+b))), ((1:∞) .+ a) ./ ((3:2:∞) .+ (a+b)), :U)
     elseif isone(-a-b) && A.a == a+1 && A.b == b
-        Bidiagonal(-((0:∞) .+ b) ./ ((1:2:∞) .+ (a+b)),
-                    ((2:∞) .+ (a+b)) ./ ((3:2:∞) .+ (a+b)), :U)
+        Bidiagonal(Vcat(1, ((2:∞) .+ (a+b)) ./ ((3:2:∞) .+ (a+b))), -((1:∞) .+ b) ./ ((3:2:∞) .+ (a+b)), :U)
     elseif A.a == a && A.b == b+1
-        Bidiagonal(((0:∞) .+ a)./((1:2:∞) .+ (a+b)),
-                            ((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)), :U)
+        Bidiagonal(((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)), ((1:∞) .+ a)./((3:2:∞) .+ (a+b)), :U)
     elseif A.a == a+1 && A.b == b
-        Bidiagonal(-((0:∞) .+ b)./((1:2:∞) .+ (a+b)),
-                    ((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)), :U)
+        Bidiagonal(((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)), -((1:∞) .+ b)./((3:2:∞) .+ (a+b)), :U)
     elseif A.a ≥ a+1
         J = Jacobi(a+1,b)
         (A \ J) * (J \ B)

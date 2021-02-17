@@ -92,6 +92,7 @@ import QuasiArrays: MulQuasiArray
         x = Inclusion(0..1)
         Q = P[2x.-1,:]
         @test x .* Q isa MulQuasiArray
+        @test Q \ (x .* Q) isa LazyBandedMatrices.Tridiagonal
     end
 
     @testset "sum" begin

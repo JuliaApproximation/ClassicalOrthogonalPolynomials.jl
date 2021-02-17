@@ -1,6 +1,5 @@
 using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatrices, LazyArrays, 
-        FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays,
-        LazyBandedMatrices
+        FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays, LazyBandedMatrices, ForwardDiff
 import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix
 import LazyArrays: ApplyStyle
 import QuasiArrays: MulQuasiMatrix, oneto
