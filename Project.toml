@@ -23,7 +23,7 @@ QuasiArrays = "c4ea9172-b204-11e9-377d-29865faadc5c"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
-ArrayLayouts = "0.5.3"
+ArrayLayouts = "0.5.3, 0.6"
 BandedMatrices = "0.16.4"
 BlockArrays = "0.14.1"
 BlockBandedMatrices = "0.10"
