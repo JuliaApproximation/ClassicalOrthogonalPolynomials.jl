@@ -18,6 +18,7 @@ axes(::Hermite{T}) where T = (Inclusion(ℝ), oneto(∞))
 # 1/2 * H_{n+1} + n H_{n-1} = x H_n 
 # x*[H_0 H_1 H_2 …] = [H_0 H_1 H_2 …] * [0    1; 1/2  0     2; 1/2   0  3; …]   
 jacobimatrix(H::Hermite{T}) where T = Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(∞), one(T):∞)
+recurrencecoefficients(H::Hermite{T}) where T = Fill{T}(2,∞), Zeros{T}(∞), zero(T):2:∞
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:Hermite}, B::WeightedBasis{<:Any,<:HermiteWeight,<:Hermite})  
     T = promote_type(eltype(Ac), eltype(B))
