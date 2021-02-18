@@ -1,7 +1,8 @@
 module ClassicalOrthogonalPolynomials
 using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, BlockArrays,
     IntervalSets, DomainSets, ArrayLayouts, SpecialFunctions,
-    InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW
+    InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW,
+    LazyBandedMatrices
 
 import Base: @_inline_meta, axes, getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy,
@@ -10,8 +11,11 @@ import Base: @_inline_meta, axes, getindex, convert, prod, *, /, \, +, -,
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, colsupport, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
-                _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout, AbstractCachedVector
-import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata
+                _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout, 
+                AbstractCachedVector, AbstractCachedMatrix
+import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
+                        subdiagonaldata, diagonaldata, supdiagonaldata
+import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal
 import LinearAlgebra: pinv, factorize, qr, adjoint, transpose
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
 import FillArrays: AbstractFill, getindex_value
@@ -22,7 +26,7 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
                     LazyQuasiArray, LazyQuasiVector, LazyQuasiMatrix, LazyLayout, LazyQuasiArrayStyle,
                     _getindex, layout_getindex, _factorize
 
-import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange
+import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     inbounds_getindex, grid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
     AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
@@ -53,7 +57,7 @@ include("interlace.jl")
 cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
 cardinality(::EuclideanDomain) = ℵ₁
 
-transform_ldiv(A, f, ::Tuple{<:Any,Infinity})  = adaptivetransform_ldiv(A, f)
+transform_ldiv(A, f, ::Tuple{<:Any,InfiniteCardinal{0}})  = adaptivetransform_ldiv(A, f)
 
 function chop!(c::AbstractVector, tol::Real)
     @assert tol >= 0
@@ -213,6 +217,17 @@ function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, C::Sub
     P[kr, :] * view(X,:,jr)
 end
 
+function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}})
+    T = promote_type(eltype(x), eltype(C))
+    x == axes(C,1) || throw(DimensionMismatch())
+    P = parent(C)
+    kr,_ = parentindices(C)
+    y = axes(P,1)
+    Y = P \ (y .* P)
+    X = kr.A \ (Y     - kr.b * Eye{T}(∞))
+    P[kr, :] * X
+end
+
 function jacobimatrix(C::SubQuasiArray{T,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) where T
     P = parent(C)
     kr,jr = parentindices(C)
@@ -248,6 +263,11 @@ function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:
     _,jA = parentindices(A)
     _,jB = parentindices(B)
     (parent(A) \ parent(B))[jA, jB]
+end
+
+function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}})
+    axes(A,1) == axes(B,1) || throw(DimensionMismatch())
+    parent(A) \ parent(B)
 end
 
 function \(wA::WeightedOrthogonalPolynomial, wB::WeightedOrthogonalPolynomial)

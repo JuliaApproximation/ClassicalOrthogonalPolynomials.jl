@@ -106,15 +106,11 @@ factorize(L::SubQuasiArray{T,2,<:ChebyshevU,<:Tuple{<:Inclusion,<:OneTo}}) where
 # Jacobi Matrix
 ########
 
-jacobimatrix(C::ChebyshevT{T}) where T =
-    _BandedMatrix(Vcat(Fill(one(T)/2,1,∞),
-                        Zeros{T}(1,∞),
-                        Hcat(one(T), Fill(one(T)/2,1,∞))), ∞, 1, 1)
+jacobimatrix(C::ChebyshevT{T}) where T = 
+    Tridiagonal(Vcat(one(T), Fill(one(T)/2,∞)), Zeros{T}(∞), Fill(one(T)/2,∞))
 
 jacobimatrix(C::ChebyshevU{T}) where T =
-    _BandedMatrix(Vcat(Fill(one(T)/2,1,∞),
-                        Zeros{T}(1,∞),
-                        Fill(one(T)/2,1,∞)), ∞, 1, 1)
+    SymTridiagonal(Zeros{T}(∞), Fill(one(T)/2,∞))
 
 
 
@@ -151,7 +147,7 @@ end
 # Ultraspherical(1)\(D*Chebyshev())
 @simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::ChebyshevT)
     T = promote_type(eltype(D),eltype(S))
-    A = _BandedMatrix((zero(T):∞)', ∞, -1,1)
+    A = _BandedMatrix((zero(T):∞)', ℵ₀, -1,1)
     ApplyQuasiMatrix(*, ChebyshevU{T}(), A)
 end
 
@@ -163,14 +159,14 @@ function \(U::ChebyshevU, C::ChebyshevT)
     T = promote_type(eltype(U), eltype(C))
     _BandedMatrix(Vcat(-Ones{T}(1,∞)/2,
                         Zeros{T}(1,∞),
-                        Hcat(Ones{T}(1,1),Ones{T}(1,∞)/2)), ∞, 0,2)
+                        Hcat(Ones{T}(1,1),Ones{T}(1,∞)/2)), ℵ₀, 0,2)
 end
 
 function \(w_A::WeightedChebyshevT, w_B::WeightedChebyshevU)
     wA,A = w_A.args
     wB,B = w_B.args
     T = promote_type(eltype(w_A), eltype(w_B))
-    _BandedMatrix(Vcat(Fill(one(T)/2, 1, ∞), Zeros{T}(1, ∞), Fill(-one(T)/2, 1, ∞)), ∞, 2, 0)
+    _BandedMatrix(Vcat(Fill(one(T)/2, 1, ∞), Zeros{T}(1, ∞), Fill(-one(T)/2, 1, ∞)), ℵ₀, 2, 0)
 end
 
 \(T::ChebyshevT, U::ChebyshevU) = inv(U \ T)

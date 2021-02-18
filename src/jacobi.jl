@@ -213,7 +213,7 @@ end
 # Jacobi Matrix
 ########
 
-jacobimatrix(::Legendre{T}) where T = _BandedMatrix(Vcat(((zero(T):∞)./(1:2:∞))', Zeros{T}(1,∞), ((one(T):∞)./(1:2:∞))'), ∞, 1,1)
+jacobimatrix(::Legendre{T}) where T =  Tridiagonal((one(T):∞)./(1:2:∞), Zeros{T}(∞), (one(T):∞)./(3:2:∞))
 
 # These return vectors A[k], B[k], C[k] are from DLMF. Cause of MikaelSlevinsky we need an extra entry in C ... for now.
 function recurrencecoefficients(::Legendre{T}) where T
@@ -226,9 +226,9 @@ function jacobimatrix(J::Jacobi)
     n = 0:∞
     B = Vcat(2 / (a+b+2),  2 .* (n .+ 2) .* (n .+ (a+b+2)) ./ ((2n .+ (a+b+3)) .* (2n .+ (a+b+4))))
     A = Vcat((b-a) / (a+b+2), (b^2-a^2) ./ ((2n .+ (a+b+2)) .* (2n .+ (a+b+4))))
-    C = 2 .* (n .+ a) .* (n .+ b) ./ ((2n .+ (a+b)) .* (2n .+ (a+b+1)))
+    C = 2 .* (n .+ (a + 1)) .* (n .+ (b + 1)) ./ ((2n .+ (a+b+2)) .* (2n .+ (a+b+3)))
 
-    _BandedMatrix(Vcat(C',A',B'), ∞, 1,1)
+    Tridiagonal(B,A,C)
 end
 
 function recurrencecoefficients(P::Jacobi)
@@ -260,17 +260,13 @@ function \(A::Jacobi, B::Jacobi)
     if A.a ≈ a && A.b ≈ b
         Eye{T}(∞)
     elseif isone(-a-b) && A.a == a && A.b == b+1
-        _BandedMatrix(Vcat((((0:∞) .+ a)./((1:2:∞) .+ (a+b)))',
-                            Vcat(1,((2:∞) .+ (a+b))./((3:2:∞) .+ (a+b)))'), ∞, 0,1)
+        Bidiagonal(Vcat(1, ((2:∞) .+ (a+b)) ./ ((3:2:∞) .+ (a+b))), ((1:∞) .+ a) ./ ((3:2:∞) .+ (a+b)), :U)
     elseif isone(-a-b) && A.a == a+1 && A.b == b
-        _BandedMatrix(Vcat((-((0:∞) .+ b)./((1:2:∞) .+ (a+b)))',
-                            Vcat(1,((2:∞) .+ (a+b))./((3:2:∞) .+ (a+b)))'), ∞, 0,1)
+        Bidiagonal(Vcat(1, ((2:∞) .+ (a+b)) ./ ((3:2:∞) .+ (a+b))), -((1:∞) .+ b) ./ ((3:2:∞) .+ (a+b)), :U)
     elseif A.a == a && A.b == b+1
-        _BandedMatrix(Vcat((((0:∞) .+ a)./((1:2:∞) .+ (a+b)))',
-                            (((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)))'), ∞, 0,1)
+        Bidiagonal(((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)), ((1:∞) .+ a)./((3:2:∞) .+ (a+b)), :U)
     elseif A.a == a+1 && A.b == b
-        _BandedMatrix(Vcat((-((0:∞) .+ b)./((1:2:∞) .+ (a+b)))',
-                            (((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)))'), ∞, 0,1)
+        Bidiagonal(((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)), -((1:∞) .+ b)./((3:2:∞) .+ (a+b)), :U)
     elseif A.a ≥ a+1
         J = Jacobi(a+1,b)
         (A \ J) * (J \ B)
@@ -310,9 +306,9 @@ function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
     if wA == wB
         A \ B
     elseif B.a == A.a && B.b == A.b+1 && wB.b == wA.b+1 && wB.a == wA.a
-        _BandedMatrix(Vcat((((2:2:∞) .+ 2A.b)./((2:2:∞) .+ (A.a+A.b)))', ((2:2:∞)./((2:2:∞) .+ (A.a+A.b)))'), ∞, 1,0)
+        Bidiagonal(((2:2:∞) .+ 2A.b)./((2:2:∞) .+ (A.a+A.b)), (2:2:∞)./((2:2:∞) .+ (A.a+A.b)), :L)
     elseif B.a == A.a+1 && B.b == A.b && wB.b == wA.b && wB.a == wA.a+1
-        _BandedMatrix(Vcat((((2:2:∞) .+ 2A.a)./((2:2:∞) .+ (A.a+A.b)))', -((2:2:∞)./((2:2:∞) .+ (A.a+A.b)))'), ∞, 1,0)
+        Bidiagonal(((2:2:∞) .+ 2A.a)./((2:2:∞) .+ (A.a+A.b)), -(2:2:∞)./((2:2:∞) .+ (A.a+A.b)), :L)
     elseif wB.a ≥ wA.a+1
         J = JacobiWeight(wB.a-1,wB.b) .* Jacobi(B.a-1,B.b)
         (w_A\J) * (J\w_B)
@@ -332,7 +328,7 @@ end
 
 # Jacobi(a+1,b+1)\(D*Jacobi(a,b))
 @simplify function *(D::Derivative{<:Any,<:AbstractInterval}, S::Jacobi)
-    A = _BandedMatrix((((1:∞) .+ (S.a + S.b))/2)', ∞, -1,1)
+    A = _BandedMatrix((((1:∞) .+ (S.a + S.b))/2)', ℵ₀, -1,1)
     ApplyQuasiMatrix(*, Jacobi(S.a+1,S.b+1), A)
 end
 
@@ -343,13 +339,13 @@ end
     if w.a == 0 && w.b == 0
         D*S
     elseif iszero(w.a) && w.b == b #L_6
-        A = _BandedMatrix((b:∞)', ∞, 0,0)
+        A = Diagonal(b:∞)
         ApplyQuasiMatrix(*, JacobiWeight(w.a,b-1) .* Jacobi(a+1,b-1), A)
     elseif iszero(w.b) && w.a == a #L_6^t
-        A = _BandedMatrix(-(a:∞)', ∞, 0,0)
+        A = Diagonal(-(a:∞))
         ApplyQuasiMatrix(*, JacobiWeight(a-1,w.b) .* Jacobi(a-1,b+1), A)
     elseif w.a == a && w.b == b # L_1^t
-        A = _BandedMatrix((-2*(1:∞))', ∞, 1,-1)
+        A = _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1)
         ApplyQuasiMatrix(*, JacobiWeight(a-1,b-1) .* Jacobi(a-1, b-1), A)
     elseif iszero(w.a)
         W = (JacobiWeight(w.a, b-1) .* Jacobi(a+1, b-1)) \ (D * (JacobiWeight(w.a,b) .* S))
@@ -373,13 +369,13 @@ function \(L::Legendre, WS::WeightedBasis{Bool,JacobiWeight{Bool},Jacobi{Bool}})
     w,S = WS.args
     if w.b && w.a
         @assert S.b && S.a
-        _BandedMatrix(Vcat(((2:2:∞)./(3:2:∞))', Zeros(1,∞), (-(2:2:∞)./(3:2:∞))'), ∞, 2,0)
+        _BandedMatrix(Vcat(((2:2:∞)./(3:2:∞))', Zeros(1,∞), (-(2:2:∞)./(3:2:∞))'), ℵ₀, 2,0)
     elseif w.b && !w.a
         @assert S.b && !S.a
-        _BandedMatrix(Ones{eltype(L)}(2,∞), ∞, 1,0)
+        Bidiagonal(Ones{eltype(L)}(∞), Ones{eltype(L)}(∞), :L)
     elseif !w.b && w.a
         @assert !S.b && S.a
-        _BandedMatrix(Vcat(Ones{eltype(L)}(1,∞),-Ones{eltype(L)}(1,∞)), ∞, 1,0)
+        Bidiagonal(Ones{eltype(L)}(∞), -Ones{eltype(L)}(1,∞), :L)
     else
         error("Not implemented")
     end

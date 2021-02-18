@@ -1,6 +1,6 @@
 using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatrices, LazyArrays, 
-        FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays
-import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix
+        FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays, LazyBandedMatrices, ForwardDiff
+import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto
 import LazyArrays: ApplyStyle
 import QuasiArrays: MulQuasiMatrix
 import Base: OneTo
@@ -115,7 +115,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         w = ChebyshevTWeight()
         wT = WeightedChebyshevT()
         x = axes(wT,1)
-        @test (x .* wT).args[2] isa BandedMatrix
+        @test (x .* wT).args[2] isa LazyBandedMatrices.Tridiagonal
 
         c = [1; 2; 3; zeros(∞)]
         a = wT * c;
@@ -159,7 +159,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
         x = axes(T,1)
         J = T\(x.*T)
-        @test J isa BandedMatrix
+        @test J isa LazyBandedMatrices.Tridiagonal
         @test J[1:10,1:10] == jacobimatrix(T)[1:10,1:10]
 
         @testset "inv" begin

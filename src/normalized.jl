@@ -12,7 +12,7 @@ end
 
 NormalizationConstant(P::AbstractQuasiMatrix{T}) where T = NormalizationConstant{T,typeof(P)}(P)
 
-size(K::NormalizationConstant) = (∞,)
+size(K::NormalizationConstant) = (ℵ₀,)
 
 # How we populate the data
 # function _normalizationconstant_fill_data!(K::NormalizationConstant, J::Union{BandedMatrix,Symmetric{<:Any,BandedMatrix},Tridiagonal,SymTridiagonal}, inds)
@@ -77,9 +77,9 @@ _p0(Q::Normalized) = Q.scaling[1]
 # q_{n+1} = (h[n+1]/h[n] * A_n * x + h[n+1]/h[n] * B_n) * q_n - h[n+1]/h[n-1] * C_n * p_{n-1}
 
 function recurrencecoefficients(Q::Normalized)
-    A,B,C = recurrencecoefficients(Q.P)
-    h = Q.scaling
-    h[2:∞] ./ h .* A, h[2:∞] ./ h .* B, Vcat(zero(eltype(Q)), h[3:∞] ./ h .* C[2:∞])
+    X = jacobimatrix(Q.P)
+    c,a,b = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
+    inv.(sqrt.(b .* c)), -(a ./ sqrt.(b .* c)), Vcat(zero(eltype(Q)), sqrt.(b .* c) ./ sqrt.(b[2:end] .* c[2:end]))
 end
 
 # x * p[n] = c[n-1] * p[n-1] + a[n] * p[n] + b[n] * p[n+1]
@@ -88,12 +88,12 @@ end
 
 # q_{n+1}/h[n+1] = (A_n * x + B_n) * q_n/h[n] - C_n * p_{n-1}/h[n-1]
 # q_{n+1} = (h[n+1]/h[n] * A_n * x + h[n+1]/h[n] * B_n) * q_n - h[n+1]/h[n-1] * C_n * p_{n-1}
-function jacobimatrix(Q::Normalized)
-    X = jacobimatrix(Q.P)
-    a,b = X[band(0)], X[band(-1)]
-    h = Q.scaling
-    Symmetric(_BandedMatrix(Vcat(a', (b .* h ./ h[2:end])'), ∞, 1, 0), :L)
+
+function symtridagonalize(X)
+    c,a,b = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
+    SymTridiagonal(a, sqrt.(b .* c))
 end
+jacobimatrix(Q::Normalized) = symtridagonalize(jacobimatrix(Q.P))
 
 orthogonalityweight(Q::Normalized) = orthogonalityweight(Q.P)
 singularities(Q::Normalized) = singularities(Q.P)
@@ -131,7 +131,7 @@ _mul_arguments(Q::QuasiAdjoint{<:Any,<:Normalized}) = arguments(ApplyLayout{type
 
 # table stable identity if A.P == B.P
 @inline _normalized_ldiv(An, C, Bn) = An \ (C * Bn)
-@inline _normalized_ldiv(An, C::Eye{T}, Bn) where T = FillArrays.SquareEye{promote_type(eltype(An),T,eltype(Bn))}(∞)
+@inline _normalized_ldiv(An, C::Eye{T}, Bn) where T = FillArrays.SquareEye{promote_type(eltype(An),T,eltype(Bn))}(ℵ₀)
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,<:NormalizedBasisLayout}) = _normalized_ldiv(Diagonal(L.A.scaling), L.A.P \ L.B.P, Diagonal(L.B.scaling))
 @inline copy(L::Ldiv{Lay,<:NormalizedBasisLayout}) where Lay = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,Lay}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))

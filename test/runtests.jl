@@ -31,10 +31,12 @@ include("test_chebyshev.jl")
 include("test_legendre.jl")
 include("test_ultraspherical.jl")
 include("test_jacobi.jl")
+include("test_hermite.jl")
 include("test_fourier.jl")
 include("test_odes.jl")
 include("test_normalized.jl")
 include("test_lanczos.jl")
+include("test_stieltjes.jl")
 
 @testset "Auto-diff" begin
     U = Ultraspherical(1)

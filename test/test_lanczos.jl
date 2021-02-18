@@ -123,6 +123,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
         @test Q[x̃,3] ≈ -0.72920026387366053084159259908849371062183891778315602761397748592062615496583854
 
         X = Q \ (x .* Q)
+        @test X isa ClassicalOrthogonalPolynomials.SymTridiagonal
         # empirical test
         @test X[5,5] ≈ -0.001489975039238321407179828331585356464766466154894764141171294038822525312179884
 
