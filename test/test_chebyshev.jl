@@ -1,8 +1,8 @@
 using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatrices, LazyArrays, 
         FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays, LazyBandedMatrices, ForwardDiff
-import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix
+import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto
 import LazyArrays: ApplyStyle
-import QuasiArrays: MulQuasiMatrix, oneto
+import QuasiArrays: MulQuasiMatrix
 import Base: OneTo
 import ContinuumArrays: MappedWeightedBasisLayout, Map
 

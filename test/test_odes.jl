@@ -2,8 +2,9 @@ using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatric
         SemiseparableMatrices, LazyArrays, ArrayLayouts, Test
 
 import QuasiArrays: MulQuasiMatrix
+import ClassicalOrthogonalPolynomials: oneto
 import ContinuumArrays: MappedBasisLayout, MappedWeightedBasisLayout
-import LazyArrays: arguments, ApplyMatrix, oneto
+import LazyArrays: arguments, ApplyMatrix
 import SemiseparableMatrices: VcatAlmostBandedLayout
 
 @testset "ODEs" begin

@@ -1,5 +1,6 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, DomainSets, FillArrays, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, FillArrays, Test
 import ClassicalOrthogonalPolynomials: jacobimatrix, oneto
+import DomainSets: ℝ
 
 @testset "Hermite" begin
     H = Hermite()
