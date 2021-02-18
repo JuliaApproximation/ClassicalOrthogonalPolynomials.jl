@@ -41,6 +41,7 @@ IntervalSets = "0.5"
 LazyArrays = "0.20.6"
 LazyBandedMatrices = "0.5"
 QuasiArrays = "0.4.6"
+SemiseparableMatrices = "0.2"
 SpecialFunctions = "0.10, 1"
 julia = "1.5"
 
