@@ -100,7 +100,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
     @testset "Singularity" begin
         T = Chebyshev(); wT = WeightedChebyshev()
         x = axes(T,1)
-        
+
         w = wT * [1; zeros(∞)];
         Q = LanczosPolynomial(w)
         @test Q[0.1,1:10] ≈ Normalized(T)[0.1,1:10]
@@ -134,7 +134,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
     @testset "Mixed Jacobi" begin
         P = Jacobi(1/2,0)
         x = axes(P,1)
-        
+
         w = @. sqrt(1-x)
         Q = LanczosPolynomial(w, P)
         @test Q[0.1,1:10] ≈ Normalized(P)[0.1,1:10]
@@ -198,5 +198,14 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
 
         R = LanczosPolynomial((t .- x).^(-1/2) .* ChebyshevWeight())
         @test R[0.1,2] ≈ -0.03269577983003056
+    end
+
+    @testset "LanczosJacobiBand" begin
+        x = Inclusion(ChebyshevInterval())
+        Q = LanczosPolynomial(  1 ./ (2 .+ x))
+        X = jacobimatrix(Q)
+        @test X.dv[3:10] ≈ [X[k,k] for k in 3:10]
+        @test X.dv[3:∞][1:5] ≈ X.dv[3:7]
+        @test X.dv[3:∞][2:∞][1:5] ≈ X.dv[4:8]
     end
 end
