@@ -140,8 +140,8 @@ end
 
 getindex(A::LanczosJacobiBand, I::Integer) = _lanczos_getindex(A, I)
 getindex(A::LanczosJacobiBand, I::AbstractVector) = _lanczos_getindex(A, I)
-getindex(K::LanczosJacobiBand, k::AbstractInfUnitRange) = view(K, k)
-getindex(K::SubArray{<:Any,1,<:LanczosJacobiBand}, k::AbstractInfUnitRange) = view(K, k)
+getindex(K::LanczosJacobiBand, k::AbstractInfUnitRange{<:Integer}) = view(K, k)
+getindex(K::SubArray{<:Any,1,<:LanczosJacobiBand}, k::AbstractInfUnitRange{<:Integer}) = view(K, k)
 
 copy(A::LanczosJacobiBand) = A # immutable
 
