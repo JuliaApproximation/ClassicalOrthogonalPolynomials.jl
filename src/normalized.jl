@@ -1,16 +1,23 @@
+"""
+   NormalizationConstant
+
+gives the normalization constants so that the jacobi matrix is symmetric,
+that is, so we have orthonormal OPs:
+
+    Q == P*NormalizationConstant(P)
+"""
+
 
 mutable struct NormalizationConstant{T, PP<:AbstractQuasiMatrix{T}} <: AbstractCachedVector{T}
     P::PP # OPs
     data::Vector{T}
     datasize::Tuple{Int}
 
-    function NormalizationConstant{T, PP}(P::PP) where {T,PP<:AbstractQuasiMatrix{T}}
-        μ = inv(sqrt(sum(orthogonalityweight(P))))
-        new{T, PP}(P, [μ], (1,))
-    end
+    NormalizationConstant{T, PP}(μ, P::PP) where {T,PP<:AbstractQuasiMatrix{T}} = new{T, PP}(P, T[μ], (1,))
 end
 
-NormalizationConstant(P::AbstractQuasiMatrix{T}) where T = NormalizationConstant{T,typeof(P)}(P)
+NormalizationConstant(μ, P::AbstractQuasiMatrix{T}) where T = NormalizationConstant{T,typeof(P)}(μ, P)
+NormalizationConstant(P::AbstractQuasiMatrix) = NormalizationConstant(inv(sqrt(sum(orthogonalityweight(P)))), P)
 
 size(K::NormalizationConstant) = (ℵ₀,)
 
