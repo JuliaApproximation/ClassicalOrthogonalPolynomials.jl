@@ -7,9 +7,11 @@ function getindex(w::HermiteWeight, x::Number)
     exp(-x^2)
 end
 
+sum(::HermiteWeight{T}) where T = sqrt(convert(T, π))
 
 struct Hermite{T} <: OrthogonalPolynomial{T} end
 Hermite() = Hermite{Float64}()
+orthogonalityweight(::Hermite{T}) where T = HermiteWeight{T}()
 
 ==(::Hermite, ::Hermite) = true
 axes(::Hermite{T}) where T = (Inclusion(ℝ), oneto(∞))
@@ -33,4 +35,9 @@ end
     T = promote_type(eltype(D),eltype(H))
     D = _BandedMatrix((zero(T):2:∞)', ℵ₀, -1,1)
     H*D
+end
+
+@simplify function *(D::Derivative, Q::OrthonormalWeighted{<:Any,<:Hermite})
+    X = jacobimatrix(Q.P)
+    Q * Tridiagonal(-X.ev, X.dv, X.ev)
 end
