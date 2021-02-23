@@ -47,7 +47,7 @@ end
 normalizationconstant(P) = NormalizationConstant(P)
 Normalized(P::AbstractQuasiMatrix{T}) where T = Normalized(P, normalizationconstant(P))
 Normalized(Q::Normalized) = Q
-
+normalized(P) = Normalized(P)
 
 struct NormalizedBasisLayout{LAY<:AbstractBasisLayout} <: AbstractBasisLayout end
 
@@ -166,3 +166,25 @@ end
 Base.array_summary(io::IO, C::NormalizationConstant{T}, inds) where T = print(io, "NormalizationConstant{$T}")
 show(io::IO, Q::Normalized) = print(io, "Normalized($(Q.P))")
 show(io::IO, ::MIME"text/plain", Q::Normalized) = show(io, Q)
+
+
+
+struct OrthonormalWeighted{T, PP<:AbstractQuasiMatrix{T}} <: Basis{T}
+    P::Normalized{T, PP, NormalizationConstant{T, PP}}
+end
+
+function OrthonormalWeighted(P)
+    Q = normalized(P)
+    OrthonormalWeighted{eltype(Q),typeof(P)}(Q)
+end
+
+axes(Q::OrthonormalWeighted) = axes(Q.P)
+copy(Q::OrthonormalWeighted) = Q
+
+==(A::OrthonormalWeighted, B::OrthonormalWeighted) = A.P == B.P
+
+function getindex(Q::OrthonormalWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector})
+    w = orthogonalityweight(Q.P)
+    sqrt.(w[x]) .* Q.P[x,jr]
+end
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
