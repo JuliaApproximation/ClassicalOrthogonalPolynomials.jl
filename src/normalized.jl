@@ -183,16 +183,8 @@ copy(Q::OrthonormalWeighted) = Q
 
 ==(A::OrthonormalWeighted, B::OrthonormalWeighted) = A.P == B.P
 
-function getindex(Q::OrthonormalWeighted, x::Number, jr::OneTo)
+function getindex(Q::OrthonormalWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector})
     w = orthogonalityweight(Q.P)
-    sqrt(w[x]/sum(w)) * Q.P[x,jr]
+    sqrt.(w[x]) .* Q.P[x,jr]
 end
-
-function getindex(Q::OrthonormalWeighted, x::Number, j::Number)
-    w = orthogonalityweight(Q.P)
-    sqrt(w[x]) * Q.P[x,j]
-end
-
-getindex(Q::OrthonormalWeighted, x::Number, n::AbstractVector) = Q[x, Base.OneTo(maximum(n))][n]
-
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
