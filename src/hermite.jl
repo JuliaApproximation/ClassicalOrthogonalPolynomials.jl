@@ -1,3 +1,8 @@
+"""
+   HermiteWeight()
+
+is a quasi-vector representing `exp(-x^2)` on ℝ.
+"""
 struct HermiteWeight{T} <: Weight{T} end
 
 HermiteWeight() = HermiteWeight{Float64}()
