@@ -277,6 +277,7 @@ function \(wA::WeightedOrthogonalPolynomial, wB::WeightedOrthogonalPolynomial)
     A\B
 end
 
+include("ratios.jl")
 include("normalized.jl")
 include("lanczos.jl")
 include("hermite.jl")

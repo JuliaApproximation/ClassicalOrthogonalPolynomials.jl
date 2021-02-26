@@ -1,6 +1,5 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, DomainSets, Test
-import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint
-
+using ClassicalOrthogonalPolynomials, ContinuumArrays, Test
+import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval
 @testset "Stieltjes" begin
     T = Chebyshev()
     wT = ChebyshevWeight() .* T
