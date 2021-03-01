@@ -11,9 +11,11 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
         Q̃ = Normalized(P);
         A,B,C = recurrencecoefficients(Q);
         Ã,B̃,C̃ = recurrencecoefficients(Q̃);
-        @test @inferred(A[1:10]) ≈ Ã[1:10] ≈ [A[k] for k=1:10]
-        @test @inferred(B[1:10]) ≈ B̃[1:10] ≈ [B[k] for k=1:10]
-        @test @inferred(C[2:10]) ≈ C̃[2:10] ≈ [C[k] for k=2:10]
+        if VERSION ≥ v"1.6-"
+            @test @inferred(A[1:10]) ≈ Ã[1:10] ≈ [A[k] for k=1:10]
+            @test @inferred(B[1:10]) ≈ B̃[1:10] ≈ [B[k] for k=1:10]
+            @test @inferred(C[2:10]) ≈ C̃[2:10] ≈ [C[k] for k=2:10]
+        end
 
         @test A[1:10] isa Vector{Float64}
         @test B[1:10] isa Vector{Float64}

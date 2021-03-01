@@ -39,10 +39,14 @@ import FastGaussQuadrature: jacobimoment
 import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray
 import BandedMatrices: bandwidths
 
-export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial, Hermite, Jacobi, Legendre, Chebyshev, ChebyshevT, ChebyshevU, ChebyshevInterval, Ultraspherical, Fourier,
-            HermiteWeight, JacobiWeight, ChebyshevWeight, ChebyshevGrid, ChebyshevTWeight, ChebyshevUWeight, UltrasphericalWeight, LegendreWeight,
+export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial, 
+            Hermite, Jacobi, Legendre, Chebyshev, ChebyshevT, ChebyshevU, ChebyshevInterval, Ultraspherical, Fourier, Laguerre,
+            HermiteWeight, JacobiWeight, ChebyshevWeight, ChebyshevGrid, ChebyshevTWeight, ChebyshevUWeight, UltrasphericalWeight, LegendreWeight, LaguerreWeight,
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
-            ∞, Derivative, .., Inclusion, chebyshevt, chebyshevu, legendre, jacobi, legendrep, jacobip, ultrasphericalp, jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight
+            ∞, Derivative, .., Inclusion, 
+            chebyshevt, chebyshevu, legendre, jacobi,
+            legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh,
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight
 
 if VERSION < v"1.6-"
     oneto(n) = Base.OneTo(n)
@@ -277,12 +281,14 @@ function \(wA::WeightedOrthogonalPolynomial, wB::WeightedOrthogonalPolynomial)
     A\B
 end
 
+include("ratios.jl")
 include("normalized.jl")
 include("lanczos.jl")
 include("hermite.jl")
 include("jacobi.jl")
 include("chebyshev.jl")
 include("ultraspherical.jl")
+include("laguerre.jl")
 include("fourier.jl")
 include("stieltjes.jl")
 

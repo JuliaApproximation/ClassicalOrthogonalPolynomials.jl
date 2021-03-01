@@ -8,7 +8,7 @@ import DomainSets: ℝ
         w = HermiteWeight()
         @test axes(H) == (Inclusion(ℝ), oneto(∞))
         x = axes(H,1)
-        @test H[0.1,1:4] ≈ [1,2*0.1,4*0.1^2-2,8*0.1^3-12*0.1]
+        @test H[0.1,1:4] ≈ hermiteh.(0:3,0.1) ≈ [1,2*0.1,4*0.1^2-2,8*0.1^3-12*0.1]
         @test w[0.1] ≈ exp(-0.1^2)
 
         X = jacobimatrix(H)
