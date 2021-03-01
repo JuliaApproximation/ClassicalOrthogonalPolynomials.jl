@@ -21,6 +21,14 @@ orthogonalityweight(::Hermite{T}) where T = HermiteWeight{T}()
 ==(::Hermite, ::Hermite) = true
 axes(::Hermite{T}) where T = (Inclusion(ℝ), oneto(∞))
 
+"""
+     hermiteh(n, z)
+
+computes the `n`-th Hermite polynomial, orthogonal with 
+respec to `exp(-x^2)`, at `z`.
+"""
+hermiteh(n::Integer, z::Number) = Base.unsafe_getindex(Hermite{typeof(z)}(), z, n+1)
+
 # H_{n+1} = 2x H_n - 2n H_{n-1}
 # 1/2 * H_{n+1} + n H_{n-1} = x H_n 
 # x*[H_0 H_1 H_2 …] = [H_0 H_1 H_2 …] * [0    1; 1/2  0     2; 1/2   0  3; …]   

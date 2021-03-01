@@ -18,7 +18,7 @@ julia> chebyshevt.(0:5,0.1)
   0.9208
   0.48016
 ```
-Other examples include `chebyshevu`, `legendrep`, `jacobip`, and `ultrasphericalp`.
+Other examples include `chebyshevu`, `legendrep`, `jacobip`, `ultrasphericalc`, `hermiteh` and `laguerrel`.
 
 For expansion, it supports usafe as quasi-arrays where one one axes is continuous and the other axis is discrete (countably infinite), as implemented in [QuasiArrays.jl](https://github.com/JuliaApproximation/QuasiArrays.jl) and  [ContinuumArrays.jl](https://github.com/JuliaApproximation/ContinuumArrays.jl).  
 ```julia

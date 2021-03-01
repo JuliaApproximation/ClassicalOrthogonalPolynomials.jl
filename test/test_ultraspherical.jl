@@ -99,6 +99,6 @@ using ClassicalOrthogonalPolynomials, BandedMatrices, LazyArrays, Test
     end
 
     @testset "special syntax" begin
-        @test ultrasphericalp.(0:5, 2, 0.3) == Ultraspherical(2)[0.3, 1:6]
+        @test ultrasphericalc.(0:5, 2, 0.3) == Ultraspherical(2)[0.3, 1:6]
     end
 end
