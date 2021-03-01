@@ -18,9 +18,8 @@ import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterva
     wT2 = wT[y,:]
     S = inv.(z .- x')
     f = wT2 * [[1,2,3]; zeros(∞)];
-    
-    # TODO: fix LazyArrays ambiguity
-    @test_broken (π/2*(((z-1/2)*I - J/2) \ f.args[2]))[1] ≈ (S*f.args[1]*f.args[2])[1]
+
+    @test (π/2*(((z-1/2)*I - J/2) \ f.args[2]))[1] ≈ (S*f.args[1]*f.args[2])[1]
 end
 
 @testset "Hilbert" begin
