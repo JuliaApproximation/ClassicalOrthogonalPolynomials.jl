@@ -43,7 +43,7 @@ laguerrel(n::Integer, α, z::Number) = Base.unsafe_getindex(Laguerre{promote_typ
 computes the `n`-th Laguerre polynomial, orthogonal with 
 respec to `exp(-x)`, at `z`.
 """
-laguerrel(n::Integer, z::Number) = laguerrel(n, 0, α)
+laguerrel(n::Integer, z::Number) = laguerrel(n, 0, z)
 
 
 # L_{n+1} = (-1/(n+1) x + (2n+α+1)/(n+1)) L_n - (n+α)/(n+1) L_{n-1}
