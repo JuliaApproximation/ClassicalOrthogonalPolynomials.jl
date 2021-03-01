@@ -15,6 +15,7 @@ using ClassicalOrthogonalPolynomials, Test
     @testset "Derivatives" begin
         L = Laguerre()
         D = Derivative(axes(L,1))
+        x = 0.1
         @test (D*L)[x,1:4] ≈ [0,-1,x-2,-x^2/2 + 3x - 3]
 
         L = Laguerre(1/2)
