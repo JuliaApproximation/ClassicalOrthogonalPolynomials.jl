@@ -332,6 +332,13 @@ end
     ApplyQuasiMatrix(*, Jacobi(S.a+1,S.b+1), A)
 end
 
+@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::Weighted{<:Any,Jacobi})
+    # L_1^t
+    S = WS.P
+    a,b = S.a, S.b
+    Weighted(Jacobi(a-1, b-1)) * _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1)
+end
+
 # Jacobi(a-1,b-1)\ (D*w*Jacobi(a,b))
 @simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::WeightedJacobi)
     w,S = WS.args
@@ -344,9 +351,8 @@ end
     elseif iszero(w.b) && w.a == a #L_6^t
         A = Diagonal(-(a:∞))
         ApplyQuasiMatrix(*, JacobiWeight(a-1,w.b) .* Jacobi(a-1,b+1), A)
-    elseif w.a == a && w.b == b # L_1^t
-        A = _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1)
-        ApplyQuasiMatrix(*, JacobiWeight(a-1,b-1) .* Jacobi(a-1, b-1), A)
+    elseif isorthogonalityweighted(WS) # L_1^t
+        D * Weighted(S)
     elseif iszero(w.a)
         W = (JacobiWeight(w.a, b-1) .* Jacobi(a+1, b-1)) \ (D * (JacobiWeight(w.a,b) .* S))
         J = Jacobi(a+1,b) # range Jacobi

@@ -146,6 +146,13 @@ show(io::IO, ::MIME"text/plain", Q::Normalized) = show(io, Q)
 
 
 
+
+"""
+    OrthonormalWeighted(P)
+
+is the orthonormal with respect to L^2 basis given by
+`sqrt.(orthogonalityweight(P)) .* Normalized(P)`.
+"""
 struct OrthonormalWeighted{T, PP<:AbstractQuasiMatrix{T}} <: Basis{T}
     P::Normalized{T, PP}
 end
@@ -165,3 +172,39 @@ function getindex(Q::OrthonormalWeighted, x::Union{Number,AbstractVector}, jr::U
     sqrt.(w[x]) .* Q.P[x,jr]
 end
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
+
+"""
+    Weighted(P)
+
+is equivalent to `orthogonalityweight(P) .* P`
+"""
+struct Weighted{T, PP<:AbstractQuasiMatrix{T}} <: Basis{T}
+    P::PP
+end
+
+axes(Q::Weighted) = axes(Q.P)
+copy(Q::Weighted) = Q
+
+==(A::Weighted, B::Weighted) = A.P == B.P
+
+function getindex(Q::Weighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector})
+    w = orthogonalityweight(Q.P)
+    w[x] .* Q.P[x,jr]
+end
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = Q * (Q.P \ (x .* Q.P))
+
+function \(w_A::Weighted, w_B::Weighted)
+    A = w_A.P
+    B = w_B.P
+    (orthogonalityweight(A) .* A) \ (orthogonalityweight(B) .* B)
+end
+
+function \(w_A::Weighted, B)
+    A = w_A.P
+    (orthogonalityweight(A) .* A) \ B
+end
+
+function \(A, w_B::Weighted)
+    B = w_B.P
+    A \ (orthogonalityweight(B) .* B)
+end

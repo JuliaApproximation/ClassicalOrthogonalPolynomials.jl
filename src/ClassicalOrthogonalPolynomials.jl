@@ -149,6 +149,11 @@ recurrencecoefficients(P) = error("Override for $(typeof(P))")
 
 const WeightedOrthogonalPolynomial{T, A<:AbstractQuasiVector, B<:OrthogonalPolynomial} = WeightedBasis{T, A, B}
 
+function isorthogonalityweighted(wS::WeightedOrthogonalPolynomial)
+    w,S = wS.args
+    w == orthogonalityweight(S)
+end
+
 """
     singularities(f)
 
