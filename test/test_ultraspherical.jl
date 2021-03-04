@@ -101,4 +101,20 @@ using ClassicalOrthogonalPolynomials, BandedMatrices, LazyArrays, Test
     @testset "special syntax" begin
         @test ultrasphericalc.(0:5, 2, 0.3) == Ultraspherical(2)[0.3, 1:6]
     end
+
+    @testset "Ultraspherical vs Chebyshev and Jacobi" begin
+        @test Ultraspherical(1) == ChebyshevU()
+        @test ChebyshevU() == Ultraspherical(1)
+        @test Ultraspherical(0) ≠ ChebyshevT()
+        @test ChebyshevT() ≠ Ultraspherical(0)
+        @test Ultraspherical(1) ≠ Jacobi(1/2,1/2)
+        @test Jacobi(1/2,1/2) ≠ Ultraspherical(1)
+        @test Ultraspherical(1/2) == Jacobi(0,0)
+        @test Ultraspherical(1/2) == Legendre()
+        @test Jacobi(0,0) == Ultraspherical(1/2)
+        @test Legendre() == Ultraspherical(1/2)
+
+        @test Ultraspherical(1/2) \ (JacobiWeight(0,0) .* Jacobi(0,0)) isa Diagonal
+        @test (JacobiWeight(0,0) .* Jacobi(0,0)) \ Ultraspherical(1/2) isa Diagonal
+    end
 end

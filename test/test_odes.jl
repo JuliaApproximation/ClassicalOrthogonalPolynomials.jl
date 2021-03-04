@@ -4,7 +4,7 @@ using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatric
 import QuasiArrays: MulQuasiMatrix
 import ClassicalOrthogonalPolynomials: oneto
 import ContinuumArrays: MappedBasisLayout, MappedWeightedBasisLayout
-import LazyArrays: arguments, ApplyMatrix
+import LazyArrays: arguments, ApplyMatrix, colsupport, MemoryLayout
 import SemiseparableMatrices: VcatAlmostBandedLayout
 
 @testset "ODEs" begin
@@ -96,7 +96,7 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         D = Derivative(axes(S,1))
         X = Diagonal(Inclusion(axes(S,1)))
 
-        @test_broken (Legendre() \ S)*(S\(w.*S))
+        @test ((Legendre() \ S)*(S\(w.*S)))[1:10,1:10] ≈ (Legendre() \ (w .* S))[1:10,1:10]
         @test (Ultraspherical(3/2)\(D^2*(w.*S)))[1:10,1:10] ≈ diagm(0 => -(2:2:20))
     end
 

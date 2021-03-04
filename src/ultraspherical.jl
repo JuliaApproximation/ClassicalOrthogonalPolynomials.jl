@@ -38,7 +38,7 @@ const WeightedUltraspherical{T} = WeightedBasis{T,<:UltrasphericalWeight,<:Ultra
 
 WeightedUltraspherical(λ) = UltrasphericalWeight(λ) .* Ultraspherical(λ)
 WeightedUltraspherical{T}(λ) where T = UltrasphericalWeight{T}(λ) .* Ultraspherical{T}(λ)
-
+orthogonalityweight(C::Ultraspherical) = UltrasphericalWeight(C.λ)
 
 ultrasphericalc(n::Integer, λ, z::Number) = Base.unsafe_getindex(Ultraspherical{promote_type(typeof(λ),typeof(z))}(λ), z, n+1)
 
@@ -47,6 +47,11 @@ ultrasphericalc(n::Integer, λ, z::Number) = Base.unsafe_getindex(Ultraspherical
 ==(::ChebyshevT, ::Ultraspherical) = false
 ==(C::Ultraspherical, ::ChebyshevU) = isone(C.λ)
 ==(::ChebyshevU, C::Ultraspherical) = isone(C.λ)
+==(P::Ultraspherical, Q::Jacobi) = isone(2P.λ) && Jacobi(P) == Q
+==(P::Jacobi, Q::Ultraspherical) = isone(2Q.λ) && P == Jacobi(Q)
+==(P::Ultraspherical, Q::Legendre) = isone(2P.λ)
+==(P::Legendre, Q::Ultraspherical) = isone(2Q.λ)
+
 
 ###
 # interrelationships
@@ -95,6 +100,21 @@ end
     ApplyQuasiMatrix(*, Ultraspherical{eltype(S)}(S.λ+1), A)
 end
 
+# Ultraspherical(λ-1)\ (D*wUltraspherical(λ))
+@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::Weighted{<:Any,<:Ultraspherical})
+    S = WS.P
+    λ = S.λ
+    T = eltype(WS)
+    if λ == 1
+        A = _BandedMatrix((-(1:∞))', ℵ₀, 1,-1)
+        ApplyQuasiMatrix(*, ChebyshevTWeight{T}() .* ChebyshevT{T}(), A)
+    else
+        n = (0:∞)
+        A = _BandedMatrix((-one(T)/(2*(λ-1)) * ((n.+1) .* (n .+ (2λ-1))))', ℵ₀, 1,-1)
+        ApplyQuasiMatrix(*, WeightedUltraspherical{T}(λ-1), A)
+    end
+end
+
 # Ultraspherical(λ-1)\ (D*w*Ultraspherical(λ))
 @simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::WeightedUltraspherical)
     w,S = WS.args
@@ -102,13 +122,8 @@ end
     T = eltype(WS)
     if iszero(w.λ)
         D*S
-    elseif w.λ == λ == 1
-        A = _BandedMatrix((-(1:∞))', ℵ₀, 1,-1)
-        ApplyQuasiMatrix(*, ChebyshevTWeight{T}() .* ChebyshevT{T}(), A)
-    elseif w.λ == λ
-        n = (0:∞)
-        A = _BandedMatrix((-one(T)/(2*(λ-1)) * ((n.+1) .* (n .+ (2λ-1))))', ℵ₀, 1,-1)
-        ApplyQuasiMatrix(*, WeightedUltraspherical{T}(λ-1), A)
+    elseif isorthogonalityweighted(WS) # weights match
+        D * Weighted(S)
     else
         error("Not implemented")
     end
@@ -180,7 +195,7 @@ function \(w_A::WeightedUltraspherical, w_B::WeightedUltraspherical)
 
     if wA == wB
         A \ B
-    elseif B.λ == A.λ+1 && wB.λ == wA.λ+1
+    elseif B.λ == A.λ+1 && wB.λ == wA.λ+1 # Lower
         λ = A.λ
         _BandedMatrix(Vcat(((2λ:∞) .* ((2λ+1):∞) ./ (4λ .* (λ+1:∞)))',
                             Zeros(1,∞),

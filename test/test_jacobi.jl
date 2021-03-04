@@ -1,5 +1,5 @@
-using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, QuasiArrays, LazyArrays, FastGaussQuadrature, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix
+using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, QuasiArrays, LazyArrays, LazyBandedMatrices, FastGaussQuadrature, Test
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted
 
 @testset "Jacobi" begin
     @testset "JacobiWeight" begin
@@ -251,7 +251,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         U = ChebyshevU()
         JT = Jacobi(T)
         JU = Jacobi(U)
-        
+
         @testset "recurrence degenerecies" begin
             A,B,C = recurrencecoefficients(JT)
             @test A[1] == 0.5
@@ -343,7 +343,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test norm((X*Min - Min*X')[1:n,1:n]) ≤ 1E-13
         β = X[n,n+1]*Mi[n+1,n+1]
         @test (x-y) * P[x,1:n]'Mi[1:n,1:n]*P[y,1:n] ≈ P[x,n:n+1]' * (X*Min - Min*X')[n:n+1,n:n+1] * P[y,n:n+1] ≈ P[x,n:n+1]' * [0 -β; β 0] * P[y,n:n+1]
-        
+
         @testset "extrapolation" begin
             x,y = 0.1,3.4
             @test (x-y) * P[x,1:n]'Mi[1:n,1:n]*Base.unsafe_getindex(P,y,1:n) ≈ P[x,n:n+1]' * [0 -β; β 0] * Base.unsafe_getindex(P,y,n:n+1)
@@ -352,5 +352,25 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
 
     @testset "special syntax" begin
         @test jacobip.(0:5, 0.1, 0.2, 0.3) == Jacobi(0.1, 0.2)[0.3, 1:6]
+    end
+
+    @testset "Weighted/HalfWeighted" begin
+        x = axes(Legendre(),1)
+        D = Derivative(x)
+        a,b = 0.1,0.2
+        B = Jacobi(a,b)
+        A = Jacobi(a-1,b-1)
+        D_W = Weighted(A) \ (D * Weighted(B))
+        @test (A * (D_W * (B \ exp.(x))))[0.1] ≈ (-a*(1+0.1) + b*(1-0.1) + (1-0.1^2)) *exp(0.1)
+
+        D_a = HalfWeighted{:a}(Jacobi(a-1,b+1)) \ (D * HalfWeighted{:a}(B))
+        D_b = HalfWeighted{:b}(Jacobi(a+1,b-1)) \ (D * HalfWeighted{:b}(B))
+        @test (Jacobi(a-1,b+1) * (D_a * (B \ exp.(x))))[0.1] ≈ (-a + 1-0.1) *exp(0.1)
+        @test (Jacobi(a+1,b-1) * (D_b * (B \ exp.(x))))[0.1] ≈ (b + 1+0.1) *exp(0.1)
+
+        @test HalfWeighted{:a}(B) \ HalfWeighted{:a}(B) isa Eye
+        @test HalfWeighted{:a}(B) \ (JacobiWeight(a,0) .* B) isa Eye
+
+        @test HalfWeighted{:a}(B) \ (x .* HalfWeighted{:a}(B)) isa LazyBandedMatrices.Tridiagonal
     end
 end

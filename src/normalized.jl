@@ -146,6 +146,13 @@ show(io::IO, ::MIME"text/plain", Q::Normalized) = show(io, Q)
 
 
 
+
+"""
+    OrthonormalWeighted(P)
+
+is the orthonormal with respect to L^2 basis given by
+`sqrt.(orthogonalityweight(P)) .* Normalized(P)`.
+"""
 struct OrthonormalWeighted{T, PP<:AbstractQuasiMatrix{T}} <: Basis{T}
     P::Normalized{T, PP}
 end
@@ -165,3 +172,32 @@ function getindex(Q::OrthonormalWeighted, x::Union{Number,AbstractVector}, jr::U
     sqrt.(w[x]) .* Q.P[x,jr]
 end
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
+
+"""
+    Weighted(P)
+
+is equivalent to `orthogonalityweight(P) .* P`
+"""
+struct Weighted{T, PP<:AbstractQuasiMatrix{T}} <: Basis{T}
+    P::PP
+end
+
+axes(Q::Weighted) = axes(Q.P)
+copy(Q::Weighted) = Q
+
+==(A::Weighted, B::Weighted) = A.P == B.P
+
+convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = orthogonalityweight(P.P) .* P.P
+
+function getindex(Q::Weighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector})
+    w = orthogonalityweight(Q.P)
+    w[x] .* Q.P[x,jr]
+end
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = Q * (Q.P \ (x .* Q.P))
+
+\(w_A::Weighted, w_B::Weighted) = convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
+\(w_A::Weighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
+\(A::AbstractQuasiArray, w_B::Weighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
+
+@simplify *(Ac::QuasiAdjoint{<:Any,<:Weighted}, wB::Weighted) = 
+    convert(WeightedOrthogonalPolynomial, parent(Ac))' * convert(WeightedOrthogonalPolynomial, wB)
