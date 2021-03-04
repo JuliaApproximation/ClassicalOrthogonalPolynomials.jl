@@ -49,6 +49,9 @@ ultrasphericalc(n::Integer, λ, z::Number) = Base.unsafe_getindex(Ultraspherical
 ==(::ChebyshevU, C::Ultraspherical) = isone(C.λ)
 ==(P::Ultraspherical, Q::Jacobi) = isone(2P.λ) && Jacobi(P) == Q
 ==(P::Jacobi, Q::Ultraspherical) = isone(2Q.λ) && P == Jacobi(Q)
+==(P::Ultraspherical, Q::Legendre) = isone(2P.λ)
+==(P::Legendre, Q::Ultraspherical) = isone(2Q.λ)
+
 
 ###
 # interrelationships
