@@ -38,7 +38,7 @@ const WeightedUltraspherical{T} = WeightedBasis{T,<:UltrasphericalWeight,<:Ultra
 
 WeightedUltraspherical(λ) = UltrasphericalWeight(λ) .* Ultraspherical(λ)
 WeightedUltraspherical{T}(λ) where T = UltrasphericalWeight{T}(λ) .* Ultraspherical{T}(λ)
-
+orthogonalityweight(C::Ultraspherical) = UltrasphericalWeight(C.λ)
 
 ultrasphericalc(n::Integer, λ, z::Number) = Base.unsafe_getindex(Ultraspherical{promote_type(typeof(λ),typeof(z))}(λ), z, n+1)
 
@@ -47,6 +47,8 @@ ultrasphericalc(n::Integer, λ, z::Number) = Base.unsafe_getindex(Ultraspherical
 ==(::ChebyshevT, ::Ultraspherical) = false
 ==(C::Ultraspherical, ::ChebyshevU) = isone(C.λ)
 ==(::ChebyshevU, C::Ultraspherical) = isone(C.λ)
+==(P::Ultraspherical, Q::Jacobi) = isone(2P.λ) && Jacobi(P) == Q
+==(P::Jacobi, Q::Ultraspherical) = isone(2Q.λ) && P == Jacobi(Q)
 
 ###
 # interrelationships

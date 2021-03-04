@@ -142,6 +142,34 @@ WeightedJacobi(a,b) = JacobiWeight(a,b) .* Jacobi(a,b)
 WeightedJacobi{T}(a,b) where T = JacobiWeight{T}(a,b) .* Jacobi{T}(a,b)
 
 
+"""
+    HalfWeighted{lr}(Jacobi(a,b))
+
+is equivalent to `JacobiWeight(a,0) .* Jacobi(a,b)` (`lr = :a`) or
+`JacobiWeight(0,b) .* Jacobi(a,b)` (`lr = :b`)
+"""
+struct HalfWeighted{lr, T, PP<:AbstractQuasiMatrix{T}} <: Basis{T}
+    P::PP
+end
+
+HalfWeighted{lr}(P) where lr = HalfWeighted{lr,eltype(P),typeof(P)}(P)
+
+axes(Q::HalfWeighted) = axes(Q.P)
+copy(Q::HalfWeighted) = Q
+
+==(A::HalfWeighted, B::HalfWeighted) = A.P == B.P
+
+convert(::Type{WeightedJacobi}, Q::HalfWeighted{:a,T}) where T = JacobiWeight(Q.P.a,zero(T)) .* Q.P
+convert(::Type{WeightedJacobi}, Q::HalfWeighted{:b,T}) where T = JacobiWeight(zero(T),Q.P.b) .* Q.P
+
+getindex(Q::HalfWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = convert(WeightedJacobi, Q)[x,jr]
+
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::HalfWeighted) = Q * (Q.P \ (x .* Q.P))
+
+\(w_A::HalfWeighted, w_B::HalfWeighted) = convert(WeightedJacobi, w_A) \ convert(WeightedJacobi, w_B)
+\(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedJacobi, w_A) \ B
+\(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedJacobi, w_B)
+
 axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b
 ==(P::Legendre, Q::Jacobi) = Jacobi(P) == Q
@@ -149,8 +177,11 @@ axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()),
 ==(A::WeightedJacobi, B::WeightedJacobi) = A.args == B.args
 ==(A::WeightedJacobi, B::Jacobi{T}) where T = A == JacobiWeight(zero(T),zero(T)).*B
 ==(A::WeightedJacobi, B::Legendre) = A == Jacobi(B)
-==(A::Jacobi{T}, B::WeightedJacobi) where T = JacobiWeight(zero(T),zero(T)).*A == B
 ==(A::Legendre, B::WeightedJacobi) = Jacobi(A) == B
+==(A::Jacobi{T}, B::WeightedJacobi) where T = JacobiWeight(zero(T),zero(T)).*A == B
+==(A::Legendre, B::Weighted{<:Any,<:AbstractJacobi}) = A == B.P
+==(A::Weighted{<:Any,<:AbstractJacobi}, B::Legendre) = A.P == B
+
 
 summary(io::IO, P::Jacobi) = print(io, "Jacobi($(P.a), $(P.b))")
 
@@ -290,6 +321,16 @@ function \(w_A::WeightedJacobi, B::Jacobi)
     w_A \ (JacobiWeight(zero(a),zero(b)) .* B)
 end
 
+function \(A::AbstractJacobi, w_B::WeightedJacobi)
+    Ã = Jacobi(A)
+    (A \ Ã) * (Ã \ w_B)
+end
+function \(w_A::WeightedJacobi, B::AbstractJacobi)
+    B̃ = Jacobi(B)
+    (w_A \ B̃) * (B̃ \ B)
+end
+
+
 function broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::WeightedJacobi)
     wA,A = w_A.args
     wB,B = w_B.args
@@ -327,32 +368,46 @@ end
 ##########
 
 # Jacobi(a+1,b+1)\(D*Jacobi(a,b))
-@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, S::Jacobi)
-    A = _BandedMatrix((((1:∞) .+ (S.a + S.b))/2)', ℵ₀, -1,1)
-    ApplyQuasiMatrix(*, Jacobi(S.a+1,S.b+1), A)
-end
+@simplify *(D::Derivative{<:Any,<:AbstractInterval}, S::Jacobi) = Jacobi(S.a+1,S.b+1) * _BandedMatrix((((1:∞) .+ (S.a + S.b))/2)', ℵ₀, -1,1)
 
-@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::Weighted{<:Any,Jacobi})
+@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::Weighted{<:Any,<:Jacobi})
     # L_1^t
     S = WS.P
     a,b = S.a, S.b
-    Weighted(Jacobi(a-1, b-1)) * _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1)
+    if a == b == 0
+        D*S
+    else
+        Weighted(Jacobi(a-1, b-1)) * _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1)
+    end
 end
+
+#L_6^t
+@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::HalfWeighted{:a,<:Any,<:Jacobi})
+    S = WS.P
+    a,b = S.a, S.b
+    HalfWeighted{:a}(Jacobi(a-1,b+1)) * Diagonal(-(a:∞))
+end
+
+#L_6
+@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::HalfWeighted{:b,<:Any,<:Jacobi})
+    S = WS.P
+    a,b = S.a, S.b
+    HalfWeighted{:b}(Jacobi(a+1,b-1)) * Diagonal(b:∞)
+end
+
 
 # Jacobi(a-1,b-1)\ (D*w*Jacobi(a,b))
 @simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::WeightedJacobi)
     w,S = WS.args
     a,b = S.a, S.b
-    if w.a == 0 && w.b == 0
+    if isorthogonalityweighted(WS) # L_1^t
+        D * Weighted(S)
+    elseif w.a == w.b == 0
         D*S
     elseif iszero(w.a) && w.b == b #L_6
-        A = Diagonal(b:∞)
-        ApplyQuasiMatrix(*, JacobiWeight(w.a,b-1) .* Jacobi(a+1,b-1), A)
+        D * HalfWeighted{:b}(S)
     elseif iszero(w.b) && w.a == a #L_6^t
-        A = Diagonal(-(a:∞))
-        ApplyQuasiMatrix(*, JacobiWeight(a-1,w.b) .* Jacobi(a-1,b+1), A)
-    elseif isorthogonalityweighted(WS) # L_1^t
-        D * Weighted(S)
+        D * HalfWeighted{:a}(S)
     elseif iszero(w.a)
         W = (JacobiWeight(w.a, b-1) .* Jacobi(a+1, b-1)) \ (D * (JacobiWeight(w.a,b) .* S))
         J = Jacobi(a+1,b) # range Jacobi

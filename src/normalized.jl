@@ -187,24 +187,17 @@ copy(Q::Weighted) = Q
 
 ==(A::Weighted, B::Weighted) = A.P == B.P
 
+convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = orthogonalityweight(P.P) .* P.P
+
 function getindex(Q::Weighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector})
     w = orthogonalityweight(Q.P)
     w[x] .* Q.P[x,jr]
 end
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = Q * (Q.P \ (x .* Q.P))
 
-function \(w_A::Weighted, w_B::Weighted)
-    A = w_A.P
-    B = w_B.P
-    (orthogonalityweight(A) .* A) \ (orthogonalityweight(B) .* B)
-end
+\(w_A::Weighted, w_B::Weighted) = convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
+\(w_A::Weighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
+\(A::AbstractQuasiArray, w_B::Weighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
 
-function \(w_A::Weighted, B)
-    A = w_A.P
-    (orthogonalityweight(A) .* A) \ B
-end
-
-function \(A, w_B::Weighted)
-    B = w_B.P
-    A \ (orthogonalityweight(B) .* B)
-end
+@simplify *(Ac::QuasiAdjoint{<:Any,<:Weighted}, wB::Weighted) = 
+    convert(WeightedOrthogonalPolynomial, parent(Ac))' * convert(WeightedOrthogonalPolynomial, wB)
