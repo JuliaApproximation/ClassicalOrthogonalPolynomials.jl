@@ -30,7 +30,7 @@ import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, Infini
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     inbounds_getindex, grid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
     AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
-    checkpoints
+    checkpoints, weight, unweightedbasis
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints
 
@@ -45,7 +45,7 @@ export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomia
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
             ∞, Derivative, .., Inclusion, 
             chebyshevt, chebyshevu, legendre, jacobi,
-            legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh,
+            legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
             jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight
 
 if VERSION < v"1.6-"

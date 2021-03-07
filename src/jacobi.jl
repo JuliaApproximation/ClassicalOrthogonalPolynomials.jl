@@ -132,6 +132,7 @@ computes the `n`-th Jacobi polynomial, orthogonal with
 respec to `(1-x)^a*(1+x)^b`, at `z`.
 """
 jacobip(n::Integer, a, b, z::Number) = Base.unsafe_getindex(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b), z, n+1)
+normalizedjacobip(n::Integer, a, b, z::Number) = Base.unsafe_getindex(Normalized(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b)), z, n+1)
 
 OrthogonalPolynomial(w::JacobiWeight) = Jacobi(w.a, w.b)
 orthogonalityweight(P::Jacobi) = JacobiWeight(P.a, P.b)
@@ -148,7 +149,7 @@ WeightedJacobi{T}(a,b) where T = JacobiWeight{T}(a,b) .* Jacobi{T}(a,b)
 is equivalent to `JacobiWeight(a,0) .* Jacobi(a,b)` (`lr = :a`) or
 `JacobiWeight(0,b) .* Jacobi(a,b)` (`lr = :b`)
 """
-struct HalfWeighted{lr, T, PP<:AbstractQuasiMatrix{T}} <: Basis{T}
+struct HalfWeighted{lr, T, PP<:AbstractQuasiMatrix{T}} <: AbstractWeighted{T}
     P::PP
 end
 
@@ -157,18 +158,21 @@ HalfWeighted{lr}(P) where lr = HalfWeighted{lr,eltype(P),typeof(P)}(P)
 axes(Q::HalfWeighted) = axes(Q.P)
 copy(Q::HalfWeighted) = Q
 
-==(A::HalfWeighted, B::HalfWeighted) = A.P == B.P
+==(A::HalfWeighted{lr}, B::HalfWeighted{lr}) where lr = A.P == B.P
+==(A::HalfWeighted, B::HalfWeighted) = false
 
-convert(::Type{WeightedJacobi}, Q::HalfWeighted{:a,T}) where T = JacobiWeight(Q.P.a,zero(T)) .* Q.P
-convert(::Type{WeightedJacobi}, Q::HalfWeighted{:b,T}) where T = JacobiWeight(zero(T),Q.P.b) .* Q.P
+convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:a,T,<:Jacobi}) where T = JacobiWeight(Q.P.a,zero(T)) .* Q.P
+convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:b,T,<:Jacobi}) where T = JacobiWeight(zero(T),Q.P.b) .* Q.P
+convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:a,T,<:Normalized}) where T = JacobiWeight(Q.P.P.a,zero(T)) .* Q.P
+convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:b,T,<:Normalized}) where T = JacobiWeight(zero(T),Q.P.P.b) .* Q.P
 
-getindex(Q::HalfWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = convert(WeightedJacobi, Q)[x,jr]
+getindex(Q::HalfWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = convert(WeightedOrthogonalPolynomial, Q)[x,jr]
 
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::HalfWeighted) = Q * (Q.P \ (x .* Q.P))
 
-\(w_A::HalfWeighted, w_B::HalfWeighted) = convert(WeightedJacobi, w_A) \ convert(WeightedJacobi, w_B)
-\(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedJacobi, w_A) \ B
-\(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedJacobi, w_B)
+\(w_A::HalfWeighted, w_B::HalfWeighted) = convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
+\(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
+\(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
 
 axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b
@@ -370,16 +374,6 @@ end
 # Jacobi(a+1,b+1)\(D*Jacobi(a,b))
 @simplify *(D::Derivative{<:Any,<:AbstractInterval}, S::Jacobi) = Jacobi(S.a+1,S.b+1) * _BandedMatrix((((1:∞) .+ (S.a + S.b))/2)', ℵ₀, -1,1)
 
-@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::Weighted{<:Any,<:Jacobi})
-    # L_1^t
-    S = WS.P
-    a,b = S.a, S.b
-    if a == b == 0
-        D*S
-    else
-        Weighted(Jacobi(a-1, b-1)) * _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1)
-    end
-end
 
 #L_6^t
 @simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::HalfWeighted{:a,<:Any,<:Jacobi})
@@ -393,6 +387,29 @@ end
     S = WS.P
     a,b = S.a, S.b
     HalfWeighted{:b}(Jacobi(a+1,b-1)) * Diagonal(b:∞)
+end
+
+for ab in (:(:a), :(:b))
+    @eval @simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::HalfWeighted{$ab,<:Any,<:Normalized})
+        P,M = arguments(ApplyLayout{typeof(*)}(), WS.P)
+        D * HalfWeighted{$ab}(P) * M
+    end
+end
+
+
+@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::Weighted{<:Any,<:Jacobi})
+    # L_1^t
+    S = WS.P
+    a,b = S.a, S.b
+    if a == b == 0
+        D*S
+    elseif iszero(a)
+        D * HalfWeighted{:b}(S)
+    elseif iszero(b)
+        D * HalfWeighted{:a}(S)
+    else
+        Weighted(Jacobi(a-1, b-1)) * _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1)
+    end
 end
 
 

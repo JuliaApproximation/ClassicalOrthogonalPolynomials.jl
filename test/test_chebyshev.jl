@@ -1,6 +1,6 @@
 using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatrices, LazyArrays, 
         FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays, LazyBandedMatrices, ForwardDiff
-import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto
+import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto, Weighted
 import LazyArrays: ApplyStyle
 import QuasiArrays: MulQuasiMatrix
 import Base: OneTo
@@ -127,6 +127,13 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test a[0.1] ≈ (T * c)[0.1]/sqrt(1-0.1^2)
         u = wT * (wT \ @.(exp(x)/sqrt(1-x^2)))
         @test u[0.1] ≈ exp(0.1)/sqrt(1-0.1^2)
+
+        @testset "Weighted" begin
+            WT = Weighted(ChebyshevT())
+            @test wT[0.1,1:10] ≈ WT[0.1,1:10]
+            @test WT \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ wT \ (exp.(x) ./ sqrt.(1 .- x.^2))
+            @test WT[:,1:20] \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ (WT \ (exp.(x) ./ sqrt.(1 .- x.^2)))[1:20]
+        end
 
         @testset "mapped" begin
             x = Inclusion(0..1)
