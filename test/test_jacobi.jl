@@ -352,6 +352,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
 
     @testset "special syntax" begin
         @test jacobip.(0:5, 0.1, 0.2, 0.3) == Jacobi(0.1, 0.2)[0.3, 1:6]
+        @test normalizedjacobip.(0:5, 0.1, 0.2, 0.3) == Normalized(Jacobi(0.1, 0.2))[0.3, 1:6]
     end
 
     @testset "Weighted/HalfWeighted" begin
