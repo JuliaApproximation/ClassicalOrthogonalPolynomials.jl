@@ -372,5 +372,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test HalfWeighted{:a}(B) \ (JacobiWeight(a,0) .* B) isa Eye
 
         @test HalfWeighted{:a}(B) \ (x .* HalfWeighted{:a}(B)) isa LazyBandedMatrices.Tridiagonal
+
+        @test (D * HalfWeighted{:a}(Normalized(B)) * (Normalized(B) \ exp.(x)))[0.1] ≈ (-a + 1-0.1)*(1-0.1)^(a-1) *exp(0.1)
+        @test (D * HalfWeighted{:b}(Normalized(B)) * (Normalized(B) \ exp.(x)))[0.1] ≈ (b + 1+0.1) * (1+0.1)^(b-1)*exp(0.1)
+
+        @test (D * Weighted(Jacobi(0,0.1)))[0.1,1:10] ≈ (D * HalfWeighted{:b}(Jacobi(0,0.1)))[0.1,1:10]
     end
 end
