@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, QuasiArrays, LazyArrays, LazyBandedMatrices, FastGaussQuadrature, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted, WeightedOrthogonalPolynomial
 
 @testset "Jacobi" begin
     @testset "JacobiWeight" begin
@@ -377,5 +377,12 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test (D * HalfWeighted{:b}(Normalized(B)) * (Normalized(B) \ exp.(x)))[0.1] ≈ (b + 1+0.1) * (1+0.1)^(b-1)*exp(0.1)
 
         @test (D * Weighted(Jacobi(0,0.1)))[0.1,1:10] ≈ (D * HalfWeighted{:b}(Jacobi(0,0.1)))[0.1,1:10]
+        @test (D * Weighted(Jacobi(0.1,0)))[0.1,1:10] ≈ (D * HalfWeighted{:a}(Jacobi(0.1,0)))[0.1,1:10]
+
+        @test HalfWeighted{:a}(Jacobi(0.2,0.1)) ≠ HalfWeighted{:b}(Jacobi(0.2,0.1))
+        @test HalfWeighted{:a}(Jacobi(0.2,0.1)) == HalfWeighted{:a}(Jacobi(0.2,0.1))
+
+        @test convert(WeightedOrthogonalPolynomial, HalfWeighted{:a}(Normalized(Jacobi(0.1,0.2))))[0.1,1:10] ≈
+            HalfWeighted{:a}(Normalized(Jacobi(0.1,0.2)))[0.1,1:10]
     end
 end

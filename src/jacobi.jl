@@ -158,7 +158,8 @@ HalfWeighted{lr}(P) where lr = HalfWeighted{lr,eltype(P),typeof(P)}(P)
 axes(Q::HalfWeighted) = axes(Q.P)
 copy(Q::HalfWeighted) = Q
 
-==(A::HalfWeighted, B::HalfWeighted) = A.P == B.P
+==(A::HalfWeighted{lr}, B::HalfWeighted{lr}) where lr = A.P == B.P
+==(A::HalfWeighted, B::HalfWeighted) = false
 
 convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:a,T,<:Jacobi}) where T = JacobiWeight(Q.P.a,zero(T)) .* Q.P
 convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:b,T,<:Jacobi}) where T = JacobiWeight(zero(T),Q.P.b) .* Q.P
