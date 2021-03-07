@@ -384,5 +384,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
 
         @test convert(WeightedOrthogonalPolynomial, HalfWeighted{:a}(Normalized(Jacobi(0.1,0.2))))[0.1,1:10] ≈
             HalfWeighted{:a}(Normalized(Jacobi(0.1,0.2)))[0.1,1:10]
+        @test convert(WeightedOrthogonalPolynomial, HalfWeighted{:b}(Normalized(Jacobi(0.1,0.2))))[0.1,1:10] ≈
+            HalfWeighted{:b}(Normalized(Jacobi(0.1,0.2)))[0.1,1:10]            
     end
 end
