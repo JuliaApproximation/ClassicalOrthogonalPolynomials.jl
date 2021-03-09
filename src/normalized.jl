@@ -178,6 +178,9 @@ abstract type AbstractWeighted{T} <: Basis{T} end
 
 MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout()
 ContinuumArrays.unweightedbasis(wP::AbstractWeighted) = wP.P
+\(w_A::AbstractWeighted, w_B::AbstractWeighted) = convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
+\(w_A::AbstractWeighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
+\(A::AbstractQuasiArray, w_B::AbstractWeighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
 
 """
     Weighted(P)
@@ -200,9 +203,6 @@ convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = weight(P) .* unweig
 getindex(Q::Weighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = weight(Q)[x] .* unweightedbasis(Q)[x,jr]
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = Q * (Q.P \ (x .* Q.P))
 
-\(w_A::Weighted, w_B::Weighted) = convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
-\(w_A::Weighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
-\(A::AbstractQuasiArray, w_B::Weighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
 
 @simplify *(Ac::QuasiAdjoint{<:Any,<:Weighted}, wB::Weighted) = 
     convert(WeightedOrthogonalPolynomial, parent(Ac))' * convert(WeightedOrthogonalPolynomial, wB)
