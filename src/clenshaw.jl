@@ -289,7 +289,7 @@ end
 
 getindex(M::Clenshaw, k::Int, j::Int) = M[k:k,j][1]
 
-transposelayout(M::ClenshawLayout) = ClenshawLayout()
+transposelayout(M::ClenshawLayout) = LazyBandedMatrices.LazyBandedLayout()
 # TODO: generalise for layout, use Base.PermutedDimsArray
 Base.permutedims(M::Clenshaw{<:Number}) = transpose(M)
 
