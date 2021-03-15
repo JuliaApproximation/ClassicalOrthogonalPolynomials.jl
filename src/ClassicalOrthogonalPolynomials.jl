@@ -4,7 +4,7 @@ using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, Bloc
     InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW,
     LazyBandedMatrices
 
-import Base: @_inline_meta, axes, getindex, convert, prod, *, /, \, +, -,
+import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy,
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum,
                 to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
@@ -15,7 +15,7 @@ import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, colsupp
                 AbstractCachedVector, AbstractCachedMatrix
 import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
                         subdiagonaldata, diagonaldata, supdiagonaldata
-import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal
+import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1
 import LinearAlgebra: pinv, factorize, qr, adjoint, transpose
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
 import FillArrays: AbstractFill, getindex_value
@@ -30,13 +30,13 @@ import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, Infini
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     inbounds_getindex, grid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
     AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
-    checkpoints, weight, unweightedbasis
+    checkpoints, weight, unweightedbasis, AbstractConcatBasis
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints
 
 import FastGaussQuadrature: jacobimoment
 
-import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray
+import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray, block, blockindex, BlockSlice
 import BandedMatrices: bandwidths
 
 export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial, 
@@ -46,7 +46,8 @@ export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomia
             ∞, Derivative, .., Inclusion, 
             chebyshevt, chebyshevu, legendre, jacobi,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
-            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight,
+            PiecewiseInterlace
 
 if VERSION < v"1.6-"
     oneto(n) = Base.OneTo(n)
@@ -60,6 +61,8 @@ include("interlace.jl")
 
 cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
 cardinality(::EuclideanDomain) = ℵ₁
+cardinality(d::UnionDomain) = sum(map(cardinality, d.domains))
+checkpoints(d::UnionDomain) = union(map(checkpoints,d.domains)...)
 
 transform_ldiv(A, f, ::Tuple{<:Any,InfiniteCardinal{0}})  = adaptivetransform_ldiv(A, f)
 

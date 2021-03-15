@@ -152,6 +152,15 @@ struct LanczosPolynomial{T,Weight,Basis} <: OrthogonalPolynomial{T}
     data::LanczosData{T}
 end
 
+function LanczosPolynomial(w_in::AbstractQuasiVector, P::AbstractQuasiMatrix)
+    Q = normalize(P)
+    wQ = weighted(Q)
+    w = wQ * (wQ \ w_in) # expand weight in basis
+    LanczosPolynomial(w, Q, LanczosData(w, Q))
+end
+
+LanczosPolynomial(w::AbstractQuasiVector) = LanczosPolynomial(w, orthonormalpolynomial(singularities(w)))
+
 ==(A::LanczosPolynomial, B::LanczosPolynomial) = A.w == B.w
 ==(::LanczosPolynomial, ::OrthogonalPolynomial) = false # TODO: fix
 ==(::OrthogonalPolynomial, ::LanczosPolynomial) = false # TODO: fix
@@ -167,14 +176,6 @@ orthogonalpolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w)
 orthogonalpolynomial(w::SubQuasiArray) = orthogonalpolynomial(parent(w))[parentindices(w)[1],:]
 orthonormalpolynomial(w::AbstractQuasiVector) = normalize(orthogonalpolynomial(w))
 
-function LanczosPolynomial(w_in::AbstractQuasiVector, P::AbstractQuasiMatrix)
-    Q = normalize(P)
-    wQ = weighted(Q)
-    w = wQ * (wQ \ w_in) # expand weight in basis
-    LanczosPolynomial(w, Q, LanczosData(w, Q))
-end
-
-LanczosPolynomial(w::AbstractQuasiVector) = LanczosPolynomial(w, orthonormalpolynomial(singularities(w)))
 
 orthogonalityweight(Q::LanczosPolynomial) = Q.w
 
