@@ -81,7 +81,7 @@ getindex(R::LanczosConversion, k::Integer, j::Integer) = _lanczosconversion_geti
 getindex(R::LanczosConversion, k::AbstractUnitRange, j::AbstractUnitRange) = _lanczosconversion_getindex(R, k, j)
 
 inv(R::LanczosConversion) = ApplyArray(inv, R)
-
+copy(R::LanczosConversion) = R
 
 Base.BroadcastStyle(::Type{<:LanczosConversion}) = LazyArrays.LazyArrayStyle{2}()
 

@@ -1,5 +1,5 @@
-using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
+using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, QuasiArrays, ContinuumArrays, Test
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, LanczosData
 
 @testset "Lanczos" begin
     @testset "Legendre" begin
@@ -215,38 +215,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
         U = ChebyshevU()
         W = π/2*I + (Base.unsafe_getindex(U,2,:) * Base.unsafe_getindex(U,2,:)')
         X = jacobimatrix(U)
-        import ClassicalOrthogonalPolynomials: LanczosData, resizedata!
-        import ContinuumArrays: PiecewiseBasis
         dat = LanczosData(X, W);
         w = QuasiArrays.UnionVcat(ChebyshevUWeight(), DiracDelta(2))
         Q = LanczosPolynomial(w, U, dat);
-
         R = U \ Q;
-        v = R[:,2]
-        w = R[:,3]
-        v'*(ChebyshevUWeight() .* w)
-
-        v'*((U'*(ChebyshevUWeight() .* U))*w)
-        Base.unsafe_getindex(U*v,2)Base.unsafe_getindex(U*w,2)
-        v'* (Base.unsafe_getindex(U,2,:) * Base.unsafe_getindex(U,2,:)' *w)
-        v'*(W * w)
-
-        resizedata!(dat,5)
-        dat.R
-        using ContinuumArrays: PiecewiseBasis, DiracDelta
-        using BlockArrays
-        P2 = PiecewiseBasis(DiracDelta(2), Legendre())
-        x = axes(P2,1)
-
-        x .* P2
-
-        x = axes(DiracDelta(2),1)
-
-        x .* DiracDelta(2)
-
-        P2 = PiecewiseBasis(legendre(-1..(-1/2)), legendre((1/2)..1))
-        
-        P2[0.6,1:10]
-        W
+        @test R[1:5,1:5] isa Matrix{Float64}
     end
 end
