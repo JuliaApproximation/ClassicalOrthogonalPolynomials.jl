@@ -349,6 +349,13 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test chebyshevu.(0:5, BigFloat(1)/10) == ChebyshevU{BigFloat}()[BigFloat(1)/10, 1:6]
         @test chebyshevu.(0:5, 2) == Base.unsafe_getindex(ChebyshevU(), 2, 1:6)
     end
+
+    @testset "Adjoint views" begin
+        T = ChebyshevT(); U = ChebyshevU()
+        D = Derivative(axes(T,1))
+        V = view(T,:,[1,3,4])
+        @test (U\(D*V))[1:5,:] == (U \ (V'D')')[1:5,:] == (U\(D*T))[1:5,[1,3,4]] 
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end
