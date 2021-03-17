@@ -183,7 +183,6 @@ axes(Q::LanczosPolynomial) = (axes(Q.w,1),OneToInf())
 _p0(Q::LanczosPolynomial) = inv(Q.data.γ[1])*_p0(Q.P)
 
 jacobimatrix(Q::LanczosPolynomial) = SymTridiagonal(LanczosJacobiBand(Q.data, :d), LanczosJacobiBand(Q.data, :du))
-recurrencecoefficients(Q::LanczosPolynomial) = normalized_recurrencecoefficients(Q)
 
 Base.summary(io::IO, Q::LanczosPolynomial{T}) where T = print(io, "LanczosPolynomial{$T} with weight with singularities $(singularities(Q.w))")
 Base.show(io::IO, Q::LanczosPolynomial{T}) where T = summary(io, Q)

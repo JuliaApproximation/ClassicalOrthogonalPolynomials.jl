@@ -55,17 +55,6 @@ axes(Q::Normalized) = axes(Q.P)
 
 _p0(Q::Normalized) = Q.scaling[1]
 
-# p_{n+1} = (A_n * x + B_n) * p_n - C_n * p_{n-1}
-# q_{n+1}/h[n+1] = (A_n * x + B_n) * q_n/h[n] - C_n * p_{n-1}/h[n-1]
-# q_{n+1} = (h[n+1]/h[n] * A_n * x + h[n+1]/h[n] * B_n) * q_n - h[n+1]/h[n-1] * C_n * p_{n-1}
-
-function normalized_recurrencecoefficients(Q::AbstractQuasiMatrix{T}) where T
-    X = jacobimatrix(Q)
-    a,b = diagonaldata(X), supdiagonaldata(X)
-    inv.(b), -(a ./ b), Vcat(zero(T), b) ./ b
-end
-
-recurrencecoefficients(Q::Normalized{T}) where T = normalized_recurrencecoefficients(Q)
 
 # x * p[n] = c[n-1] * p[n-1] + a[n] * p[n] + b[n] * p[n+1]
 # x * q[n]/h[n] = c[n-1] * q[n-1]/h[n-1] + a[n] * q[n]/h[n] + b[n] * q[n+1]/h[n+1]
