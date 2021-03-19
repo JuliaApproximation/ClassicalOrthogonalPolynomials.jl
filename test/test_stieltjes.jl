@@ -56,6 +56,8 @@ end
         wU2 = wU[y,:]
         @test (Ultraspherical(1)[y,:]\(H*wT2))[1:10,1:10] == diagm(1 => fill(-π,9))
         @test_broken (Chebyshev()[y,:]\(H*wU2))[1:10,1:10] == diagm(-1 => fill(1.0π,9))
+
+        H * ChebyshevTWeight()
     end
 
     @testset "Log kernel" begin

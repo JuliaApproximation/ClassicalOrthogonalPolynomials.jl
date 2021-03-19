@@ -68,6 +68,8 @@ struct LanczosConversion{T} <: LayoutMatrix{T}
 end
 
 size(::LanczosConversion) = (∞,∞)
+copy(R::LanczosConversion) = R
+
 bandwidths(::LanczosConversion) = (0,∞)
 colsupport(L::LanczosConversion, j) = 1:maximum(j)
 rowsupport(L::LanczosConversion, j) = minimum(j):∞
