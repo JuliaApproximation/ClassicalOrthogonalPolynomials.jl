@@ -293,12 +293,12 @@ end
 include("ratios.jl")
 include("normalized.jl")
 include("lanczos.jl")
-include("hermite.jl")
-include("jacobi.jl")
-include("chebyshev.jl")
-include("ultraspherical.jl")
-include("laguerre.jl")
-include("fourier.jl")
+include("classical/hermite.jl")
+include("classical/jacobi.jl")
+include("classical/chebyshev.jl")
+include("classical/ultraspherical.jl")
+include("classical/laguerre.jl")
+include("classical/fourier.jl")
 include("stieltjes.jl")
 
 
