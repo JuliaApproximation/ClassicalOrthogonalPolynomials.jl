@@ -51,10 +51,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         x,w = gaussjacobi(3,a,b)
         P = Jacobi(a,b)
 
-        M = P[x,1:3]'Diagonal(w)*P[x,1:3]
+        M = P[x,1:3]'QuasiDiagonal(w)*P[x,1:3]
         @test M ≈ Diagonal(M)
         x,w = gaussradau(3,a,b)
-        M = P[x,1:3]'Diagonal(w)*P[x,1:3]
+        M = P[x,1:3]'QuasiDiagonal(w)*P[x,1:3]
         @test M ≈ Diagonal(M)
 
         w = JacobiWeight(a,b)
@@ -242,7 +242,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         w = JacobiWeight(1.0,1.0)
         wS = w .* S
 
-        W = Diagonal(w)
+        W = QuasiDiagonal(w)
         @test W[0.1,0.2] ≈ 0.0
     end
 
