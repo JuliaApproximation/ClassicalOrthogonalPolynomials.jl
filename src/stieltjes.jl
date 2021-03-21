@@ -61,6 +61,12 @@ end
     fill(convert(T,π), axes(w,1))
 end
 
+@simplify function *(H::Hilbert, w::LegendreWeight)
+    T = promote_type(eltype(H), eltype(w))
+    x = axes(w,1)
+    log.(x .+ 1) .- log.(1 .- x)
+end
+
 @simplify function *(H::Hilbert, wT::Weighted{<:Any,<:ChebyshevT}) 
     T = promote_type(eltype(H), eltype(wT))
     ChebyshevU{T}() * _BandedMatrix(Fill(-convert(T,π),1,∞), ℵ₀, -1, 1)
@@ -75,9 +81,11 @@ end
 @simplify function *(H::Hilbert, wP::Weighted{<:Any,<:OrthogonalPolynomial}) 
     P = wP.P
     w = orthogonalityweight(P)
-    A = recurrencecoefficients(P)
-    (A[1]*sum(w))*associated(P) + (H*w) .* P
+    A = recurrencecoefficients(P)[1]
+    (-A[1]*sum(w))*[zero(axes(P,1)) associated(P)] + (H*w) .* P
 end
+
+@simplify *(H::Hilbert, P::Legendre) = H * Weighted(P)
 
 ### 
 # LogKernel

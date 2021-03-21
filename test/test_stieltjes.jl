@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, Test
 import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated
 
 @testset "Associated" begin
@@ -40,6 +40,12 @@ end
         H = inv.(x .- x')
         @test H isa Hilbert{Float64,ChebyshevInterval{Float64}}
 
+        @testset "weights" begin
+            @test H * ChebyshevTWeight() ≡ QuasiZeros{Float64}((x,))
+            @test H * ChebyshevUWeight() ≡ QuasiFill(1.0π,(x,))
+            @test (H * LegendreWeight())[0.1] ≈ log((0.1+1)/(1-0.1))
+        end
+
         @test (Ultraspherical(1) \ (H*wT))[1:10,1:10] == diagm(1 => fill(-π,9))
         @test (Chebyshev() \ (H*wU))[1:10,1:10] == diagm(-1 => fill(1.0π,9))
 
@@ -57,7 +63,13 @@ end
         @test (Ultraspherical(1)[y,:]\(H*wT2))[1:10,1:10] == diagm(1 => fill(-π,9))
         @test_broken (Chebyshev()[y,:]\(H*wU2))[1:10,1:10] == diagm(-1 => fill(1.0π,9))
 
-        H * ChebyshevTWeight()
+        @testset "Legendre" begin
+            P = Legendre()
+            Q = H*P
+            @test Q[0.1,1:3] ≈ [log(0.1+1)-log(1-0.1), 0.1*(log(0.1+1)-log(1-0.1))-2,-3*0.1 + 1/2*(-1 + 3*0.1^2)*(log(0.1+1)-log(1-0.1))]
+            X = jacobimatrix(P)
+            @test Q[0.1,1:11]'*X[1:11,1:10] ≈ (0.1 * Array(Q[0.1,1:10])' - [2 zeros(1,9)])
+        end
     end
 
     @testset "Log kernel" begin
