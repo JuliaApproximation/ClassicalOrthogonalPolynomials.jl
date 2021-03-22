@@ -2,6 +2,19 @@
 # Associated
 ####
 
+
+"""
+    AssociatedWeighted(P)
+
+We normalise so that `orthogonalityweight(::Associated)` is a probability measure.
+"""
+struct AssociatedWeight{T,OPs<:AbstractQuasiMatrix{T}} <: Weight{T}
+    P::OPs
+end
+axes(w::AssociatedWeight) = (axes(w.P,1),)
+
+sum(::AssociatedWeight{T}) where T = one(T)
+
 """
     Associated(P)
 
@@ -28,6 +41,7 @@ associated(P) = Associated(P)
 axes(Q::Associated) = axes(Q.P)
 ==(A::Associated, B::Associated) = A.P == B.P
 
+orthogonalityweight(Q::Associated) = AssociatedWeight(Q.P)
 
 function associated_jacobimatrix(X::Tridiagonal)
     c,a,b = subdiagonaldata(X),diagonaldata(X),supdiagonaldata(X)

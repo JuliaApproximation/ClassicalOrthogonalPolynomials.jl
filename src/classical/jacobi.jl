@@ -199,7 +199,7 @@ summary(io::IO, P::Jacobi) = print(io, "Jacobi($(P.a), $(P.b))")
 # transforms
 ###
 
-function grid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{<:Inclusion,<:AbstractUnitRange}}) where T
+function grid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,AbstractUnitRange}}) where T
     kr,jr = parentindices(Pn)
     ChebyshevGrid{1,T}(maximum(jr))
 end

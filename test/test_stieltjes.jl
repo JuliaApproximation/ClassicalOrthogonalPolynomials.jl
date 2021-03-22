@@ -7,6 +7,12 @@ import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterva
     @test associated(T) ≡ U
     @test associated(U) ≡ U
     @test Associated(T)[0.1,1:10] == Associated(U)[0.1,1:10] == U[0.1,1:10]
+
+    P = Legendre()
+    Q = Associated(P)
+    x = axes(P,1)
+    u = Q * (Q \ exp.(x))
+    @test u[0.1] ≈ exp(0.1)
 end
 
 
