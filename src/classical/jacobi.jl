@@ -163,8 +163,10 @@ copy(Q::HalfWeighted) = Q
 
 convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:a,T,<:Jacobi}) where T = JacobiWeight(Q.P.a,zero(T)) .* Q.P
 convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:b,T,<:Jacobi}) where T = JacobiWeight(zero(T),Q.P.b) .* Q.P
-convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:a,T,<:Normalized}) where T = JacobiWeight(Q.P.P.a,zero(T)) .* Q.P
-convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:b,T,<:Normalized}) where T = JacobiWeight(zero(T),Q.P.P.b) .* Q.P
+function convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{lr,T,<:Normalized}) where {T,lr}
+    w,_ = arguments(convert(WeightedOrthogonalPolynomial, HalfWeighted{lr}(Q.P.P)))
+    w .* Q.P
+end
 
 getindex(Q::HalfWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = convert(WeightedOrthogonalPolynomial, Q)[x,jr]
 
