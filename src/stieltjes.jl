@@ -35,7 +35,6 @@ struct Associated{T, OPs<:AbstractQuasiMatrix{T}} <: OrthogonalPolynomial{T}
     P::OPs
 end
 
-Associated(Q::Associated) = Q
 associated(P) = Associated(P)
 
 axes(Q::Associated) = axes(Q.P)
@@ -131,9 +130,12 @@ end
 # StieltjesPoint
 ####
 
+stieltjesmoment_jacobi_normalization(n::Int,α::Real,β::Real) = 2^(α+β)*gamma(n+α+1)*gamma(n+β+1)/gamma(2n+α+β+2)
+
 @simplify function *(S::StieltjesPoint, w::AbstractJacobiWeight)
     α,β = w.a,w.b
-    (x = 2/(1-z);normalization(n,α,β)*HypergeometricFunctions.mxa_₂F₁(n+1,n+α+1,2n+α+β+2,x))
+    z,_ = parent(S).args[1].args
+    (x = 2/(1-z);stieltjesmoment_jacobi_normalization(0,α,β)*HypergeometricFunctions.mxa_₂F₁(1,α+1,α+β+2,x))
 end
 
 @simplify function *(S::StieltjesPoint, wP::Weighted)

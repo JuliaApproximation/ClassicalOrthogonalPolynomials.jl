@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, Test
-import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated
+import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated, orthogonalityweight
 
 @testset "Associated" begin
     T = ChebyshevT()
@@ -13,6 +13,8 @@ import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterva
     x = axes(P,1)
     u = Q * (Q \ exp.(x))
     @test u[0.1] ≈ exp(0.1)
+
+    @test sum(orthogonalityweight(Q)) == 1
 end
 
 
@@ -24,6 +26,10 @@ end
         z = 0.1+0.2im
         S = inv.(z .- x')
         @test S isa StieltjesPoint{ComplexF64,Float64,ChebyshevInterval{Float64}}
+
+        @test S * ChebyshevWeight() ≈ π/(sqrt(z-1)sqrt(z+1))
+        @test S * JacobiWeight(0.1,0.2) ≈ 0.051643014475741864 - 2.7066092318596726im
+
         f = wT * [[1,2,3]; zeros(∞)];
         J = T \ (x .* T)
         # TODO: fix LazyBandedMatrices.copy(M::Mul{Broadcast...}) to call simplify

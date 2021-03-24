@@ -2,7 +2,7 @@ module ClassicalOrthogonalPolynomials
 using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, BlockArrays,
     IntervalSets, DomainSets, ArrayLayouts, SpecialFunctions,
     InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW,
-    LazyBandedMatrices
+    LazyBandedMatrices, HypergeometricFunctions
 
 import Base: @_inline_meta, axes, getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy,
