@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, Test
-import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated, orthogonalityweight
+import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated, orthogonalityweight, Weighted
 
 @testset "Associated" begin
     T = ChebyshevT()
@@ -13,8 +13,11 @@ import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterva
     x = axes(P,1)
     u = Q * (Q \ exp.(x))
     @test u[0.1] ≈ exp(0.1)
+    @test grid(Q[:,Base.OneTo(5)]) ≈ eigvals(Matrix(jacobimatrix(Normalized(Q))[1:5,1:5]))
 
-    @test sum(orthogonalityweight(Q)) == 1
+    w = orthogonalityweight(Q)
+    @test axes(w,1) == axes(P,1)
+    @test sum(w) == 1
 end
 
 
@@ -105,5 +108,13 @@ end
         u =  wT * (2 *(T \ exp.(x)))
         @test u[0.1] ≈ exp(0.1)/sqrt(0.1-0.1^2)
         @test_broken (L * u)[0.5] ≈ -7.471469928754152 # Mathematica
+    end
+
+    @testset "pow kernel" begin
+        P = Weighted(Jacobi(0.1,0.2))
+        x = axes(P,1)
+        S = abs.(x .- x').^0.5
+        @test S isa ClassicalOrthogonalPolynomials.PowKernel
+        @test_broken S*P
     end
 end
