@@ -2,7 +2,7 @@ module ClassicalOrthogonalPolynomials
 using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, BlockArrays,
     IntervalSets, DomainSets, ArrayLayouts, SpecialFunctions,
     InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW,
-    LazyBandedMatrices
+    LazyBandedMatrices, HypergeometricFunctions
 
 import Base: @_inline_meta, axes, getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy,
@@ -125,6 +125,7 @@ x*P == P*X
 Note that `X` is the transpose of the usual definition of the Jacobi matrix.
 """
 jacobimatrix(P) = error("Override for $(typeof(P))")
+
 
 """
     recurrencecoefficients(P)
@@ -261,10 +262,52 @@ _vec(a::InfiniteArrays.ReshapedArray) = _vec(parent(a))
 _vec(a::Adjoint{<:Any,<:AbstractVector}) = a'
 
 include("clenshaw.jl")
+include("ratios.jl")
+include("normalized.jl")
+include("lanczos.jl")
+
+function _tritrunc(_, X, n)
+    c,a,b = subdiagonaldata(X),diagonaldata(X),supdiagonaldata(X)
+    Tridiagonal(c[OneTo(n-1)],a[OneTo(n)],b[OneTo(n-1)])
+end
+
+function _tritrunc(::SymTridiagonalLayout, X, n)
+    a,b = diagonaldata(X),supdiagonaldata(X)
+    SymTridiagonal(a[OneTo(n)],b[OneTo(n-1)])
+end
+
+_tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
+
+jacobimatrix(V::SubQuasiArray{<:Any,2,<:Any,<:Tuple{Inclusion,OneTo}}) = 
+    _tritrunc(jacobimatrix(parent(V)), maximum(parentindices(V)[2]))
+
+grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,AbstractUnitRange}}) = 
+    eigvals(symtridiagonalize(jacobimatrix(P)))
+
+function golubwelsch(X)
+    D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
+    D, V[1,:].^2
+end
+
+function golubwelsch(V::SubQuasiArray)
+    x,w = golubwelsch(jacobimatrix(V))
+    w .*= sum(orthogonalityweight(parent(V)))
+    x,w
+end
+
+function factorize(L::SubQuasiArray{T,2,<:Normalized,<:Tuple{Inclusion,OneTo}}) where T
+    x,w = golubwelsch(L)
+    TransformFactorization(x, L[x,:]'*Diagonal(w))
+end
 
 
-factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{<:Inclusion,<:OneTo}}) where T =
-    TransformFactorization(grid(L), nothing, qr(L[grid(L),:])) # Use QR so type-stable
+function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,OneTo}}) where T
+    x,w = golubwelsch(L)
+    Q = Normalized(parent(L))[parentindices(L)...]
+    D = L \ Q
+    F = factorize(Q)
+    TransformFactorization(F.grid, D*F.plan)
+end
 
 function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{<:Inclusion,<:AbstractUnitRange}}) where T
     _,jr = parentindices(L)
@@ -290,15 +333,13 @@ function \(wA::WeightedOrthogonalPolynomial, wB::WeightedOrthogonalPolynomial)
     A\B
 end
 
-include("ratios.jl")
-include("normalized.jl")
-include("lanczos.jl")
-include("hermite.jl")
-include("jacobi.jl")
-include("chebyshev.jl")
-include("ultraspherical.jl")
-include("laguerre.jl")
-include("fourier.jl")
+
+include("classical/hermite.jl")
+include("classical/jacobi.jl")
+include("classical/chebyshev.jl")
+include("classical/ultraspherical.jl")
+include("classical/laguerre.jl")
+include("classical/fourier.jl")
 include("stieltjes.jl")
 
 

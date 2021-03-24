@@ -94,7 +94,7 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         S = Jacobi(true,true)
         w = JacobiWeight(true,true)
         D = Derivative(axes(S,1))
-        X = Diagonal(Inclusion(axes(S,1)))
+        X = QuasiDiagonal(Inclusion(axes(S,1)))
 
         @test ((Legendre() \ S)*(S\(w.*S)))[1:10,1:10] ≈ (Legendre() \ (w .* S))[1:10,1:10]
         @test (Ultraspherical(3/2)\(D^2*(w.*S)))[1:10,1:10] ≈ diagm(0 => -(2:2:20))

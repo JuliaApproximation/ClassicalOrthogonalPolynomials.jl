@@ -242,7 +242,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         w = JacobiWeight(1.0,1.0)
         wS = w .* S
 
-        W = Diagonal(w)
+        W = QuasiDiagonal(w)
         @test W[0.1,0.2] ≈ 0.0
     end
 
