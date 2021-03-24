@@ -10,7 +10,7 @@ struct UltrasphericalWeight{T,Λ} <: AbstractJacobiWeight{T}
 end
 
 UltrasphericalWeight{T}(λ) where T = UltrasphericalWeight{T,typeof(λ)}(λ)
-UltrasphericalWeight(λ) = UltrasphericalWeight{typeof(λ),typeof(λ)}(λ)
+UltrasphericalWeight(λ) = UltrasphericalWeight{float(typeof(λ)),typeof(λ)}(λ)
 
 ==(a::UltrasphericalWeight, b::UltrasphericalWeight) = a.λ == b.λ
 
@@ -19,6 +19,7 @@ function getindex(w::UltrasphericalWeight, x::Number)
     (1-x^2)^(w.λ-one(w.λ)/2)
 end
 
+sum(w::UltrasphericalWeight{T}) where T = sqrt(convert(T,π))*exp(loggamma(one(T)/2 + w.λ)-loggamma(1+w.λ))
 
 
 struct Ultraspherical{T,Λ} <: AbstractJacobi{T}

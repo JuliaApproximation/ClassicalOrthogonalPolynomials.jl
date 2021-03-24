@@ -1,4 +1,5 @@
-using ClassicalOrthogonalPolynomials, BandedMatrices, LazyArrays, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, BandedMatrices, LazyArrays, ForwardDiff, Test
+import LazyArrays: rowsupport, colsupport
 
 @testset "Ultraspherical" begin
     @testset "Transforms" begin
