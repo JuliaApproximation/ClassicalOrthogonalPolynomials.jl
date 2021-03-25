@@ -163,6 +163,13 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         f̃ = @.(sqrt(1 - x̃) * exp(x̃))
         @test wP̃[0.1,1:100]'*(wP̃[:,1:100] \ f̃) ≈ sqrt(1-0.1) * exp(0.1)
         @test (wP̃ * (wP̃ \ f̃))[0.1] ≈ sqrt(1-0.1) * exp(0.1)
+
+        @testset "bug" begin
+            P = jacobi(0,-1/2,0..1)
+            x = axes(P,1)
+            u = P * (P \ exp.(x))
+            @test u[0.1] ≈ exp(0.1)
+        end
     end
 
     @testset "trivial weight" begin
