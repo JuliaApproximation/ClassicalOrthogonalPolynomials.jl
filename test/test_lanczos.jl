@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, orthogonalityweight
 
 @testset "Lanczos" begin
     @testset "Legendre" begin
@@ -84,9 +84,19 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
         w = P * [1; zeros(∞)];
         Q = LanczosPolynomial(w);
         R = Normalized(P) \ Q
+        @test bandwidths(R) == (0,∞)
+        @test orthogonalityweight(Q) == w
+        @test permutedims(R) === transpose(R)
         @test R * [1; 2; 3; zeros(∞)] ≈ [R[1:3,1:3] * [1,2,3]; zeros(∞)]
         @test R \ [1; 2; 3; zeros(∞)] ≈ [1; 2; 3; zeros(∞)]
         @test (Q * (Q \ (1 .- x.^2)))[0.1] ≈ (1-0.1^2)
+
+        ũ = Normalized(P)*[1; 2; 3; zeros(∞)]
+        u = Q*[1; 2; 3; zeros(∞)]
+        ū = P * (P\u)
+        @test (u + u)[0.1] ≈ (ũ + u)[0.1] ≈ (u + ũ)[0.1] ≈ (ũ + ũ)[0.1] ≈ (ū + u)[0.1] ≈ (u + ū)[0.1] ≈ (ū + ū)[0.1] ≈ 2u[0.1]
+
+        @test Q \ u ≈ Q \ ũ ≈ Q \ ū
     end
 
     @testset "Jacobi via Lanczos" begin

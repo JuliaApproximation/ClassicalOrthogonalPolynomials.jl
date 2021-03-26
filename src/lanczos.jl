@@ -70,6 +70,8 @@ end
 size(::LanczosConversion) = (∞,∞)
 copy(R::LanczosConversion) = R
 
+Base.permutedims(R::LanczosConversion{<:Number}) = transpose(R)
+
 bandwidths(::LanczosConversion) = (0,∞)
 colsupport(L::LanczosConversion, j) = 1:maximum(j)
 rowsupport(L::LanczosConversion, j) = minimum(j):∞
@@ -178,6 +180,8 @@ end
 
 LanczosPolynomial(w::AbstractQuasiVector) = LanczosPolynomial(w, orthonormalpolynomial(singularities(w)))
 
+
+
 orthogonalityweight(Q::LanczosPolynomial) = Q.w
 
 axes(Q::LanczosPolynomial) = (axes(Q.w,1),OneToInf())
@@ -221,8 +225,18 @@ function ldiv(Qn::SubQuasiArray{<:Any,2,<:LanczosPolynomial,<:Tuple{<:Inclusion,
     Q = parent(Qn)
     LanczosConversion(Q.data)[jr,jr] \ (Q.P[:,jr] \ C)
 end
+
+struct LanczosLayout <: AbstractBasisLayout end
+
+MemoryLayout(::Type{<:LanczosPolynomial}) = LanczosLayout()
 arguments(::ApplyLayout{typeof(*)}, Q::LanczosPolynomial) = Q.P, LanczosConversion(Q.data)
+copy(L::Ldiv{LanczosLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
+copy(L::Ldiv{LanczosLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{LanczosLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
 LazyArrays._mul_arguments(Q::LanczosPolynomial) = arguments(ApplyLayout{typeof(*)}(), Q)
 LazyArrays._mul_arguments(Q::QuasiAdjoint{<:Any,<:LanczosPolynomial}) = arguments(ApplyLayout{typeof(*)}(), Q)
 
-\(A::LanczosPolynomial, x::AbstractQuasiVector) = ApplyQuasiArray(A) \ x
+
+broadcastbasis(::typeof(+), P::Union{Normalized,LanczosPolynomial}, Q::Union{Normalized,LanczosPolynomial}) = broadcastbasis(+, P.P, Q.P)
+broadcastbasis(::typeof(+), P::Union{Normalized,LanczosPolynomial}, Q) = broadcastbasis(+, P.P, Q)
+broadcastbasis(::typeof(+), P, Q::Union{Normalized,LanczosPolynomial}) = broadcastbasis(+, P, Q.P)

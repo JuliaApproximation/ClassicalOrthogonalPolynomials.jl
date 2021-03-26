@@ -123,6 +123,8 @@ for Lay in (:(ApplyLayout{typeof(*)}),:(BroadcastLayout{typeof(+)}),:(BroadcastL
     end
 end
 
+copy(L::Ldiv{Lay,<:NormalizedBasisLayout}) where Lay<:MappedBasisLayouts = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
+
 # want to use special re-expansion routines without expanding Normalized basis
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,BroadcastLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))

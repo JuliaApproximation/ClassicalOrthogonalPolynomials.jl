@@ -121,7 +121,7 @@ end
 Jacobi(a::V, b::T) where {T,V} = Jacobi{float(promote_type(T,V))}(a, b)
 
 jacobi(a,b) = Jacobi(a,b)
-jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi(a,b)[affine(d,ChebyshevInterval{T}()), :]
+jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi{float(promote_type(eltype(a),eltype(b),T))}(a,b)[affine(d,ChebyshevInterval{T}()), :]
 
 Jacobi(P::Legendre{T}) where T = Jacobi(zero(T), zero(T))
 
