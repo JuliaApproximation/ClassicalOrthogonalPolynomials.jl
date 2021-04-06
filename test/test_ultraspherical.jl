@@ -1,4 +1,5 @@
-using ClassicalOrthogonalPolynomials, BandedMatrices, LazyArrays, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, BandedMatrices, LazyArrays, ForwardDiff, Test
+import LazyArrays: rowsupport, colsupport
 
 @testset "Ultraspherical" begin
     @testset "Transforms" begin
@@ -40,7 +41,7 @@ using ClassicalOrthogonalPolynomials, BandedMatrices, LazyArrays, Test
 
         @testset "Interrelationships" begin
             @testset "Chebyshev–Ultrashperical" begin
-                T = Chebyshev()
+                T = ChebyshevT()
                 U = ChebyshevU()
                 C = Ultraspherical(2)
                 D = Derivative(axes(T,1))
@@ -56,11 +57,27 @@ using ClassicalOrthogonalPolynomials, BandedMatrices, LazyArrays, Test
                 S₁ = (C\U)[1:10,1:10]
                 @test S₁ isa BandedMatrix{Float64}
                 @test S₁ == diagm(0 => 1 ./ (1:10), 2=> -(1 ./ (3:10)))
+
+                @test (U\C)[1:10,1:10] ≈ inv((C\U)[1:10,1:10])
+                @test (T\C)[1:10,1:10] ≈ inv((C\T)[1:10,1:10])
+                @test bandwidths(U\C) == bandwidths(T\C) == (0,∞)
+                @test colsupport(U\C,5) == colsupport(T\C,5) == 1:5
+                @test rowsupport(U\C,5) == rowsupport(T\C,5) == 5:∞
             end
             @testset "Legendre" begin
                 @test Ultraspherical(0.5) \ (UltrasphericalWeight(0.0) .* Ultraspherical(0.5)) == Eye(∞)
                 @test Legendre() \ (UltrasphericalWeight(0.0) .* Ultraspherical(0.5)) == Eye(∞)
+                @test (Legendre() \ Ultraspherical(1.5))[1:10,1:10] ≈ inv(Ultraspherical(1.5) \ Legendre())[1:10,1:10]
             end
+        end
+
+        @testset "Conversion" begin
+            R = Ultraspherical(3.5) \ Ultraspherical(0.5)
+            c = [[1,2,3,4,5]; zeros(∞)]
+            @test Ultraspherical(3.5)[0.1,:]' * (R * c) ≈ Ultraspherical(0.5)[0.1,:]' * c
+            Ri = Ultraspherical(0.5) \ Ultraspherical(3.5)
+            @test Ri[1:10,1:10] ≈ inv(R[1:10,1:10])
+            @test Ultraspherical(0.5)[0.1,:]' * (Ri * c) ≈ Ultraspherical(3.5)[0.1,:]' * c
         end
     end
 
@@ -82,4 +99,23 @@ using ClassicalOrthogonalPolynomials, BandedMatrices, LazyArrays, Test
         @test @inferred(C[0.1,Base.OneTo(3)]) == [1.0,0.4,-1.88]
     end
 
+    @testset "special syntax" begin
+        @test ultrasphericalc.(0:5, 2, 0.3) == Ultraspherical(2)[0.3, 1:6]
+    end
+
+    @testset "Ultraspherical vs Chebyshev and Jacobi" begin
+        @test Ultraspherical(1) == ChebyshevU()
+        @test ChebyshevU() == Ultraspherical(1)
+        @test Ultraspherical(0) ≠ ChebyshevT()
+        @test ChebyshevT() ≠ Ultraspherical(0)
+        @test Ultraspherical(1) ≠ Jacobi(1/2,1/2)
+        @test Jacobi(1/2,1/2) ≠ Ultraspherical(1)
+        @test Ultraspherical(1/2) == Jacobi(0,0)
+        @test Ultraspherical(1/2) == Legendre()
+        @test Jacobi(0,0) == Ultraspherical(1/2)
+        @test Legendre() == Ultraspherical(1/2)
+
+        @test Ultraspherical(1/2) \ (JacobiWeight(0,0) .* Jacobi(0,0)) isa Diagonal
+        @test (JacobiWeight(0,0) .* Jacobi(0,0)) \ Ultraspherical(1/2) isa Diagonal
+    end
 end

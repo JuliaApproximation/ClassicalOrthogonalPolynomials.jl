@@ -8,7 +8,7 @@ import ClassicalOrthogonalPolynomials: jacobimatrix, ∞, ChebyshevInterval, Leg
 import LazyArrays: ApplyStyle, colsupport, MemoryLayout, arguments
 import SemiseparableMatrices: VcatAlmostBandedLayout
 import QuasiArrays: MulQuasiMatrix
-import Base: OneTo
+import ClassicalOrthogonalPolynomials: oneto
 import InfiniteLinearAlgebra: KronTrav, Block
 import FastTransforms: clenshaw!
 
@@ -31,10 +31,14 @@ include("test_chebyshev.jl")
 include("test_legendre.jl")
 include("test_ultraspherical.jl")
 include("test_jacobi.jl")
+include("test_hermite.jl")
+include("test_laguerre.jl")
 include("test_fourier.jl")
 include("test_odes.jl")
+include("test_ratios.jl")
 include("test_normalized.jl")
 include("test_lanczos.jl")
+include("test_stieltjes.jl")
 
 @testset "Auto-diff" begin
     U = Ultraspherical(1)

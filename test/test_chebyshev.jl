@@ -1,6 +1,6 @@
 using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatrices, LazyArrays, 
-        FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays
-import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix
+        FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays, LazyBandedMatrices, ForwardDiff
+import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto, Weighted
 import LazyArrays: ApplyStyle
 import QuasiArrays: MulQuasiMatrix
 import Base: OneTo
@@ -20,27 +20,27 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
     @testset "Evaluation" begin
         @testset "T" begin
             T = Chebyshev()
-            @test @inferred(T[0.1,Base.OneTo(0)]) == Float64[]
-            @test @inferred(T[0.1,Base.OneTo(1)]) == [1.0]
-            @test @inferred(T[0.1,Base.OneTo(2)]) == [1.0,0.1]
+            @test @inferred(T[0.1,oneto(0)]) == Float64[]
+            @test @inferred(T[0.1,oneto(1)]) == [1.0]
+            @test @inferred(T[0.1,oneto(2)]) == [1.0,0.1]
             for N = 1:10
-                @test @inferred(T[0.1,Base.OneTo(N)]) ≈ @inferred(T[0.1,1:N]) ≈ cos.((0:N-1)*acos(0.1))
+                @test @inferred(T[0.1,oneto(N)]) ≈ @inferred(T[0.1,1:N]) ≈ cos.((0:N-1)*acos(0.1))
                 @test @inferred(T[0.1,N]) ≈ cos((N-1)*acos(0.1))
             end
             @test T[0.1,[2,5,10]] ≈ [0.1,cos(4acos(0.1)),cos(9acos(0.1))]
 
-            @test axes(T[1:1,:]) === (Base.OneTo(1), Base.OneTo(∞))
+            @test axes(T[1:1,:]) === (oneto(1), oneto(∞))
             @test T[1:1,:][:,1:5] == ones(1,5)
             @test T[0.1,:][1:10] ≈ T[0.1,1:10] ≈ (T')[1:10,0.1]
         end
 
         @testset "U" begin
             U = ChebyshevU()
-            @test @inferred(U[0.1,Base.OneTo(0)]) == Float64[]
-            @test @inferred(U[0.1,Base.OneTo(1)]) == [1.0]
-            @test @inferred(U[0.1,Base.OneTo(2)]) == [1.0,0.2]
+            @test @inferred(U[0.1,oneto(0)]) == Float64[]
+            @test @inferred(U[0.1,oneto(1)]) == [1.0]
+            @test @inferred(U[0.1,oneto(2)]) == [1.0,0.2]
             for N = 1:10
-                @test @inferred(U[0.1,Base.OneTo(N)]) ≈ @inferred(U[0.1,1:N]) ≈ [sin((n+1)*acos(0.1))/sin(acos(0.1)) for n = 0:N-1]
+                @test @inferred(U[0.1,oneto(N)]) ≈ @inferred(U[0.1,1:N]) ≈ [sin((n+1)*acos(0.1))/sin(acos(0.1)) for n = 0:N-1]
                 @test @inferred(U[0.1,N]) ≈ sin(N*acos(0.1))/sin(acos(0.1))
             end
             @test U[0.1,[2,5,10]] ≈ [0.2,sin(5acos(0.1))/sin(acos(0.1)),sin(10acos(0.1))/sin(acos(0.1))]
@@ -59,7 +59,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @testset "ChebyshevT" begin
             T = Chebyshev()
             @test T == ChebyshevT() == chebyshevt()
-            Tn = @inferred(T[:,OneTo(100)])
+            Tn = @inferred(T[:,oneto(100)])
             @test grid(Tn) == chebyshevpoints(100, Val(1))
             P = factorize(Tn)
             u = T*[P.plan * exp.(grid(Tn)); zeros(∞)]
@@ -83,13 +83,15 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
             v = T[:,2:end] \ (exp.(x) .- 1.26606587775201)
             @test v[1:10] ≈ (T\u)[2:11]
+
+            @test T \ zero.(x) == zeros(∞)
         end
         @testset "ChebyshevU" begin
             U = ChebyshevU()
             @test U == chebyshevu()
             @test U ≠ ChebyshevT()
             x = axes(U,1)
-            F = factorize(U[:,Base.OneTo(5)])
+            F = factorize(U[:,oneto(5)])
             @test @inferred(F \ x) ≈ [0,0.5,0,0,0]
             v = (x -> (3/20 + x + (2/5) * x^2)*exp(x)).(x)
             @inferred(U[:,Base.OneTo(5)]\v)
@@ -105,6 +107,9 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test (T* (T \ exp.(x)))[0.1] ≈ exp(0.1)
         @test chebyshevt(0..1) == T
 
+        Tn = Chebyshev()[2x .- 1, [1,3,4]]
+        @test (axes(Tn,1) .* Tn).args[2][1:5,:] ≈ (axes(T,1) .* T).args[2][1:5,[1,3,4]]
+
         U = chebyshevu(0..1)
         @test (U*(U\x))[0.1] ≈ 0.1
         @test (U* (U \ exp.(x)))[0.1] ≈ exp(0.1)
@@ -115,13 +120,20 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         w = ChebyshevTWeight()
         wT = WeightedChebyshevT()
         x = axes(wT,1)
-        @test (x .* wT).args[2] isa BandedMatrix
+        @test (x .* wT).args[2] isa LazyBandedMatrices.Tridiagonal
 
         c = [1; 2; 3; zeros(∞)]
         a = wT * c;
         @test a[0.1] ≈ (T * c)[0.1]/sqrt(1-0.1^2)
         u = wT * (wT \ @.(exp(x)/sqrt(1-x^2)))
         @test u[0.1] ≈ exp(0.1)/sqrt(1-0.1^2)
+
+        @testset "Weighted" begin
+            WT = Weighted(ChebyshevT())
+            @test wT[0.1,1:10] ≈ WT[0.1,1:10]
+            @test WT \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ wT \ (exp.(x) ./ sqrt.(1 .- x.^2))
+            @test WT[:,1:20] \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ (WT \ (exp.(x) ./ sqrt.(1 .- x.^2)))[1:20]
+        end
 
         @testset "mapped" begin
             x = Inclusion(0..1)
@@ -140,7 +152,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
     @testset "operators" begin
         T = ChebyshevT()
         U = ChebyshevU()
-        @test axes(T) == axes(U) == (Inclusion(ChebyshevInterval()),Base.OneTo(∞))
+        @test axes(T) == axes(U) == (Inclusion(ChebyshevInterval()),oneto(∞))
         D = Derivative(axes(T,1))
 
         @test T\T === pinv(T)*T === Eye(∞)
@@ -159,8 +171,12 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
         x = axes(T,1)
         J = T\(x.*T)
-        @test J isa BandedMatrix
+        @test J isa LazyBandedMatrices.Tridiagonal
         @test J[1:10,1:10] == jacobimatrix(T)[1:10,1:10]
+
+        @testset "inv" begin
+            @test (T \ U)[1:10,1:10] ≈ inv((U \ T)[1:10,1:10])
+        end
     end
 
     @testset "test on functions" begin
@@ -261,7 +277,11 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
     @testset "show" begin
         T = Chebyshev()
-        @test stringmime("text/plain", T * [1; 2; Zeros(∞)]) == "Chebyshev{1,Float64} * [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …]"
+        if VERSION < v"1.6-"
+            @test stringmime("text/plain", T * [1; 2; Zeros(∞)]) == "Chebyshev{1,Float64} * [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …]"
+        else
+            @test stringmime("text/plain", T * [1; 2; Zeros(∞)]) == "ChebyshevT{Float64} * [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …]"
+        end
     end
 
     @testset "Complex eltype" begin
@@ -318,6 +338,23 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test isequal(v[1:10_000], Base.unsafe_getindex(T, 2.0, 1:10_000))
         @test Base.BroadcastStyle(typeof(v)) isa LazyArrays.LazyArrayStyle{1}
         @test (v./v)[1:10] == ones(10)
+    end
+
+    @testset "special syntax" begin
+        @test chebyshevt.(0:5, 0.1) == ChebyshevT()[0.1, 1:6]
+        @test chebyshevt.(0:5, BigFloat(1)/10) == ChebyshevT{BigFloat}()[BigFloat(1)/10, 1:6]
+        @test chebyshevt.(0:5, 2) == Base.unsafe_getindex(ChebyshevT(), 2, 1:6)
+
+        @test chebyshevu.(0:5, 0.1) == ChebyshevU()[0.1, 1:6]
+        @test chebyshevu.(0:5, BigFloat(1)/10) == ChebyshevU{BigFloat}()[BigFloat(1)/10, 1:6]
+        @test chebyshevu.(0:5, 2) == Base.unsafe_getindex(ChebyshevU(), 2, 1:6)
+    end
+
+    @testset "Adjoint views" begin
+        T = ChebyshevT(); U = ChebyshevU()
+        D = Derivative(axes(T,1))
+        V = view(T,:,[1,3,4])
+        @test (U\(D*V))[1:5,:] == (U \ (V'D')')[1:5,:] == (U\(D*T))[1:5,[1,3,4]] 
     end
 end
 

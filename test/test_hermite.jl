@@ -1,24 +1,47 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, DomainSets, FillArrays, Test
-import ClassicalOrthogonalPolynomials: jacobimatrix
+using ClassicalOrthogonalPolynomials, ContinuumArrays, FillArrays, Test
+import ClassicalOrthogonalPolynomials: jacobimatrix, oneto, OrthonormalWeighted
+import DomainSets: ℝ
 
-@testset "Hermite" begin
-    H = Hermite()
-    @test axes(H) == (Inclusion(ℝ), Base.OneTo(∞))
-    x = axes(H,1)
-    X = jacobimatrix(H)
+@testset "Hermite" begin    
+    @testset "Basics" begin
+        H = Hermite()
+        w = HermiteWeight()
+        @test axes(H) == (Inclusion(ℝ), oneto(∞))
+        x = axes(H,1)
+        @test H[0.1,1:4] ≈ hermiteh.(0:3,0.1) ≈ [1,2*0.1,4*0.1^2-2,8*0.1^3-12*0.1]
+        @test w[0.1] ≈ exp(-0.1^2)
 
-    w = HermiteWeight()
-    wH = w.*H
-    M = H'* ( w.*H)
-    S = Diagonal(M.diag .^ (-1/2))
-    Si = Diagonal(M.diag .^ (1/2))
-    J = Si*X*S
+        X = jacobimatrix(H)
+        @test 0.1 * H[0.1,1:10]' ≈ H[0.1,1:11]'*X[1:11,1:10]
 
-    (J - im*Eye(∞)) \ [1;zeros(∞)]
+        @test (H'*(w .* H))[1,1] ≈ sqrt(π)
+        @test (H'*(w .* H))[2,2] ≈ 2sqrt(π)
+        @test (H'*(w .* H))[3,3] ≈ 8sqrt(π)
 
-    @test H[0.1,1] === 1.0 # equivalent to H_0(0.1) == 1.0
-    D = Derivative(x)
-    
-    h = 0.000001
-    @test (D*H)[0.1,1:5] ≈ (H[0.1+h,1:5] - H[0.1,1:5])/h atol=100h
+        D = Derivative(x)
+        @test (D*H)[0.1,1:4] ≈ [0,2,8*0.1,24*0.1^2-12]
+    end
+
+    @testset "OrthonormalWeighted" begin
+        H = Hermite()
+        Q = OrthonormalWeighted(H)
+        @testset "evaluation" begin
+            x = 0.1
+            @test Q[x,1] ≈ exp(-x^2/2)/π^(1/4)
+            @test Q[x,2] ≈ 2x*exp(-x^2/2)/(sqrt(2)π^(1/4))
+            # Trap test of L^2 orthonormality
+            x = range(-20,20; length=1_000)
+            @test Q[x,1:5]'Q[x,1:5] * step(x) ≈ I
+        end
+        
+        @testset "Differentiation" begin
+            x = axes(Q,1)
+            D = Derivative(x)
+            D¹ = Q \ (D * Q)
+            @test D¹[1:10,1:10] ≈ -D¹[1:10,1:10]'
+            D² = Q \ (D^2 * Q)
+            X = Q \ (x .* Q)
+            @test (D² - X^2)[1:10,1:10] ≈ -Diagonal(1:2:19)
+        end
+    end
 end

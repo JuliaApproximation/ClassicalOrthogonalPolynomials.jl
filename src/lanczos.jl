@@ -25,24 +25,24 @@ end
 const PaddedVector{T} = CachedVector{T,Vector{T},Zeros{T,1,Tuple{OneToInf{Int}}}}
 const PaddedMatrix{T} = CachedMatrix{T,Matrix{T},Zeros{T,2,NTuple{2,OneToInf{Int}}}}
 
-mutable struct LanczosData{T,XX,WW}
-    X::XX
-    W::WW
+mutable struct LanczosData{T}
+    X
+    W
     γ::PaddedVector{T}
     β::PaddedVector{T}
     R::UpperTriangular{T,PaddedMatrix{T}}
     ncols::Int
 
-    function LanczosData{T,XX,WW}(X, W, γ, β, R) where {T,XX,WW}
+    function LanczosData{T}(X, W, γ, β, R) where {T}
         R[1,1] = 1;
         p0 = view(R,:,1);
         γ[1] = sqrt(dot(p0,W,p0))
         lmul!(inv(γ[1]), p0)
-        new{T,XX,WW}(X, W, γ, β, R, 1)
+        new{T}(X, W, γ, β, R, 1)
     end
 end
 
-LanczosData(X::XX, W::WW, γ::AbstractVector{T}, β, R) where {T,XX,WW} = LanczosData{T,XX,WW}(X, W, γ, β, R)
+LanczosData(X, W, γ::AbstractVector{T}, β, R) where {T} = LanczosData{T}(X, W, γ, β, R)
 LanczosData(X::AbstractMatrix{T}, W::AbstractMatrix{T}) where T = LanczosData(X, W, zeros(T,∞), zeros(T,∞), UpperTriangular(zeros(T,∞,∞)))
 
 function LanczosData(w::AbstractQuasiVector, P::AbstractQuasiMatrix)
@@ -63,11 +63,15 @@ function resizedata!(L::LanczosData, N)
     L
 end
 
-struct LanczosConversion{T,XX,WW} <: LayoutMatrix{T}
-    data::LanczosData{T,XX,WW}
+struct LanczosConversion{T} <: LayoutMatrix{T}
+    data::LanczosData{T}
 end
 
 size(::LanczosConversion) = (∞,∞)
+copy(R::LanczosConversion) = R
+
+Base.permutedims(R::LanczosConversion{<:Number}) = transpose(R)
+
 bandwidths(::LanczosConversion) = (0,∞)
 colsupport(L::LanczosConversion, j) = 1:maximum(j)
 rowsupport(L::LanczosConversion, j) = minimum(j):∞
@@ -82,7 +86,12 @@ getindex(R::LanczosConversion, k::AbstractUnitRange, j::AbstractUnitRange) = _la
 
 inv(R::LanczosConversion) = ApplyArray(inv, R)
 
+
+Base.BroadcastStyle(::Type{<:LanczosConversion}) = LazyArrays.LazyArrayStyle{2}()
+
 struct LanczosConversionLayout <: AbstractLazyLayout end
+
+LazyArrays.simplifiable(::Mul{LanczosConversionLayout,<:PaddedLayout}) = Val(true)
 function copy(M::Mul{LanczosConversionLayout,<:PaddedLayout})
     resizedata!(M.A.data, maximum(colsupport(M.B)))
     M.A.data.R * M.B
@@ -107,15 +116,15 @@ function sub_paddeddata(::LanczosConversionLayout, S::SubArray{<:Any,1,<:Abstrac
     P = parent(S)
     (kr,j) = parentindices(S)
     resizedata!(P.data, j)
-    paddeddata(view(P.data.R, kr, j))
+    paddeddata(view(UpperTriangular(P.data.R.data.data), kr, j))
 end
 
-# struct LanczosJacobiMatrix{T,XX,WW} <: AbstractBandedMatrix{T}
-#     data::LanczosData{T,XX,WW}
+# struct LanczosJacobiMatrix{T} <: AbstractBandedMatrix{T}
+#     data::LanczosData{T}
 # end
 
-struct LanczosJacobiBand{T,XX,WW} <: LazyVector{T}
-    data::LanczosData{T,XX,WW}
+struct LanczosJacobiBand{T} <: LazyVector{T}
+    data::LanczosData{T}
     diag::Symbol
 end
 
@@ -135,51 +144,16 @@ end
 
 getindex(A::LanczosJacobiBand, I::Integer) = _lanczos_getindex(A, I)
 getindex(A::LanczosJacobiBand, I::AbstractVector) = _lanczos_getindex(A, I)
-getindex(K::LanczosJacobiBand, k::AbstractInfUnitRange) = view(K, k)
-getindex(K::SubArray{<:Any,1,<:LanczosJacobiBand}, k::AbstractInfUnitRange) = view(K, k)
+getindex(K::LanczosJacobiBand, k::AbstractInfUnitRange{<:Integer}) = view(K, k)
+getindex(K::SubArray{<:Any,1,<:LanczosJacobiBand}, k::AbstractInfUnitRange{<:Integer}) = view(K, k)
 
 copy(A::LanczosJacobiBand) = A # immutable
 
-struct LanczosRecurrence{ABC,T,XX,WW} <: LazyVector{T}
-    data::LanczosData{T,XX,WW}
-end
 
-LanczosRecurrence{ABC}(data::LanczosData{T,XX,WW}) where {ABC,T,XX,WW} = LanczosRecurrence{ABC,T,XX,WW}(data)
-
-size(P::LanczosRecurrence) = (∞,)
-
-resizedata!(A::LanczosRecurrence, n) = resizedata!(A.data, n)
-
-
-
-# Q[x,n] = (x/γ[n] - β[n-1]/γ[n])  * Q[x,n-1] - γ[n-1]/γ[n] * Q[x,n]
-
-
-function _lanczos_getindex(A::LanczosRecurrence{:A}, I)
-    resizedata!(A, maximum(I)+1)
-    inv.(A.data.γ.data[I .+ 1])
-end
-
-function _lanczos_getindex(B::LanczosRecurrence{:B}, I)
-    resizedata!(B, maximum(I)+1)
-    B.data.β.data[I] ./ B.data.γ.data[I .+ 1]
-end
-
-function _lanczos_getindex(C::LanczosRecurrence{:C}, I)
-    resizedata!(C, maximum(I)+1)
-    C.data.γ.data[I] ./ C.data.γ.data[I  .+ 1]
-end
-
-getindex(A::LanczosRecurrence, I::Integer) = _lanczos_getindex(A, I)
-getindex(A::LanczosRecurrence, I::AbstractVector) = _lanczos_getindex(A, I)
-getindex(K::LanczosRecurrence, k::AbstractInfUnitRange) = view(K, k)
-getindex(K::SubArray{<:Any,1,<:LanczosRecurrence}, k::AbstractInfUnitRange) = view(K, k)
-
-
-struct LanczosPolynomial{T,XX,WW,Weight,Basis} <: OrthogonalPolynomial{T}
+struct LanczosPolynomial{T,Weight,Basis} <: OrthogonalPolynomial{T}
     w::Weight # Weight of orthogonality
     P::Basis # Basis we use to represent the OPs
-    data::LanczosData{T,XX,WW}
+    data::LanczosData{T}
 end
 
 ==(A::LanczosPolynomial, B::LanczosPolynomial) = A.w == B.w
@@ -206,13 +180,14 @@ end
 
 LanczosPolynomial(w::AbstractQuasiVector) = LanczosPolynomial(w, orthonormalpolynomial(singularities(w)))
 
+
+
 orthogonalityweight(Q::LanczosPolynomial) = Q.w
 
 axes(Q::LanczosPolynomial) = (axes(Q.w,1),OneToInf())
 
 _p0(Q::LanczosPolynomial) = inv(Q.data.γ[1])*_p0(Q.P)
 
-recurrencecoefficients(Q::LanczosPolynomial) = LanczosRecurrence{:A}(Q.data),LanczosRecurrence{:B}(Q.data),LanczosRecurrence{:C}(Q.data)
 jacobimatrix(Q::LanczosPolynomial) = SymTridiagonal(LanczosJacobiBand(Q.data, :d), LanczosJacobiBand(Q.data, :du))
 
 Base.summary(io::IO, Q::LanczosPolynomial{T}) where T = print(io, "LanczosPolynomial{$T} with weight with singularities $(singularities(Q.w))")
@@ -250,8 +225,18 @@ function ldiv(Qn::SubQuasiArray{<:Any,2,<:LanczosPolynomial,<:Tuple{<:Inclusion,
     Q = parent(Qn)
     LanczosConversion(Q.data)[jr,jr] \ (Q.P[:,jr] \ C)
 end
+
+struct LanczosLayout <: AbstractBasisLayout end
+
+MemoryLayout(::Type{<:LanczosPolynomial}) = LanczosLayout()
 arguments(::ApplyLayout{typeof(*)}, Q::LanczosPolynomial) = Q.P, LanczosConversion(Q.data)
+copy(L::Ldiv{LanczosLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
+copy(L::Ldiv{LanczosLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{LanczosLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
 LazyArrays._mul_arguments(Q::LanczosPolynomial) = arguments(ApplyLayout{typeof(*)}(), Q)
 LazyArrays._mul_arguments(Q::QuasiAdjoint{<:Any,<:LanczosPolynomial}) = arguments(ApplyLayout{typeof(*)}(), Q)
 
-\(A::LanczosPolynomial, x::AbstractQuasiVector) = ApplyQuasiArray(A) \ x
+
+broadcastbasis(::typeof(+), P::Union{Normalized,LanczosPolynomial}, Q::Union{Normalized,LanczosPolynomial}) = broadcastbasis(+, P.P, Q.P)
+broadcastbasis(::typeof(+), P::Union{Normalized,LanczosPolynomial}, Q) = broadcastbasis(+, P.P, Q)
+broadcastbasis(::typeof(+), P, Q::Union{Normalized,LanczosPolynomial}) = broadcastbasis(+, P, Q.P)

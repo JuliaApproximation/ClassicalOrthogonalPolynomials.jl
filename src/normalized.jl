@@ -1,35 +1,19 @@
+"""
+   normalizationconstant
 
-mutable struct NormalizationConstant{T, PP<:AbstractQuasiMatrix{T}} <: AbstractCachedVector{T}
-    P::PP # OPs
-    data::Vector{T}
-    datasize::Tuple{Int}
+gives the normalization constants so that the jacobi matrix is symmetric,
+that is, so we have orthonormal OPs:
 
-    function NormalizationConstant{T, PP}(P::PP) where {T,PP<:AbstractQuasiMatrix{T}}
-        μ = inv(sqrt(sum(orthogonalityweight(P))))
-        new{T, PP}(P, [μ], (1,))
-    end
+    Q == P*normalizationconstant(P)
+"""
+function normalizationconstant(μ, P::AbstractQuasiMatrix{T}) where T
+    X = jacobimatrix(P)
+    c,b = subdiagonaldata(X),supdiagonaldata(X)
+    # hide array type to avoid crazy compilation
+    Accumulate{T,1,typeof(*),Vector{T},AbstractVector{T}}(*, T[μ], Vcat(zero(T),sqrt.(c ./ b)), 1, (1,))
 end
 
-NormalizationConstant(P::AbstractQuasiMatrix{T}) where T = NormalizationConstant{T,typeof(P)}(P)
-
-size(K::NormalizationConstant) = (∞,)
-
-# How we populate the data
-# function _normalizationconstant_fill_data!(K::NormalizationConstant, J::Union{BandedMatrix,Symmetric{<:Any,BandedMatrix},Tridiagonal,SymTridiagonal}, inds)
-#     dl, _, du = bands(J)
-#     @inbounds for k in inds
-#         K.data[k] = sqrt(du[k-1]/dl[k]) * K.data[k-1]
-#     end
-# end
-
-function _normalizationconstant_fill_data!(K::NormalizationConstant, J, inds)
-    @inbounds for k in inds
-        K.data[k] = sqrt(J[k,k-1]/J[k-1,k]) * K.data[k-1]
-    end
-end
-
-
-LazyArrays.cache_filldata!(K::NormalizationConstant, inds) = _normalizationconstant_fill_data!(K, jacobimatrix(K.P), inds)
+normalizationconstant(P::AbstractQuasiMatrix) = normalizationconstant(inv(sqrt(sum(orthogonalityweight(P)))), P)
 
 
 struct Normalized{T, OPs<:AbstractQuasiMatrix{T}, NL} <: OrthogonalPolynomial{T}
@@ -37,10 +21,9 @@ struct Normalized{T, OPs<:AbstractQuasiMatrix{T}, NL} <: OrthogonalPolynomial{T}
     scaling::NL # Q = P * Diagonal(scaling)
 end
 
-normalizationconstant(P) = NormalizationConstant(P)
 Normalized(P::AbstractQuasiMatrix{T}) where T = Normalized(P, normalizationconstant(P))
 Normalized(Q::Normalized) = Q
-
+normalized(P) = Normalized(P)
 
 struct NormalizedBasisLayout{LAY<:AbstractBasisLayout} <: AbstractBasisLayout end
 
@@ -72,15 +55,6 @@ axes(Q::Normalized) = axes(Q.P)
 
 _p0(Q::Normalized) = Q.scaling[1]
 
-# p_{n+1} = (A_n * x + B_n) * p_n - C_n * p_{n-1}
-# q_{n+1}/h[n+1] = (A_n * x + B_n) * q_n/h[n] - C_n * p_{n-1}/h[n-1]
-# q_{n+1} = (h[n+1]/h[n] * A_n * x + h[n+1]/h[n] * B_n) * q_n - h[n+1]/h[n-1] * C_n * p_{n-1}
-
-function recurrencecoefficients(Q::Normalized)
-    A,B,C = recurrencecoefficients(Q.P)
-    h = Q.scaling
-    h[2:∞] ./ h .* A, h[2:∞] ./ h .* B, Vcat(zero(eltype(Q)), h[3:∞] ./ h .* C[2:∞])
-end
 
 # x * p[n] = c[n-1] * p[n-1] + a[n] * p[n] + b[n] * p[n+1]
 # x * q[n]/h[n] = c[n-1] * q[n-1]/h[n-1] + a[n] * q[n]/h[n] + b[n] * q[n+1]/h[n+1]
@@ -88,12 +62,12 @@ end
 
 # q_{n+1}/h[n+1] = (A_n * x + B_n) * q_n/h[n] - C_n * p_{n-1}/h[n-1]
 # q_{n+1} = (h[n+1]/h[n] * A_n * x + h[n+1]/h[n] * B_n) * q_n - h[n+1]/h[n-1] * C_n * p_{n-1}
-function jacobimatrix(Q::Normalized)
-    X = jacobimatrix(Q.P)
-    a,b = X[band(0)], X[band(-1)]
-    h = Q.scaling
-    Symmetric(_BandedMatrix(Vcat(a', (b .* h ./ h[2:end])'), ∞, 1, 0), :L)
+
+function symtridiagonalize(X)
+    c,a,b = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
+    SymTridiagonal(a, sqrt.(b .* c))
 end
+jacobimatrix(Q::Normalized) = symtridiagonalize(jacobimatrix(Q.P))
 
 orthogonalityweight(Q::Normalized) = orthogonalityweight(Q.P)
 singularities(Q::Normalized) = singularities(Q.P)
@@ -131,7 +105,7 @@ _mul_arguments(Q::QuasiAdjoint{<:Any,<:Normalized}) = arguments(ApplyLayout{type
 
 # table stable identity if A.P == B.P
 @inline _normalized_ldiv(An, C, Bn) = An \ (C * Bn)
-@inline _normalized_ldiv(An, C::Eye{T}, Bn) where T = FillArrays.SquareEye{promote_type(eltype(An),T,eltype(Bn))}(∞)
+@inline _normalized_ldiv(An, C::Eye{T}, Bn) where T = FillArrays.SquareEye{promote_type(eltype(An),T,eltype(Bn))}(ℵ₀)
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,<:NormalizedBasisLayout}) = _normalized_ldiv(Diagonal(L.A.scaling), L.A.P \ L.B.P, Diagonal(L.B.scaling))
 @inline copy(L::Ldiv{Lay,<:NormalizedBasisLayout}) where Lay = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,Lay}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
@@ -149,6 +123,8 @@ for Lay in (:(ApplyLayout{typeof(*)}),:(BroadcastLayout{typeof(+)}),:(BroadcastL
     end
 end
 
+copy(L::Ldiv{Lay,<:NormalizedBasisLayout}) where Lay<:MappedBasisLayouts = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
+
 # want to use special re-expansion routines without expanding Normalized basis
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,BroadcastLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
@@ -156,6 +132,70 @@ end
 ###
 # show
 ###
-Base.array_summary(io::IO, C::NormalizationConstant{T}, inds) where T = print(io, "NormalizationConstant{$T}")
 show(io::IO, Q::Normalized) = print(io, "Normalized($(Q.P))")
 show(io::IO, ::MIME"text/plain", Q::Normalized) = show(io, Q)
+
+
+
+
+"""
+    OrthonormalWeighted(P)
+
+is the orthonormal with respect to L^2 basis given by
+`sqrt.(orthogonalityweight(P)) .* Normalized(P)`.
+"""
+struct OrthonormalWeighted{T, PP<:AbstractQuasiMatrix{T}} <: Basis{T}
+    P::Normalized{T, PP}
+end
+
+function OrthonormalWeighted(P)
+    Q = normalized(P)
+    OrthonormalWeighted{eltype(Q),typeof(P)}(Q)
+end
+
+axes(Q::OrthonormalWeighted) = axes(Q.P)
+copy(Q::OrthonormalWeighted) = Q
+
+==(A::OrthonormalWeighted, B::OrthonormalWeighted) = A.P == B.P
+
+function getindex(Q::OrthonormalWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector})
+    w = orthogonalityweight(Q.P)
+    sqrt.(w[x]) .* Q.P[x,jr]
+end
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
+
+
+abstract type AbstractWeighted{T} <: Basis{T} end
+
+MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout()
+ContinuumArrays.unweightedbasis(wP::AbstractWeighted) = wP.P
+\(w_A::AbstractWeighted, w_B::AbstractWeighted) = convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
+\(w_A::AbstractWeighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
+\(A::AbstractQuasiArray, w_B::AbstractWeighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
+
+"""
+    Weighted(P)
+
+is equivalent to `orthogonalityweight(P) .* P`
+"""
+struct Weighted{T, PP<:AbstractQuasiMatrix{T}} <: AbstractWeighted{T}
+    P::PP
+end
+
+axes(Q::Weighted) = axes(Q.P)
+copy(Q::Weighted) = Q
+
+==(A::Weighted, B::Weighted) = A.P == B.P
+
+weight(wP::Weighted) = orthogonalityweight(wP.P)
+
+convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = weight(P) .* unweightedbasis(P)
+
+getindex(Q::Weighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = weight(Q)[x] .* unweightedbasis(Q)[x,jr]
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = Q * (Q.P \ (x .* Q.P))
+
+
+@simplify *(Ac::QuasiAdjoint{<:Any,<:Weighted}, wB::Weighted) = 
+    convert(WeightedOrthogonalPolynomial, parent(Ac))' * convert(WeightedOrthogonalPolynomial, wB)
+
+summary(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")

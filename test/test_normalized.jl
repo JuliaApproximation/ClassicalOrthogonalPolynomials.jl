@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, Test
-import ClassicalOrthogonalPolynomials: NormalizationConstant, NormalizedBasisLayout, recurrencecoefficients, Normalized, Clenshaw, weighted
+import ClassicalOrthogonalPolynomials: NormalizedBasisLayout, recurrencecoefficients, Normalized, Clenshaw, weighted
 import LazyArrays: CachedVector, PaddedLayout
 import ContinuumArrays: MappedWeightedBasisLayout
 
@@ -10,7 +10,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
         @testset "Basic" begin
             @test MemoryLayout(Q) isa NormalizedBasisLayout
-            @test @inferred(Q\Q) ≡ Eye(∞)
+            @test (Q\Q) ≡ Eye(∞)
             @test Q == Q
             @test P ≠ Q
             @test Q ≠ P
@@ -20,13 +20,14 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
         @testset "recurrencecoefficients" begin
             A,B,C = recurrencecoefficients(Q)
+            @test B isa Zeros
             @test A[3:∞][1:10] == A[3:12]
             @test B[3:∞] ≡ Zeros(∞)
         end
 
         @testset "Evaluation" begin
             M = P'P
-            @test Q[0.1,1] == 1/sqrt(2)
+            @test Q[0.1,1] ≈ 1/sqrt(2)
             @test Q[0.1,2] ≈ sqrt(1/M[2,2]) * P[0.1,2]
             @test Q[0.1,Base.OneTo(10)] ≈ Q[0.1,1:10] ≈ sqrt.(inv(M)[1:10,1:10]) * P[0.1,Base.OneTo(10)]
             @test (Q'Q)[1:10,1:10] ≈ I
@@ -62,7 +63,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
         @testset "Multiplication" begin
             x = axes(Q,1)
-            @test Q \ (x .* Q) isa Symmetric
+            @test Q \ (x .* Q) isa ClassicalOrthogonalPolynomials.SymTridiagonal
 
             w = P * (P \ (1 .- x.^2));
             W = Q \ (w .* Q)
@@ -78,7 +79,6 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
         @testset "show" begin
             @test stringmime("text/plain", Normalized(Legendre())) == "Normalized(Legendre{Float64})"
-            @test summary(Normalized(Legendre()).scaling) == "NormalizationConstant{Float64}"
         end
     end
 
@@ -90,7 +90,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
         @testset "Basic" begin
             @test MemoryLayout(Q) isa NormalizedBasisLayout
-            @test @inferred(Q\Q) ≡ Eye(∞)
+            @test (Q\Q) ≡ Eye(∞)
         end
 
         @testset "recurrencecoefficients" begin
@@ -132,7 +132,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
         @testset "Multiplication" begin
             x = axes(Q,1)
-            @test Q \ (x .* Q) isa Symmetric
+            @test Q \ (x .* Q) isa ClassicalOrthogonalPolynomials.SymTridiagonal
 
             w = T * (T \ (1 .- x.^2));
             W = Q \ (w .* Q)

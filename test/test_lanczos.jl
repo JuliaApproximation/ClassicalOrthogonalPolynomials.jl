@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, orthogonalityweight
 
 @testset "Lanczos" begin
     @testset "Legendre" begin
@@ -11,9 +11,11 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
         Q̃ = Normalized(P);
         A,B,C = recurrencecoefficients(Q);
         Ã,B̃,C̃ = recurrencecoefficients(Q̃);
-        @test @inferred(A[1:10]) ≈ Ã[1:10] ≈ [A[k] for k=1:10]
-        @test @inferred(B[1:10]) ≈ B̃[1:10] ≈ [B[k] for k=1:10]
-        @test @inferred(C[2:10]) ≈ C̃[2:10] ≈ [C[k] for k=2:10]
+        if VERSION ≥ v"1.6-"
+            @test @inferred(A[1:10]) ≈ Ã[1:10] ≈ [A[k] for k=1:10]
+            @test @inferred(B[1:10]) ≈ B̃[1:10] ≈ [B[k] for k=1:10]
+            @test @inferred(C[2:10]) ≈ C̃[2:10] ≈ [C[k] for k=2:10]
+        end
 
         @test A[1:10] isa Vector{Float64}
         @test B[1:10] isa Vector{Float64}
@@ -82,9 +84,19 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
         w = P * [1; zeros(∞)];
         Q = LanczosPolynomial(w);
         R = Normalized(P) \ Q
+        @test bandwidths(R) == (0,∞)
+        @test orthogonalityweight(Q) == w
+        @test permutedims(R) === transpose(R)
         @test R * [1; 2; 3; zeros(∞)] ≈ [R[1:3,1:3] * [1,2,3]; zeros(∞)]
         @test R \ [1; 2; 3; zeros(∞)] ≈ [1; 2; 3; zeros(∞)]
         @test (Q * (Q \ (1 .- x.^2)))[0.1] ≈ (1-0.1^2)
+
+        ũ = Normalized(P)*[1; 2; 3; zeros(∞)]
+        u = Q*[1; 2; 3; zeros(∞)]
+        ū = P * (P\u)
+        @test (u + u)[0.1] ≈ (ũ + u)[0.1] ≈ (u + ũ)[0.1] ≈ (ũ + ũ)[0.1] ≈ (ū + u)[0.1] ≈ (u + ū)[0.1] ≈ (ū + ū)[0.1] ≈ 2u[0.1]
+
+        @test Q \ u ≈ Q \ ũ ≈ Q \ ū
     end
 
     @testset "Jacobi via Lanczos" begin
@@ -100,7 +112,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
     @testset "Singularity" begin
         T = Chebyshev(); wT = WeightedChebyshev()
         x = axes(T,1)
-        
+
         w = wT * [1; zeros(∞)];
         Q = LanczosPolynomial(w)
         @test Q[0.1,1:10] ≈ Normalized(T)[0.1,1:10]
@@ -123,6 +135,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
         @test Q[x̃,3] ≈ -0.72920026387366053084159259908849371062183891778315602761397748592062615496583854
 
         X = Q \ (x .* Q)
+        @test X isa ClassicalOrthogonalPolynomials.SymTridiagonal
         # empirical test
         @test X[5,5] ≈ -0.001489975039238321407179828331585356464766466154894764141171294038822525312179884
 
@@ -133,7 +146,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
     @testset "Mixed Jacobi" begin
         P = Jacobi(1/2,0)
         x = axes(P,1)
-        
+
         w = @. sqrt(1-x)
         Q = LanczosPolynomial(w, P)
         @test Q[0.1,1:10] ≈ Normalized(P)[0.1,1:10]
@@ -182,5 +195,29 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout
         pϕ = LanczosPolynomial(ϕw)
         @test (pϕ.P' * (ϕw .* pϕ.P))[1:3,1:3] ≈ [2 -0.5 0; -0.5 2 -0.5; 0 -0.5 2]
         @test (pϕ' * (ϕw .* pϕ))[1:5,1:5] ≈ I
+    end
+
+    @testset "weighted Chebyshev" begin
+        T = ChebyshevT()
+        x = axes(T,1)
+        t = 2
+        Q = LanczosPolynomial((t .- x).^(-1) .* ChebyshevWeight())
+        # perturbation of Toeplitz
+        @test jacobimatrix(Q)[3:10,3:10] ≈ Symmetric(BandedMatrix(1 => Fill(0.5,7)))
+
+        Q = LanczosPolynomial((t .- x) .^ (-1))
+        @test Q[0.1,2] ≈ -0.1327124082839674
+
+        R = LanczosPolynomial((t .- x).^(-1/2) .* ChebyshevWeight())
+        @test R[0.1,2] ≈ -0.03269577983003056
+    end
+
+    @testset "LanczosJacobiBand" begin
+        x = Inclusion(ChebyshevInterval())
+        Q = LanczosPolynomial(  1 ./ (2 .+ x))
+        X = jacobimatrix(Q)
+        @test X.dv[3:10] ≈ [X[k,k] for k in 3:10]
+        @test X.dv[3:∞][1:5] ≈ X.dv[3:7]
+        @test X.dv[3:∞][2:∞][1:5] ≈ X.dv[4:8]
     end
 end

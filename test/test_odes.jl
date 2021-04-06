@@ -2,8 +2,9 @@ using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatric
         SemiseparableMatrices, LazyArrays, ArrayLayouts, Test
 
 import QuasiArrays: MulQuasiMatrix
+import ClassicalOrthogonalPolynomials: oneto
 import ContinuumArrays: MappedBasisLayout, MappedWeightedBasisLayout
-import LazyArrays: arguments
+import LazyArrays: arguments, ApplyMatrix, colsupport, MemoryLayout
 import SemiseparableMatrices: VcatAlmostBandedLayout
 
 @testset "ODEs" begin
@@ -22,21 +23,21 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         N = 10
         A = D* (w.*S)[:,1:N]
         @test A.args[1] == P
-        @test P\(D*(w.*S)[:,1:N]) isa MulMatrix
+        @test P\(D*(w.*S)[:,1:N]) isa ApplyMatrix{<:Any,typeof(*)}
 
         L = D*(w.*S)
         Δ = L'L
-        @test Δ isa MulMatrix
+        @test Δ isa ApplyMatrix{<:Any,typeof(*)}
         @test Δ[1:3,1:3] isa BandedMatrix
         @test bandwidths(Δ) == (0,0)
 
         L = D*(w.*S)[:,1:N]
 
         A  = *((L').args..., L.args...)
-        @test A isa MulMatrix
+        @test A isa ApplyMatrix{<:Any,typeof(*)}
 
         Δ = L'L
-        @test Δ isa MulMatrix
+        @test Δ isa ApplyMatrix{<:Any,typeof(*)}
         @test bandwidths(Δ) == (0,0)
         @test BandedMatrix(Δ) == Δ
         @test BandedMatrix(Δ) isa BandedMatrix
@@ -56,9 +57,9 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         B = BroadcastArray(+, Δ, (P\WS)'*(P'P)*(P\WS))
         @test colsupport(B,1) == 1:3
 
-        @test axes(B.args[2].args[1]) == (Base.OneTo(∞),Base.OneTo(∞))
-        @test axes(B.args[2]) == (Base.OneTo(∞),Base.OneTo(∞))
-        @test axes(B) == (Base.OneTo(∞),Base.OneTo(∞))
+        @test axes(B.args[2].args[1]) == (oneto(∞),oneto(∞))
+        @test axes(B.args[2]) == (oneto(∞),oneto(∞))
+        @test axes(B) == (oneto(∞),oneto(∞))
 
         @test BandedMatrix(view(B,1:10,13:20)) == zeros(10,8)
 
@@ -93,9 +94,9 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         S = Jacobi(true,true)
         w = JacobiWeight(true,true)
         D = Derivative(axes(S,1))
-        X = Diagonal(Inclusion(axes(S,1)))
+        X = QuasiDiagonal(Inclusion(axes(S,1)))
 
-        @test_broken (Legendre() \ S)*(S\(w.*S))
+        @test ((Legendre() \ S)*(S\(w.*S)))[1:10,1:10] ≈ (Legendre() \ (w .* S))[1:10,1:10]
         @test (Ultraspherical(3/2)\(D^2*(w.*S)))[1:10,1:10] ≈ diagm(0 => -(2:2:20))
     end
 

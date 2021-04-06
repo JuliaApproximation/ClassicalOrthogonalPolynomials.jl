@@ -12,7 +12,7 @@ import QuasiArrays: MulQuasiArray
 
     @testset "basics" begin
         P = Legendre()
-        @test axes(P) == (Inclusion(ChebyshevInterval()),Base.OneTo(∞))
+        @test axes(P) == (Inclusion(ChebyshevInterval()),oneto(∞))
         @test P == P == Legendre{Float32}()
         A,B,C = recurrencecoefficients(P)
         @test B isa Zeros
@@ -92,6 +92,7 @@ import QuasiArrays: MulQuasiArray
         x = Inclusion(0..1)
         Q = P[2x.-1,:]
         @test x .* Q isa MulQuasiArray
+        @test Q \ (x .* Q) isa LazyBandedMatrices.Tridiagonal
     end
 
     @testset "sum" begin
@@ -128,5 +129,9 @@ import QuasiArrays: MulQuasiArray
         @test (x-y) * P[x,1:n]'Mi[1:n,1:n]*P[y,1:n] ≈ P[x,n:n+1]' * (X*Min - Min*X')[n:n+1,n:n+1] * P[y,n:n+1]
         β = X[n,n+1]*Mi[n+1,n+1]
         @test (x-y) * P[x,1:n]'Mi[1:n,1:n]*P[y,1:n] ≈ P[x,n:n+1]' * [0 -β; β 0] * P[y,n:n+1]
+    end
+
+    @testset "special syntax" begin
+        @test legendrep.(0:5, 0.3) == Legendre()[0.3, 1:6]
     end
 end

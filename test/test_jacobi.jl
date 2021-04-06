@@ -1,5 +1,5 @@
-using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, QuasiArrays, LazyArrays, FastGaussQuadrature, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis
+using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, QuasiArrays, LazyArrays, LazyBandedMatrices, FastGaussQuadrature, Test
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted, WeightedOrthogonalPolynomial
 
 @testset "Jacobi" begin
     @testset "JacobiWeight" begin
@@ -105,6 +105,17 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis
             @test A[1:10,1:10] == I
         end
 
+        @testset "Conversion" begin
+            A,B = Jacobi(0.25,-0.7), Jacobi(3.25,1.3)
+            R = B \ A
+            c = [[1,2,3,4,5]; zeros(∞)]
+            @test B[0.1,:]' * (R * c) ≈ A[0.1,:]' * c
+            R \ c
+            Ri = A \ B
+            @test Ri[1:10,1:10] ≈ inv(R[1:10,1:10])
+            @test A[0.1,:]' * (Ri * c) ≈ B[0.1,:]' * c
+        end
+
         @testset "Derivative" begin
             a,b,c = 0.1,0.2,0.3
             S = Jacobi(a,b)
@@ -152,6 +163,13 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis
         f̃ = @.(sqrt(1 - x̃) * exp(x̃))
         @test wP̃[0.1,1:100]'*(wP̃[:,1:100] \ f̃) ≈ sqrt(1-0.1) * exp(0.1)
         @test (wP̃ * (wP̃ \ f̃))[0.1] ≈ sqrt(1-0.1) * exp(0.1)
+
+        @testset "bug" begin
+            P = jacobi(0,-1/2,0..1)
+            x = axes(P,1)
+            u = P * (P \ exp.(x))
+            @test u[0.1] ≈ exp(0.1)
+        end
     end
 
     @testset "trivial weight" begin
@@ -189,13 +207,13 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis
         S = Jacobi(true,true)
         w̃ = JacobiWeight(false,true)
         A = Jacobi(true,false)\(w̃ .* S)
-        @test A isa BandedMatrix
+        @test A isa LazyBandedMatrices.Bidiagonal
         @test size(A) == (∞,∞)
         @test A[1:10,1:10] ≈ (Jacobi(1.0,0.0) \ (JacobiWeight(0.0,1.0) .* Jacobi(1.0,1.0)))[1:10,1:10]
 
         w̄ = JacobiWeight(true,false)
         A = Jacobi(false,true)\(w̄.*S)
-        @test A isa BandedMatrix
+        @test A isa LazyBandedMatrices.Bidiagonal
         @test size(A) == (∞,∞)
         @test A[1:10,1:10] ≈ (Jacobi(0.0,1.0) \ (JacobiWeight(1.0,0.0) .* Jacobi(1.0,1.0)))[1:10,1:10]
 
@@ -231,7 +249,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis
         w = JacobiWeight(1.0,1.0)
         wS = w .* S
 
-        W = Diagonal(w)
+        W = QuasiDiagonal(w)
         @test W[0.1,0.2] ≈ 0.0
     end
 
@@ -240,7 +258,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis
         U = ChebyshevU()
         JT = Jacobi(T)
         JU = Jacobi(U)
-        
+
         @testset "recurrence degenerecies" begin
             A,B,C = recurrencecoefficients(JT)
             @test A[1] == 0.5
@@ -332,10 +350,57 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis
         @test norm((X*Min - Min*X')[1:n,1:n]) ≤ 1E-13
         β = X[n,n+1]*Mi[n+1,n+1]
         @test (x-y) * P[x,1:n]'Mi[1:n,1:n]*P[y,1:n] ≈ P[x,n:n+1]' * (X*Min - Min*X')[n:n+1,n:n+1] * P[y,n:n+1] ≈ P[x,n:n+1]' * [0 -β; β 0] * P[y,n:n+1]
-        
+
         @testset "extrapolation" begin
             x,y = 0.1,3.4
             @test (x-y) * P[x,1:n]'Mi[1:n,1:n]*Base.unsafe_getindex(P,y,1:n) ≈ P[x,n:n+1]' * [0 -β; β 0] * Base.unsafe_getindex(P,y,n:n+1)
         end
+    end
+
+    @testset "special syntax" begin
+        @test jacobip.(0:5, 0.1, 0.2, 0.3) == Jacobi(0.1, 0.2)[0.3, 1:6]
+        @test normalizedjacobip.(0:5, 0.1, 0.2, 0.3) == Normalized(Jacobi(0.1, 0.2))[0.3, 1:6]
+    end
+
+    @testset "Weighted/HalfWeighted" begin
+        x = axes(Legendre(),1)
+        D = Derivative(x)
+        a,b = 0.1,0.2
+        B = Jacobi(a,b)
+        A = Jacobi(a-1,b-1)
+        D_W = Weighted(A) \ (D * Weighted(B))
+        @test (A * (D_W * (B \ exp.(x))))[0.1] ≈ (-a*(1+0.1) + b*(1-0.1) + (1-0.1^2)) *exp(0.1)
+
+        D_a = HalfWeighted{:a}(Jacobi(a-1,b+1)) \ (D * HalfWeighted{:a}(B))
+        D_b = HalfWeighted{:b}(Jacobi(a+1,b-1)) \ (D * HalfWeighted{:b}(B))
+        @test (Jacobi(a-1,b+1) * (D_a * (B \ exp.(x))))[0.1] ≈ (-a + 1-0.1) *exp(0.1)
+        @test (Jacobi(a+1,b-1) * (D_b * (B \ exp.(x))))[0.1] ≈ (b + 1+0.1) *exp(0.1)
+
+        @test HalfWeighted{:a}(B) \ HalfWeighted{:a}(B) isa Eye
+        @test HalfWeighted{:a}(B) \ (JacobiWeight(a,0) .* B) isa Eye
+
+        @test HalfWeighted{:a}(B) \ (x .* HalfWeighted{:a}(B)) isa LazyBandedMatrices.Tridiagonal
+
+        @test (D * HalfWeighted{:a}(Normalized(B)) * (Normalized(B) \ exp.(x)))[0.1] ≈ (-a + 1-0.1)*(1-0.1)^(a-1) *exp(0.1)
+        @test (D * HalfWeighted{:b}(Normalized(B)) * (Normalized(B) \ exp.(x)))[0.1] ≈ (b + 1+0.1) * (1+0.1)^(b-1)*exp(0.1)
+
+        @test (D * Weighted(Jacobi(0,0.1)))[0.1,1:10] ≈ (D * HalfWeighted{:b}(Jacobi(0,0.1)))[0.1,1:10]
+        @test (D * Weighted(Jacobi(0.1,0)))[0.1,1:10] ≈ (D * HalfWeighted{:a}(Jacobi(0.1,0)))[0.1,1:10]
+
+        @test HalfWeighted{:a}(Jacobi(0.2,0.1)) ≠ HalfWeighted{:b}(Jacobi(0.2,0.1))
+        @test HalfWeighted{:a}(Jacobi(0.2,0.1)) == HalfWeighted{:a}(Jacobi(0.2,0.1))
+
+        @test convert(WeightedOrthogonalPolynomial, HalfWeighted{:a}(Normalized(Jacobi(0.1,0.2))))[0.1,1:10] ≈
+            HalfWeighted{:a}(Normalized(Jacobi(0.1,0.2)))[0.1,1:10]
+        @test convert(WeightedOrthogonalPolynomial, HalfWeighted{:b}(Normalized(Jacobi(0.1,0.2))))[0.1,1:10] ≈
+            HalfWeighted{:b}(Normalized(Jacobi(0.1,0.2)))[0.1,1:10]
+
+        
+        L = Normalized(Jacobi(0, 0)) \ HalfWeighted{:a}(Normalized(Jacobi(1, 0)))
+        @test Normalized(Jacobi(0, 0))[0.1,1:11]'*L[1:11,1:10] ≈ HalfWeighted{:a}(Normalized(Jacobi(1, 0)))[0.1,1:10]'
+        L = Jacobi(0, 0) \ HalfWeighted{:a}(Normalized(Jacobi(1, 0)))
+        @test Jacobi(0, 0)[0.1,1:11]'*L[1:11,1:10] ≈ HalfWeighted{:a}(Normalized(Jacobi(1, 0)))[0.1,1:10]'
+        L = Normalized(Jacobi(0, 0)) \ HalfWeighted{:a}(Jacobi(1, 0))
+        @test Normalized(Jacobi(0, 0))[0.1,1:11]'*L[1:11,1:10] ≈ HalfWeighted{:a}(Jacobi(1, 0))[0.1,1:10]'
     end
 end

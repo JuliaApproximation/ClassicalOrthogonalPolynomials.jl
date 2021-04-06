@@ -10,7 +10,7 @@ struct UltrasphericalWeight{T,Λ} <: AbstractJacobiWeight{T}
 end
 
 UltrasphericalWeight{T}(λ) where T = UltrasphericalWeight{T,typeof(λ)}(λ)
-UltrasphericalWeight(λ) = UltrasphericalWeight{typeof(λ),typeof(λ)}(λ)
+UltrasphericalWeight(λ) = UltrasphericalWeight{float(typeof(λ)),typeof(λ)}(λ)
 
 ==(a::UltrasphericalWeight, b::UltrasphericalWeight) = a.λ == b.λ
 
@@ -19,6 +19,7 @@ function getindex(w::UltrasphericalWeight, x::Number)
     (1-x^2)^(w.λ-one(w.λ)/2)
 end
 
+sum(w::UltrasphericalWeight{T}) where T = sqrt(convert(T,π))*exp(loggamma(one(T)/2 + w.λ)-loggamma(1+w.λ))
 
 
 struct Ultraspherical{T,Λ} <: AbstractJacobi{T}
@@ -38,13 +39,20 @@ const WeightedUltraspherical{T} = WeightedBasis{T,<:UltrasphericalWeight,<:Ultra
 
 WeightedUltraspherical(λ) = UltrasphericalWeight(λ) .* Ultraspherical(λ)
 WeightedUltraspherical{T}(λ) where T = UltrasphericalWeight{T}(λ) .* Ultraspherical{T}(λ)
+orthogonalityweight(C::Ultraspherical) = UltrasphericalWeight(C.λ)
 
+ultrasphericalc(n::Integer, λ, z::Number) = Base.unsafe_getindex(Ultraspherical{promote_type(typeof(λ),typeof(z))}(λ), z, n+1)
 
 ==(a::Ultraspherical, b::Ultraspherical) = a.λ == b.λ
 ==(::Ultraspherical, ::ChebyshevT) = false
 ==(::ChebyshevT, ::Ultraspherical) = false
 ==(C::Ultraspherical, ::ChebyshevU) = isone(C.λ)
 ==(::ChebyshevU, C::Ultraspherical) = isone(C.λ)
+==(P::Ultraspherical, Q::Jacobi) = isone(2P.λ) && Jacobi(P) == Q
+==(P::Jacobi, Q::Ultraspherical) = isone(2Q.λ) && P == Jacobi(Q)
+==(P::Ultraspherical, Q::Legendre) = isone(2P.λ)
+==(P::Legendre, Q::Ultraspherical) = isone(2Q.λ)
+
 
 ###
 # interrelationships
@@ -59,9 +67,9 @@ Jacobi(C::Ultraspherical{T}) where T = Jacobi(C.λ-one(T)/2,C.λ-one(T)/2)
 
 function jacobimatrix(P::Ultraspherical{T}) where T
     λ = P.λ
-    _BandedMatrix(Vcat((((2λ-1):∞) ./ (2 .*((zero(T):∞) .+ λ)))',
-                        Zeros{T}(1,∞),
-                        ((one(T):∞) ./ (2 .*((zero(T):∞) .+ λ)))'), ∞, 1, 1)
+    Tridiagonal((one(T):∞) ./ (2 .*((zero(T):∞) .+ λ)),
+                Zeros{T}(∞),
+                ((2λ):∞) ./ (2 .*((one(T):∞) .+ λ)))
 end
 
 # These return vectors A[k], B[k], C[k] are from DLMF. Cause of MikaelSlevinsky we need an extra entry in C ... for now.
@@ -82,15 +90,30 @@ end
 # Ultraspherical(1/2)\(D*Legendre())
 @simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::Legendre)
     T = promote_type(eltype(D),eltype(S))
-    A = _BandedMatrix(Ones{T}(1,∞), ∞, -1,1)
+    A = _BandedMatrix(Ones{T}(1,∞), ℵ₀, -1,1)
     ApplyQuasiMatrix(*, Ultraspherical{T}(3/2), A)
 end
 
 
 # Ultraspherical(λ+1)\(D*Ultraspherical(λ))
 @simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::Ultraspherical)
-    A = _BandedMatrix(Fill(2S.λ,1,∞), ∞, -1,1)
+    A = _BandedMatrix(Fill(2S.λ,1,∞), ℵ₀, -1,1)
     ApplyQuasiMatrix(*, Ultraspherical{eltype(S)}(S.λ+1), A)
+end
+
+# Ultraspherical(λ-1)\ (D*wUltraspherical(λ))
+@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::Weighted{<:Any,<:Ultraspherical})
+    S = WS.P
+    λ = S.λ
+    T = eltype(WS)
+    if λ == 1
+        A = _BandedMatrix((-(1:∞))', ℵ₀, 1,-1)
+        ApplyQuasiMatrix(*, ChebyshevTWeight{T}() .* ChebyshevT{T}(), A)
+    else
+        n = (0:∞)
+        A = _BandedMatrix((-one(T)/(2*(λ-1)) * ((n.+1) .* (n .+ (2λ-1))))', ℵ₀, 1,-1)
+        ApplyQuasiMatrix(*, WeightedUltraspherical{T}(λ-1), A)
+    end
 end
 
 # Ultraspherical(λ-1)\ (D*w*Ultraspherical(λ))
@@ -100,13 +123,8 @@ end
     T = eltype(WS)
     if iszero(w.λ)
         D*S
-    elseif w.λ == λ == 1
-        A = _BandedMatrix((-(1:∞))', ∞, 1,-1)
-        ApplyQuasiMatrix(*, ChebyshevTWeight{T}() .* ChebyshevT{T}(), A)
-    elseif w.λ == λ
-        n = (0:∞)
-        A = _BandedMatrix((-one(T)/(2*(λ-1)) * ((n.+1) .* (n .+ (2λ-1))))', ∞, 1,-1)
-        ApplyQuasiMatrix(*, WeightedUltraspherical{T}(λ-1), A)
+    elseif isorthogonalityweighted(WS) # weights match
+        D * Weighted(S)
     else
         error("Not implemented")
     end
@@ -139,11 +157,13 @@ function \(U::Ultraspherical{<:Any,<:Integer}, C::ChebyshevU)
     U\Ultraspherical(C)
 end
 
+\(T::Chebyshev, C::Ultraspherical) = inv(C \ T)
+
 function \(C2::Ultraspherical{<:Any,<:Integer}, C1::Ultraspherical{<:Any,<:Integer})
     λ = C1.λ
     T = promote_type(eltype(C2), eltype(C1))
     if C2.λ == λ+1
-        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ∞, 0, 2)
+        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ℵ₀, 0, 2)
     elseif C2.λ == λ
         Eye{T}(∞)
     elseif C2.λ > λ
@@ -157,9 +177,14 @@ function \(C2::Ultraspherical, C1::Ultraspherical)
     λ = C1.λ
     T = promote_type(eltype(C2), eltype(C1))
     if C2.λ == λ+1
-        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ∞, 0, 2)
+        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ℵ₀, 0, 2)
     elseif C2.λ == λ
         Eye{T}(∞)
+    elseif isinteger(C2.λ-λ) && C2.λ > λ
+        Cm = Ultraspherical{T}(λ+1)
+        (C2 \ Cm) * (Cm \ C1)
+    elseif isinteger(C2.λ-λ)
+        inv(C1 \ C2)
     else
         error("Not implemented")
     end
@@ -171,11 +196,11 @@ function \(w_A::WeightedUltraspherical, w_B::WeightedUltraspherical)
 
     if wA == wB
         A \ B
-    elseif B.λ == A.λ+1 && wB.λ == wA.λ+1
+    elseif B.λ == A.λ+1 && wB.λ == wA.λ+1 # Lower
         λ = A.λ
         _BandedMatrix(Vcat(((2λ:∞) .* ((2λ+1):∞) ./ (4λ .* (λ+1:∞)))',
                             Zeros(1,∞),
-                            (-(1:∞) .* (2:∞) ./ (4λ .* (λ+1:∞)))'), ∞, 2,0)
+                            (-(1:∞) .* (2:∞) ./ (4λ .* (λ+1:∞)))'), ℵ₀, 2,0)
     else
         error("not implemented for $A and $wB")
     end

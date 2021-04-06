@@ -67,17 +67,17 @@ end
 getindex(P::OrthogonalPolynomial, x::Number, n::AbstractVector) = layout_getindex(P, x, n)
 getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractVector) = layout_getindex(P, x, n)
 getindex(P::SubArray{<:Any,1,<:OrthogonalPolynomial}, x::AbstractVector) = layout_getindex(P, x)
-getindex(P::OrthogonalPolynomial, x::Number, n::Number) = P[x,OneTo(n)][end]
+getindex(P::OrthogonalPolynomial, x::Number, n::Number) = P[x,oneto(n)][end]
 
 unsafe_layout_getindex(A...) = sub_materialize(Base.unsafe_view(A...))
 
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::AbstractUnitRange) = unsafe_layout_getindex(P, x, n)
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractUnitRange) = unsafe_layout_getindex(P, x, n)
-Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::AbstractVector) = Base.unsafe_getindex(P,x,OneTo(maximum(n)))[n]
-Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractVector) = Base.unsafe_getindex(P,x,OneTo(maximum(n)))[:,n]
+Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n)))[n]
+Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n)))[:,n]
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::Number) = Base.unsafe_getindex(P, x, 1:n)[:,end]
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, ::Colon) = Base.unsafe_getindex(P, x, axes(P,2))
-Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::Number) = Base.unsafe_getindex(P,x,OneTo(n))[end]
+Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::Number) = Base.unsafe_getindex(P,x,oneto(n))[end]
 
 getindex(P::OrthogonalPolynomial, x::Number, jr::AbstractInfUnitRange{Int}) = view(P, x, jr)
 Base.unsafe_getindex(P::OrthogonalPolynomial{T}, x::Number, jr::AbstractInfUnitRange{Int}) where T = 
@@ -289,7 +289,9 @@ end
 
 getindex(M::Clenshaw, k::Int, j::Int) = M[k:k,j][1]
 
-transposelayout(M::ClenshawLayout) = ClenshawLayout()
+transposelayout(M::ClenshawLayout) = LazyBandedMatrices.LazyBandedLayout()
+# TODO: generalise for layout, use Base.PermutedDimsArray
+Base.permutedims(M::Clenshaw{<:Number}) = transpose(M)
 
 
 function materialize!(M::MatMulVecAdd{<:ClenshawLayout,<:PaddedLayout,<:PaddedLayout})

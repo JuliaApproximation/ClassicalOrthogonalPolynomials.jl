@@ -1,7 +1,7 @@
 name = "ClassicalOrthogonalPolynomials"
 uuid = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
 authors = ["Sheehan Olver <solver@mac.com>"]
-version = "0.1.0"
+version = "0.3.6"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
@@ -14,39 +14,42 @@ FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
 FastTransforms = "057dd010-8810-581a-b7be-e3fc3b93f78c"
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
+HypergeometricFunctions = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
 InfiniteArrays = "4858937d-0d70-526a-a4dd-2d5cb5dd786c"
 InfiniteLinearAlgebra = "cde9dba0-b1de-11e9-2c62-0bab9446c55c"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
+LazyBandedMatrices = "d7e5e226-e90b-4449-9968-0f923699bf6f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 QuasiArrays = "c4ea9172-b204-11e9-377d-29865faadc5c"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
-ArrayLayouts = "0.5.1"
-BandedMatrices = "0.16"
-BlockArrays = "0.14"
+ArrayLayouts = "0.6.2"
+BandedMatrices = "0.16.5"
+BlockArrays = "0.15"
 BlockBandedMatrices = "0.10"
-ContinuumArrays = "0.5"
+ContinuumArrays = "0.7.1"
 DomainSets = "0.4, 0.5"
 FFTW = "1.1"
 FastGaussQuadrature = "0.4.3"
-FastTransforms = "0.11"
+FastTransforms = "0.11, 0.12"
 FillArrays = "0.11"
-InfiniteArrays = "0.9"
-InfiniteLinearAlgebra = "0.4.6"
-IntervalSets = "0.3.1, 0.4, 0.5"
-LazyArrays = "0.20"
-QuasiArrays = "0.4"
+HypergeometricFunctions = "0.3.4"
+InfiniteArrays = "0.10.3"
+InfiniteLinearAlgebra = "0.5.3"
+IntervalSets = "0.5"
+LazyArrays = "0.21"
+LazyBandedMatrices = "0.5.5"
+QuasiArrays = "0.5"
 SpecialFunctions = "0.10, 1"
 julia = "1.5"
 
 [extras]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
-LazyBandedMatrices = "d7e5e226-e90b-4449-9968-0f923699bf6f"
 SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Base64", "Test", "ForwardDiff", "SemiseparableMatrices", "LazyBandedMatrices"]
+test = ["Base64", "Test", "ForwardDiff", "SemiseparableMatrices"]
