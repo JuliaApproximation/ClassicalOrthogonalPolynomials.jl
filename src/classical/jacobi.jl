@@ -285,6 +285,17 @@ function recurrencecoefficients(P::Jacobi)
     (A,B,C)
 end
 
+# explicit special case for normalized Legendre
+# todo: do we want these explicit constructors for normalized Legendre?
+# function jacobimatrix(::Normalized{<:Any,<:Legendre{T}}) where T
+#     b = (one(T):∞) ./sqrt.(4 .*(one(T):∞).^2 .-1)
+#     Symmetric(_BandedMatrix(Vcat(zeros(∞)', (b)'), ∞, 1, 0), :L)
+# end
+# function recurrencecoefficients(::Normalized{<:Any,<:Legendre{T}}) where T
+#     n = zero(T):∞
+#     nn = one(T):∞
+#     ((2n .+ 1) ./ (n .+ 1) ./ sqrt.(1 .-2 ./(3 .+2n)), Zeros{T}(∞), Vcat(zero(T),nn ./ (nn .+ 1) ./ sqrt.(1 .-4 ./(3 .+2nn))))
+# end
 
 @simplify *(X::Identity, P::Legendre) = ApplyQuasiMatrix(*, P, P\(X*P))
 
