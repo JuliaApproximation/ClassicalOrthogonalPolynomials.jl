@@ -285,7 +285,6 @@ function gennormalizedpower(a::T, t::T, ℓ::Integer) where T<:Real
 end
 
 # modify recurrence coefficients to work for normalized Legendre
-# TODO: should probably use whatever type is being asked for instead of defaulting to BigFloat
 normconst_Pnadd1(m::Integer, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m+one(T))
 normconst_Pnsub1(m::Integer, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m-one(T))
 normconst_Pmnmix(n::Integer, m::Integer, settype::T) where T<:Real = sqrt(2*m+3*one(T))*sqrt(2*n+one(T))/(sqrt(2*m+one(T))*sqrt(2*n-one(T)))
