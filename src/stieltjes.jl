@@ -217,7 +217,7 @@ function getindex(K::PowerLawMatrix{T, PP}, I::CartesianIndex) where {T,PP<:Abst
     resizedata!(K, Tuple(I))
     K.data[I]
 end
-function getindex(K::PowerLawMatrix{T,PP}, I::Vararg{Int,2}) where {T,PP<:AbstractQuasiMatrix}
+function getindex(K::PowerLawMatrix{T,PP}, I::Vararg{Integer,2}) where {T,PP<:AbstractQuasiMatrix}
     resizedata!(K, Tuple([I...]))
     K.data[I...]
 end
@@ -243,8 +243,8 @@ end
 # methods
 ####
 function *(K::PowKernelPoint,Q::Normalized{<:Any,<:Legendre{<:Any}})
-    t = K.args[1][0.]
     a = K.args[2]
+    t = K.args[1][zero(typeof(a))]
     return Q*PowerLawMatrix(Q,a,t)
 end
 
@@ -253,31 +253,31 @@ end
 ####
 # this function evaluates the recurrence and returns the full operator. 
 # We don't use this outside of the initial block.
-function gennormalizedpower(a::Real, t::Real, ℓ::Integer)
+function gennormalizedpower(a::T, t::T, ℓ::Integer) where T<:Real
     # initialization
     ℓ = ℓ+3
-    coeff = convert.(typeof(a),zeros(ℓ,ℓ))
+    coeff = zeros(T,ℓ,ℓ)
     # load in explicit initial cases
     coeff[1,1] = PLnorminitial00(t,a)
     coeff[1,2] = PLnorminitial01(t,a)
     coeff[2,2] = PLnorminitial11(t,a)
     coeff[2,3] = PLnorminitial12(t,a)
     # we have to build these two cases with some care
-    coeff[1,3] = t/((a+3)/3)*normconst_Pnadd1(1)*coeff[1,2]+(a/3)/((a+3)/3)*normconst_Pnsub1(1)*coeff[1,1]
+    coeff[1,3] = t/((a+3)/3)*normconst_Pnadd1(1,t)*coeff[1,2]+(a/3)/((a+3)/3)*normconst_Pnsub1(1,t)*coeff[1,1]
     #the remaining cases can be constructed iteratively
     @inbounds for m = 2:ℓ-2
         # first row
-        coeff[1,m+2] = (t/((a+m+2)/(2*m+1))*normconst_Pnadd1(m)*coeff[1,m+1]+((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*normconst_Pnsub1(m)*coeff[1,m])
+        coeff[1,m+2] = (t/((a+m+2)/(2*m+1))*normconst_Pnadd1(m,t)*coeff[1,m+1]+((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*normconst_Pnsub1(m,t)*coeff[1,m])
         # second row
-        coeff[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnadd1(m)*coeff[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pmnmix(1,m)*coeff[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnsub1(m)*coeff[2,m])
+        coeff[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnadd1(m,t)*coeff[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pmnmix(1,m,t)*coeff[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnsub1(m,t)*coeff[2,m])
         # build remaining row elements
         @inbounds for j=1:m-1
-            coeff[j+2,m+1] = (t/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pnadd1(j)*coeff[j+1,m+1]+((a+1)*m/(m*(m+1)-j*(j+1)))/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pmnmix(m,j)*coeff[j+1,m]-(j*(a+m-j+1)/((2*j+1)*(m-j)))*1/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pnsub1(j)*coeff[j,m+1])
+            coeff[j+2,m+1] = (t/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pnadd1(j,t)*coeff[j+1,m+1]+((a+1)*m/(m*(m+1)-j*(j+1)))/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pmnmix(m,j,t)*coeff[j+1,m]-(j*(a+m-j+1)/((2*j+1)*(m-j)))*1/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pnsub1(j,t)*coeff[j,m+1])
         end
     end
     #matrix is symmetric
-    @inbounds for m=1:ℓ
-        @inbounds for n=m+1:ℓ
+    @inbounds for m = 1:ℓ
+        @inbounds for n = m+1:ℓ
             coeff[n,m] = coeff[m,n]
         end
     end
@@ -286,37 +286,36 @@ end
 
 # modify recurrence coefficients to work for normalized Legendre
 # TODO: should probably use whatever type is being asked for instead of defaulting to BigFloat
-normconst_Pnadd1(m) = sqrt(2*BigInt(m)+3)/sqrt(2*BigInt(m)+1)
-normconst_Pnsub1(m) = sqrt(2*BigInt(m)+3)/sqrt(2*BigInt(m)-1)
-normconst_Pmnmix(n,m) = sqrt(2*BigInt(m)+3)*sqrt(2*BigInt(n)+1)/(sqrt(2*BigInt(m)+1)*sqrt(2*BigInt(n)-1))
+normconst_Pnadd1(m::Integer, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m+one(T))
+normconst_Pnsub1(m::Integer, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m-one(T))
+normconst_Pmnmix(n::Integer, m::Integer, settype::T) where T<:Real = sqrt(2*m+3*one(T))*sqrt(2*n+one(T))/(sqrt(2*m+one(T))*sqrt(2*n-one(T)))
 # these explicit initial cases are needed to kick off the recurrence
-function PLnorminitial00(t, a)
+function PLnorminitial00(t::Real, a::Real)
     return ((t+1)^(a+1)-(t-1)^(a+1))/(2*(a+1))
 end
-function PLnorminitial01(t, a)
-    return sqrt(BigInt(3))*((t+1)^(a+1)*(-a+t-1)-(a+t+1)*(t-1)^(a+1))/(2*(a+1)*(a+2))
+function PLnorminitial01(t::T, a::T) where T<:Real
+    return sqrt(one(T)*3)*((t+1)^(a+1)*(-a+t-1)-(a+t+1)*(t-1)^(a+1))/(2*(a+1)*(a+2))
 end
-function PLnorminitial11(t, a)
-    return BigInt(3)*((t+1)^(a+1)*(a^2+a*(3-2*t)+2*(t-1)*t+2)-(t-1)^(a+1)*(a^2+a*(2*t+3)+2*(t^2+t+1)))/(2*(a+1)*(a+2)*(a+3))
+function PLnorminitial11(t::T, a::T) where T<:Real
+    return 3*((t+1)^(a+1)*(a^2+a*(3-2*t)+2*(t-1)*t+2)-(t-1)^(a+1)*(a^2+a*(2*t+3)+2*(t^2+t+1)))/(2*(a+1)*(a+2)*(a+3))
 end
-function PLnorminitial12(t, a)
-    return -sqrt(BigInt(15))*(((1+t)^(1+a)*((1+a)^2*(3+a)-(3+2*a*(5+2*a))*t+9*(1+a)*t^2-9*t^3)+(-1+t)^(1+a)*((1+a)^2*(3+a)+(3+2*a*(5+2*a))*t+9*(1+a)*t^2+9*t^3))/(2*(1+a)*(2+a)*(3+a)*(4+a)))
+function PLnorminitial12(t::T, a::T) where T<:Real
+    return -sqrt(one(T)*15)*(((1+t)^(1+a)*((1+a)^2*(3+a)-(3+2*a*(5+2*a))*t+9*(1+a)*t^2-9*t^3)+(-1+t)^(1+a)*((1+a)^2*(3+a)+(3+2*a*(5+2*a))*t+9*(1+a)*t^2+9*t^3))/(2*(1+a)*(2+a)*(3+a)*(4+a)))
 end
 
 # the following version takes a previously computed block that has been resized and fills in the missing data guided by indices in inds
 function fillcoeffmatrix!(K, inds)
     # the remaining cases can be constructed iteratively
-    a = K.a
-    t = K.t
+    a = K.a; t = K.t;
     @inbounds for m in inds
-        m=m-2
+        m = m-2
         # first row
-        K.data[1,m+2] = (t/((a+m+2)/(2*m+1))*normconst_Pnadd1(m)*K.data[1,m+1]+((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*normconst_Pnsub1(m)*K.data[1,m])
+        K.data[1,m+2] = (t/((a+m+2)/(2*m+1))*normconst_Pnadd1(m,t)*K.data[1,m+1]+((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*normconst_Pnsub1(m,t)*K.data[1,m])
         # second row
-        K.data[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnadd1(m)*K.data[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pmnmix(1,m)*K.data[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnsub1(m)*K.data[2,m])
+        K.data[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnadd1(m,t)*K.data[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pmnmix(1,m,t)*K.data[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnsub1(m,t)*K.data[2,m])
         # build remaining row elements
-        @inbounds for j=1:m
-            K.data[j+2,m+2] = (t/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+1+j+1)))*normconst_Pnadd1(j)*K.data[j+1,m+2]+((a+1)*(m+1)/((m+1)*(m+2)-j*(j+1)))/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+j+2)))*normconst_Pmnmix(m+1,j)*K.data[j+1,m+1]-(j*(a+m+1-j+1)/((2*j+1)*(m+1-j)))*1/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+1+j+1)))*normconst_Pnsub1(j)*K.data[j,m+2])
+        @inbounds for j = 1:m
+            K.data[j+2,m+2] = (t/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+1+j+1)))*normconst_Pnadd1(j,t)*K.data[j+1,m+2]+((a+1)*(m+1)/((m+1)*(m+2)-j*(j+1)))/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+j+2)))*normconst_Pmnmix(m+1,j,t)*K.data[j+1,m+1]-(j*(a+m+1-j+1)/((2*j+1)*(m+1-j)))*1/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+1+j+1)))*normconst_Pnsub1(j,t)*K.data[j,m+2])
         end
     end
     # matrix is symmetric
