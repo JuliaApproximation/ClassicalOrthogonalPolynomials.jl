@@ -176,7 +176,7 @@ end
         PW = P'*(W*P)
         @test W isa PowKernelPoint
         @test PW[1:20,1:20] ≈ PowerLawMatrix(P,a,t)[1:20,1:20]
-        # this is slower than directly using PowerLawIntegral but it works
+        # this is slower than directly using PowerLawMatrix but it works
         @test dot(f[1:20],PW[1:20,1:20],g[1:20]) ≈ 5.082145576355614 # Mathematica
     end
 @testset "PowKernelPoint dot evaluation, set 2" begin

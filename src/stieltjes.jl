@@ -314,7 +314,7 @@ function fillcoeffmatrix!(K, inds)
         K.data[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnadd1(m,t)*K.data[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pmnmix(1,m,t)*K.data[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnsub1(m,t)*K.data[2,m])
         # build remaining row elements
         @inbounds for j = 1:m
-            K.data[j+2,m+2] = (t/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+1+j+1)))*normconst_Pnadd1(j,t)*K.data[j+1,m+2]+((a+1)*(m+1)/((m+1)*(m+2)-j*(j+1)))/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+j+2)))*normconst_Pmnmix(m+1,j,t)*K.data[j+1,m+1]-(j*(a+m+1-j+1)/((2*j+1)*(m+1-j)))*1/((j+1)*(a+m+1+j+2)/((2*j+1)*(m+1+j+1)))*normconst_Pnsub1(j,t)*K.data[j,m+2])
+            K.data[j+2,m+2] = (t/((j+1)*(a+m+j+3)/((2*j+1)*(m+j+2)))*normconst_Pnadd1(j,t)*K.data[j+1,m+2]+((a+1)*(m+1)/((m+1)*(m+2)-j*(j+1)))/((j+1)*(a+m+j+3)/((2*j+1)*(m+j+2)))*normconst_Pmnmix(m+1,j,t)*K.data[j+1,m+1]-(j*(a+m-j+2)/((2*j+1)*(m+1-j)))*1/((j+1)*(a+m+j+3)/((2*j+1)*(m+j+2)))*normconst_Pnsub1(j,t)*K.data[j,m+2])
         end
     end
     # matrix is symmetric
