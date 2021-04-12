@@ -201,7 +201,6 @@ mutable struct PowerLawMatrix{T, PP<:Normalized{<:Any,<:Legendre{<:Any}}} <: Abs
     t::T
     data::Matrix{T}
     datasize::Tuple{Int,Int}
-    array
     function PowerLawMatrix{T, PP}(P::PP, a::T, t::T) where {T, PP<:AbstractQuasiMatrix}
         new{T, PP}(P,a,t, gennormalizedpower(a,t,10),(10,10))
     end
@@ -213,12 +212,16 @@ size(K::PowerLawMatrix) = (∞,∞) # potential to add maximum size of operator
 cache_filldata!(K::PowerLawMatrix, inds) = fillcoeffmatrix!(K, inds)
 
 # because it really only makes sense to compute this symmetric operator in square blocks, we have to slightly rework some of LazyArrays caching and resizing
-function getindex(K::PowerLawMatrix{T, PP}, I::CartesianIndex) where {T,PP<:AbstractQuasiMatrix}
+function getindex(K::PowerLawMatrix, I::CartesianIndex)
     resizedata!(K, Tuple(I))
     K.data[I]
 end
-function getindex(K::PowerLawMatrix{T,PP}, I::Vararg{Integer,2}) where {T,PP<:AbstractQuasiMatrix}
+function getindex(K::PowerLawMatrix, I::Vararg{Int,2})
     resizedata!(K, Tuple([I...]))
+    K.data[I...]
+end
+function getindex(K::PowerLawMatrix, I::Vararg{UnitRange,2})
+    resizedata!(K, (maximum(I[1]),maximum(I[2])))
     K.data[I...]
 end
 function resizedata!(K::PowerLawMatrix, nm) 
@@ -232,7 +235,7 @@ function resizedata!(K::PowerLawMatrix, nm)
         K.data[axes(olddata)...] = olddata
     end
     if maximum(nm) > maximum(νμ)
-        inds = Array(maximum(νμ):maximum(nm))
+        inds = maximum(νμ):maximum(nm)
         cache_filldata!(K, inds)
         K.datasize = nm
     end
@@ -242,7 +245,7 @@ end
 ####
 # methods
 ####
-function *(K::PowKernelPoint,Q::Normalized{<:Any,<:Legendre{<:Any}})
+function *(K::PowKernelPoint, Q::Normalized{<:Any,<:Legendre{<:Any}})
     a = K.args[2]
     t = K.args[1][zero(typeof(a))]
     return Q*PowerLawMatrix(Q,a,t)
@@ -253,7 +256,7 @@ end
 ####
 # this function evaluates the recurrence and returns the full operator. 
 # We don't use this outside of the initial block.
-function gennormalizedpower(a::T, t::T, ℓ::Integer) where T<:Real
+function gennormalizedpower(a::T, t::T, ℓ::Int) where T <: Real
     # initialization
     ℓ = ℓ+3
     coeff = zeros(T,ℓ,ℓ)
@@ -285,25 +288,25 @@ function gennormalizedpower(a::T, t::T, ℓ::Integer) where T<:Real
 end
 
 # modify recurrence coefficients to work for normalized Legendre
-normconst_Pnadd1(m::Integer, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m+one(T))
-normconst_Pnsub1(m::Integer, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m-one(T))
-normconst_Pmnmix(n::Integer, m::Integer, settype::T) where T<:Real = sqrt(2*m+3*one(T))*sqrt(2*n+one(T))/(sqrt(2*m+one(T))*sqrt(2*n-one(T)))
+normconst_Pnadd1(m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m+one(T))
+normconst_Pnsub1(m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m-one(T))
+normconst_Pmnmix(n::Int, m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))*sqrt(2*n+one(T))/(sqrt(2*m+one(T))*sqrt(2*n-one(T)))
 # these explicit initial cases are needed to kick off the recurrence
 function PLnorminitial00(t::Real, a::Real)
     return ((t+1)^(a+1)-(t-1)^(a+1))/(2*(a+1))
 end
-function PLnorminitial01(t::T, a::T) where T<:Real
+function PLnorminitial01(t::T, a::T) where T <: Real
     return sqrt(one(T)*3)*((t+1)^(a+1)*(-a+t-1)-(a+t+1)*(t-1)^(a+1))/(2*(a+1)*(a+2))
 end
-function PLnorminitial11(t::T, a::T) where T<:Real
+function PLnorminitial11(t::T, a::T) where T <: Real
     return 3*((t+1)^(a+1)*(a^2+a*(3-2*t)+2*(t-1)*t+2)-(t-1)^(a+1)*(a^2+a*(2*t+3)+2*(t^2+t+1)))/(2*(a+1)*(a+2)*(a+3))
 end
-function PLnorminitial12(t::T, a::T) where T<:Real
+function PLnorminitial12(t::T, a::T) where T <: Real
     return -sqrt(one(T)*15)*(((1+t)^(1+a)*((1+a)^2*(3+a)-(3+2*a*(5+2*a))*t+9*(1+a)*t^2-9*t^3)+(-1+t)^(1+a)*((1+a)^2*(3+a)+(3+2*a*(5+2*a))*t+9*(1+a)*t^2+9*t^3))/(2*(1+a)*(2+a)*(3+a)*(4+a)))
 end
 
 # the following version takes a previously computed block that has been resized and fills in the missing data guided by indices in inds
-function fillcoeffmatrix!(K, inds)
+function fillcoeffmatrix!(K::PowerLawMatrix, inds::UnitRange)
     # the remaining cases can be constructed iteratively
     a = K.a; t = K.t;
     @inbounds for m in inds
@@ -322,3 +325,4 @@ function fillcoeffmatrix!(K, inds)
         K.data[m,1:end] = K.data[1:end,m]
     end
 end
+
