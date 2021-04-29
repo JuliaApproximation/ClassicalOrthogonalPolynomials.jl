@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, orthogonalityweight
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, orthogonalityweight, golubwelsch
 
 @testset "Lanczos" begin
     @testset "Legendre" begin
@@ -219,5 +219,17 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         @test X.dv[3:10] ≈ [X[k,k] for k in 3:10]
         @test X.dv[3:∞][1:5] ≈ X.dv[3:7]
         @test X.dv[3:∞][2:∞][1:5] ≈ X.dv[4:8]
+    end
+
+    @testset "golubwelsch" begin
+        x = axes(Legendre(),1)
+        Q = LanczosPolynomial( @.(inv(1+x^2)))
+        x,w = golubwelsch(Q[:,Base.OneTo(10)])
+        @test sum(w) ≈ π/2
+        @test sum(x.^2 .* w) ≈ 2 - π/2
+
+        x̃ = Inclusion(-1..1)
+        Q̃ = LanczosPolynomial( @.(inv(1+x̃^2)))
+        @test all((x,w) .≈ golubwelsch(Q̃[:,Base.OneTo(10)]))
     end
 end
