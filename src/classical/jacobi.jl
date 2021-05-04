@@ -206,6 +206,12 @@ function grid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,AbstractU
     ChebyshevGrid{1,T}(maximum(jr))
 end
 
+function plotgrid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,AbstractUnitRange}}) where T
+    kr,jr = parentindices(Pn)
+    ChebyshevGrid{2,T}(40maximum(jr))
+end
+
+
 function ldiv(::Legendre{V}, f::AbstractQuasiVector) where V
     T = ChebyshevT{V}()
     [cheb2leg(paddeddata(T \ f)); zeros(V,∞)]
