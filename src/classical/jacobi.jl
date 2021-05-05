@@ -47,6 +47,7 @@ getproperty(w::LegendreWeight{T}, ::Symbol) where T = zero(T)
 sum(::LegendreWeight{T}) where T = 2one(T)
 
 _weighted(::LegendreWeight, P) = P
+_weighted(::SubQuasiArray{<:Any,1,<:LegendreWeight}, P) = P
 
 broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(*), ::LegendreWeight{T}, ::LegendreWeight{V}) where {T,V} =
     LegendreWeight{promote_type(T,V)}()
