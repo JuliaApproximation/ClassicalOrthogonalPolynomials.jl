@@ -25,11 +25,11 @@ QuasiArrays = "c4ea9172-b204-11e9-377d-29865faadc5c"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
-ArrayLayouts = "0.6.2"
+ArrayLayouts = "0.6.2, 0.7"
 BandedMatrices = "0.16.5"
 BlockArrays = "0.15"
 BlockBandedMatrices = "0.10"
-ContinuumArrays = "0.7.2"
+ContinuumArrays = "0.7.3"
 DomainSets = "0.4, 0.5"
 FFTW = "1.1"
 FastGaussQuadrature = "0.4.3"
