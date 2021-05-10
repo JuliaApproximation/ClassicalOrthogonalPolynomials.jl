@@ -245,9 +245,9 @@ end
 ####
 # methods
 ####
-function *(K::PowKernelPoint, Q::Normalized{<:Any,<:Legendre{<:Any}})
-    a = K.args[2]
-    t = K.args[1][zero(typeof(a))]
+function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), K::PowKernelPoint, Q::Normalized{<:Any,<:Legendre})
+    tx,a = K.args
+    t = tx[zero(typeof(a))]
     return Q*PowerLawMatrix(Q,a,t)
 end
 
