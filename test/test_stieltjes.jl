@@ -256,6 +256,7 @@ end
     @testset "Lanczos" begin
         P = Normalized(Legendre())
         x = axes(P,1)
-        Q = LanczosPolynomial((1.001 .- x).^0.5)
+        @time D = ClassicalOrthogonalPolynomials.LanczosData((1.001 .- x).^0.5, P);
+        @time ClassicalOrthogonalPolynomials.resizedata!(D,100);
     end
 end

@@ -206,7 +206,9 @@ mutable struct PowerLawMatrix{T, PP<:Normalized{<:Any,<:Legendre{<:Any}}} <: Abs
     end
 end
 PowerLawMatrix(P::AbstractQuasiMatrix, a::T, t::T) where T = PowerLawMatrix{T,typeof(P)}(P,a,t)
-size(K::PowerLawMatrix) = (∞,∞) # potential to add maximum size of operator
+size(K::PowerLawMatrix) = (ℵ₀,ℵ₀) # potential to add maximum size of operator
+copy(K::PowerLawMatrix{T,PP}) where {T,PP} = K # Immutable entries
+
 
 # data filling
 cache_filldata!(K::PowerLawMatrix, inds) = fillcoeffmatrix!(K, inds)

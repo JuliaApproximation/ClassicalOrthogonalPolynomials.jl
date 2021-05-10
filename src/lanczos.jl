@@ -49,7 +49,7 @@ function LanczosData(w::AbstractQuasiVector, P::AbstractQuasiMatrix)
     x = axes(P,1)
     wP = weighted(P)
     X = jacobimatrix(P)
-    W = Clenshaw(P * (wP \ w), P)
+    W = wP \ (w .* P)
     LanczosData(X, W)
 end
 
