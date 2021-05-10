@@ -47,6 +47,7 @@ getproperty(w::LegendreWeight{T}, ::Symbol) where T = zero(T)
 sum(::LegendreWeight{T}) where T = 2one(T)
 
 _weighted(::LegendreWeight, P) = P
+_weighted(::SubQuasiArray{<:Any,1,<:LegendreWeight}, P) = P
 
 broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(*), ::LegendreWeight{T}, ::LegendreWeight{V}) where {T,V} =
     LegendreWeight{promote_type(T,V)}()
@@ -205,6 +206,12 @@ function grid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,AbstractU
     kr,jr = parentindices(Pn)
     ChebyshevGrid{1,T}(maximum(jr))
 end
+
+function plotgrid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,AbstractUnitRange}}) where T
+    kr,jr = parentindices(Pn)
+    ChebyshevGrid{2,T}(40maximum(jr))
+end
+
 
 function ldiv(::Legendre{V}, f::AbstractQuasiVector) where V
     T = ChebyshevT{V}()

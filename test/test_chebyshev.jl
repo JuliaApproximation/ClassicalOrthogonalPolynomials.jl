@@ -356,6 +356,10 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         V = view(T,:,[1,3,4])
         @test (U\(D*V))[1:5,:] == (U \ (V'D')')[1:5,:] == (U\(D*T))[1:5,[1,3,4]] 
     end
+
+    @testset "plot" begin
+        @test ContinuumArrays.plotgrid(ChebyshevT()[:,1:5]) == ChebyshevGrid{2}(200)
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end

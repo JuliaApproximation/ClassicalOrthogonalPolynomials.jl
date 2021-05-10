@@ -199,3 +199,5 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = 
     convert(WeightedOrthogonalPolynomial, parent(Ac))' * convert(WeightedOrthogonalPolynomial, wB)
 
 summary(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
+
+__sum(::NormalizedBasisLayout, A, dims) = __sum(ApplyLayout{typeof(*)}(), A, dims)
