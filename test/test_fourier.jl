@@ -39,7 +39,6 @@ import QuasiArrays: MulQuasiArray
         @test blockisequal(axes(F'F), (axes(F,2),axes(F,2)))
         D = Derivative(axes(F,1))
         D̃ = (D*F).args[2]
-        @test BlockArrays.blockcolsupport(D̃,Block(3)) == Block.(3:3)
         @test (F\F)*D̃ isa BlockArray
         @test (F \ (D*F))[Block.(1:3),Block.(1:3)] == [0 0 0 0 0; 0 0.0 -1 0 0; 0 1 0 0 0; 0 0 0 0 -2; 0 0 0 2 0]
 
