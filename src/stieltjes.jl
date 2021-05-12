@@ -209,7 +209,6 @@ PowerLawMatrix(P::AbstractQuasiMatrix, a::T, t::T) where T = PowerLawMatrix{T,ty
 size(K::PowerLawMatrix) = (ℵ₀,ℵ₀) # potential to add maximum size of operator
 copy(K::PowerLawMatrix{T,PP}) where {T,PP} = K # Immutable entries
 
-
 # data filling
 cache_filldata!(K::PowerLawMatrix, inds) = fillcoeffmatrix!(K, inds)
 
@@ -254,29 +253,85 @@ function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), K::PowKernelPoint, Q
 end
 
 ####
-# recurrence evaluation
+# operator generation
 ####
-# this function evaluates the recurrence and returns the full operator. 
-# We don't use this outside of the initial block.
+
+# evaluates ∫(t-x)^a Pn(x)P_m(x) dx for the case m=0, i.e. first row of operator, via backwards recursion
+function powerleg_backwardsfirstrow(a::T, t::T, ℓ::Int) where T <: Real
+    ℓ = ℓ+200
+    coeff = zeros(BigFloat,ℓ)
+    coeff[end-1] =  one(BigFloat)
+    for m = reverse(1:ℓ-2)
+        coeff[m] = (coeff[m+2]-t/((a+m+2)/(2*m+1))*normconst_Pnadd1(m,t)*coeff[m+1])/(((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*normconst_Pnsub1(m,t))
+    end
+    coeff = PLnorminitial00(t,a)/coeff[1].*coeff
+    return T.(coeff[1:ℓ-200])
+end
+# modify recurrence coefficients to work for normalized Legendre
+normconst_Pnadd1(m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m+one(T))
+normconst_Pnsub1(m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m-one(T))
+normconst_Pmnmix(n::Int, m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))*sqrt(2*n+one(T))/(sqrt(2*m+one(T))*sqrt(2*n-one(T)))
+# useful explicit initial case
+function PLnorminitial00(t::Real, a::Real)
+    return ((t+1)^(a+1)-(t-1)^(a+1))/(2*(a+1))
+end
+
+# compute r-th coefficient of product expansion of order p and order q normalized Legendre polynomials
+productseriescfs(p::T,q::T,r::T) where T = sqrt((2*p+1)*(2*q+1)/((2*(p+q-2*r)+1)))*(2*(p+q-2*r)+1)/(2*(p+q-r)+1)*exp(loggamma(r+one(T)/2)+loggamma(p-r+one(T)/2)+loggamma(q-r+one(T)/2)-loggamma(q-r+one(T))-loggamma(p-r+one(T))-loggamma(r+one(T))-loggamma(q+p-r+one(T)/2)+loggamma(q+p-r+one(T)))/π
+
+# this generates the entire operator via normalized product Legendre decomposition
+# this is very stable but scales rather poorly with high orders, so we only use it for testing
+function productoperator(a::T,t::T,ℓ::Integer) where T
+    op::Matrix{T} = zeros(T,ℓ,ℓ)
+    # first row where n arbitrary and m==0
+    first::Vector{T} = powerleg_backwardsfirstrow(a,t,2*ℓ+1)
+    op[1,:] = first[1:ℓ]
+    # generate remaining rows
+    for p = 1:ℓ-1
+        for q = p:ℓ-1
+            productcfs::Vector{T} = zeros(T,2*ℓ+1)
+            for i = 0:min(p,q)
+                productcfs[1+q+p-2*i] = productseriescfs(p,q,i)
+            end
+            op[p+1,q+1] = dot(first,productcfs)
+        end
+    end
+    # matrix is symmetric
+    for m = 1:ℓ
+        for n = m+1:ℓ
+            op[n,m] = op[m,n]
+        end
+    end
+    return op
+end
+
+# This function returns the full ℓ×ℓ dot product operator, relying on several different methods for first row, second row, diagonal and remaining elements. We don't use this outside of the initial block.
 function gennormalizedpower(a::T, t::T, ℓ::Int) where T <: Real
     # initialization
     ℓ = ℓ+3
     coeff = zeros(T,ℓ,ℓ)
-    # load in explicit initial cases
-    coeff[1,1] = PLnorminitial00(t,a)
-    coeff[1,2] = PLnorminitial01(t,a)
-    coeff[2,2] = PLnorminitial11(t,a)
-    coeff[2,3] = PLnorminitial12(t,a)
-    # we have to build these two cases with some care
-    coeff[1,3] = t/((a+3)/3)*normconst_Pnadd1(1,t)*coeff[1,2]+(a/3)/((a+3)/3)*normconst_Pnsub1(1,t)*coeff[1,1]
-    #the remaining cases can be constructed iteratively
+    # construct first row via stable backwards recurrence
+    first = powerleg_backwardsfirstrow(a,t,2*ℓ+1)
+    coeff[1,:] = first[1:ℓ]
+    # contruct second row via normalized product Legendre decomposition
+    @inbounds for q = 1:ℓ-1
+        productcfs::Vector{T} = zeros(T,2*ℓ+1)
+        productcfs[q+2] = productseriescfs(1,q,0)
+        productcfs[q] = productseriescfs(1,q,1)
+        coeff[2,q+1] = dot(first,productcfs)
+    end
+    # contruct the diagonal via normalized product Legendre decomposition
+    @inbounds for q = 2:ℓ-1
+        productcfs::Vector{T} = zeros(T,2*ℓ+1)
+        @inbounds for i = 0:q
+            productcfs[1+2*q-2*i] = productseriescfs(q,q,i)
+        end
+        coeff[q+1,q+1] = dot(first,productcfs)
+    end
+    #the remaining cases can be constructed iteratively by means of a T-shaped recurrence
     @inbounds for m = 2:ℓ-2
-        # first row
-        coeff[1,m+2] = (t/((a+m+2)/(2*m+1))*normconst_Pnadd1(m,t)*coeff[1,m+1]+((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*normconst_Pnsub1(m,t)*coeff[1,m])
-        # second row
-        coeff[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnadd1(m,t)*coeff[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pmnmix(1,m,t)*coeff[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnsub1(m,t)*coeff[2,m])
         # build remaining row elements
-        @inbounds for j=1:m-1
+        @inbounds for j = 1:m-2
             coeff[j+2,m+1] = (t/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pnadd1(j,t)*coeff[j+1,m+1]+((a+1)*m/(m*(m+1)-j*(j+1)))/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pmnmix(m,j,t)*coeff[j+1,m]-(j*(a+m-j+1)/((2*j+1)*(m-j)))*1/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pnsub1(j,t)*coeff[j,m+1])
         end
     end
@@ -289,36 +344,33 @@ function gennormalizedpower(a::T, t::T, ℓ::Int) where T <: Real
     return coeff[1:ℓ-3,1:ℓ-3]
 end
 
-# modify recurrence coefficients to work for normalized Legendre
-normconst_Pnadd1(m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m+one(T))
-normconst_Pnsub1(m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m-one(T))
-normconst_Pmnmix(n::Int, m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))*sqrt(2*n+one(T))/(sqrt(2*m+one(T))*sqrt(2*n-one(T)))
-# these explicit initial cases are needed to kick off the recurrence
-function PLnorminitial00(t::Real, a::Real)
-    return ((t+1)^(a+1)-(t-1)^(a+1))/(2*(a+1))
-end
-function PLnorminitial01(t::T, a::T) where T <: Real
-    return sqrt(one(T)*3)*((t+1)^(a+1)*(-a+t-1)-(a+t+1)*(t-1)^(a+1))/(2*(a+1)*(a+2))
-end
-function PLnorminitial11(t::T, a::T) where T <: Real
-    return 3*((t+1)^(a+1)*(a^2+a*(3-2*t)+2*(t-1)*t+2)-(t-1)^(a+1)*(a^2+a*(2*t+3)+2*(t^2+t+1)))/(2*(a+1)*(a+2)*(a+3))
-end
-function PLnorminitial12(t::T, a::T) where T <: Real
-    return -sqrt(one(T)*15)*(((1+t)^(1+a)*((1+a)^2*(3+a)-(3+2*a*(5+2*a))*t+9*(1+a)*t^2-9*t^3)+(-1+t)^(1+a)*((1+a)^2*(3+a)+(3+2*a*(5+2*a))*t+9*(1+a)*t^2+9*t^3))/(2*(1+a)*(2+a)*(3+a)*(4+a)))
-end
-
 # the following version takes a previously computed block that has been resized and fills in the missing data guided by indices in inds
 function fillcoeffmatrix!(K::PowerLawMatrix, inds::UnitRange)
     # the remaining cases can be constructed iteratively
-    a = K.a; t = K.t;
+    a = K.a; t = K.t; T = eltype(promote(a,t));
+    ℓ = maximum(inds)
+    # fill in first row via stable backwards recurrence
+    first = powerleg_backwardsfirstrow(a,t,2*ℓ+1)
+    K.data[1,inds] = first[inds]
+    # fill in second row via normalized product Legendre decomposition
+    @inbounds for q = minimum(inds):ℓ-1
+        productcfs::Vector{T} = zeros(T,2*ℓ+1)
+        productcfs[q+2] = productseriescfs(1,q,0)
+        productcfs[q] = productseriescfs(1,q,1)
+        K.data[2,q+1] = dot(first,productcfs)
+    end
+    # fill in the diagonal via normalized product Legendre decomposition
+    @inbounds for q = minimum(inds):ℓ-1
+        productcfs::Vector{T} = zeros(T,2*ℓ+1)
+        @inbounds for i = 0:q
+            productcfs[1+2*q-2*i] = productseriescfs(q,q,i)
+        end
+        K.data[q+1,q+1] = dot(first,productcfs)
+    end
     @inbounds for m in inds
         m = m-2
-        # first row
-        K.data[1,m+2] = (t/((a+m+2)/(2*m+1))*normconst_Pnadd1(m,t)*K.data[1,m+1]+((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*normconst_Pnsub1(m,t)*K.data[1,m])
-        # second row
-        K.data[2,m+2] = (t/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnadd1(m,t)*K.data[2,m+1]+((a+1)/(2-m*(m+1)))/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pmnmix(1,m,t)*K.data[1,m+1]-(m*(a+2-m)/((2*m+1)*(1-m)))*1/((m+1)*(a+m+3)/((2*m+1)*(m+2)))*normconst_Pnsub1(m,t)*K.data[2,m])
         # build remaining row elements
-        @inbounds for j = 1:m
+        @inbounds for j = 1:m-1
             K.data[j+2,m+2] = (t/((j+1)*(a+m+j+3)/((2*j+1)*(m+j+2)))*normconst_Pnadd1(j,t)*K.data[j+1,m+2]+((a+1)*(m+1)/((m+1)*(m+2)-j*(j+1)))/((j+1)*(a+m+j+3)/((2*j+1)*(m+j+2)))*normconst_Pmnmix(m+1,j,t)*K.data[j+1,m+1]-(j*(a+m-j+2)/((2*j+1)*(m+1-j)))*1/((j+1)*(a+m+j+3)/((2*j+1)*(m+j+2)))*normconst_Pnsub1(j,t)*K.data[j,m+2])
         end
     end
@@ -327,4 +379,3 @@ function fillcoeffmatrix!(K::PowerLawMatrix, inds::UnitRange)
         K.data[m,1:end] = K.data[1:end,m]
     end
 end
-
