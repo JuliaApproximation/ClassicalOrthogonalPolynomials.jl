@@ -202,7 +202,7 @@ mutable struct PowerLawMatrix{T, PP<:Normalized{<:Any,<:Legendre{<:Any}}} <: Abs
     data::Matrix{T}
     datasize::Tuple{Int,Int}
     function PowerLawMatrix{T, PP}(P::PP, a::T, t::T) where {T, PP<:AbstractQuasiMatrix}
-        new{T, PP}(P,a,t, gennormalizedpower(a,t,10),(10,10))
+        new{T, PP}(P,a,t, gennormalizedpower(a,t,50),(50,50))
     end
 end
 PowerLawMatrix(P::AbstractQuasiMatrix, a::T, t::T) where T = PowerLawMatrix{T,typeof(P)}(P,a,t)
@@ -277,19 +277,19 @@ function PLnorminitial00(t::Real, a::Real)
 end
 
 # compute r-th coefficient of product expansion of order p and order q normalized Legendre polynomials
-productseriescfs(p::T,q::T,r::T) where T = sqrt((2*p+1)*(2*q+1)/((2*(p+q-2*r)+1)))*(2*(p+q-2*r)+1)/(2*(p+q-r)+1)*exp(loggamma(r+one(T)/2)+loggamma(p-r+one(T)/2)+loggamma(q-r+one(T)/2)-loggamma(q-r+one(T))-loggamma(p-r+one(T))-loggamma(r+one(T))-loggamma(q+p-r+one(T)/2)+loggamma(q+p-r+one(T)))/π
+productseriescfs(p::T, q::T, r::T) where T = sqrt((2*p+1)*(2*q+1)/((2*(p+q-2*r)+1)))*(2*(p+q-2*r)+1)/(2*(p+q-r)+1)*exp(loggamma(r+one(T)/2)+loggamma(p-r+one(T)/2)+loggamma(q-r+one(T)/2)-loggamma(q-r+one(T))-loggamma(p-r+one(T))-loggamma(r+one(T))-loggamma(q+p-r+one(T)/2)+loggamma(q+p-r+one(T)))/π
 
 # this generates the entire operator via normalized product Legendre decomposition
 # this is very stable but scales rather poorly with high orders, so we only use it for testing
-function productoperator(a::T,t::T,ℓ::Integer) where T
+function productoperator(a::T, t::T, ℓ::Int) where T
     op::Matrix{T} = zeros(T,ℓ,ℓ)
     # first row where n arbitrary and m==0
-    first::Vector{T} = powerleg_backwardsfirstrow(a,t,2*ℓ+1)
+    first = powerleg_backwardsfirstrow(a,t,2*ℓ+1)
     op[1,:] = first[1:ℓ]
     # generate remaining rows
     for p = 1:ℓ-1
         for q = p:ℓ-1
-            productcfs::Vector{T} = zeros(T,2*ℓ+1)
+            productcfs = zeros(T,2*ℓ+1)
             for i = 0:min(p,q)
                 productcfs[1+q+p-2*i] = productseriescfs(p,q,i)
             end
@@ -315,14 +315,14 @@ function gennormalizedpower(a::T, t::T, ℓ::Int) where T <: Real
     coeff[1,:] = first[1:ℓ]
     # contruct second row via normalized product Legendre decomposition
     @inbounds for q = 1:ℓ-1
-        productcfs::Vector{T} = zeros(T,2*ℓ+1)
+        productcfs = zeros(T,2*ℓ+1)
         productcfs[q+2] = productseriescfs(1,q,0)
         productcfs[q] = productseriescfs(1,q,1)
         coeff[2,q+1] = dot(first,productcfs)
     end
     # contruct the diagonal via normalized product Legendre decomposition
     @inbounds for q = 2:ℓ-1
-        productcfs::Vector{T} = zeros(T,2*ℓ+1)
+        productcfs = zeros(T,2*ℓ+1)
         @inbounds for i = 0:q
             productcfs[1+2*q-2*i] = productseriescfs(q,q,i)
         end
@@ -354,14 +354,14 @@ function fillcoeffmatrix!(K::PowerLawMatrix, inds::UnitRange)
     K.data[1,inds] = first[inds]
     # fill in second row via normalized product Legendre decomposition
     @inbounds for q = minimum(inds):ℓ-1
-        productcfs::Vector{T} = zeros(T,2*ℓ+1)
+        productcfs = zeros(T,2*ℓ+1)
         productcfs[q+2] = productseriescfs(1,q,0)
         productcfs[q] = productseriescfs(1,q,1)
         K.data[2,q+1] = dot(first,productcfs)
     end
     # fill in the diagonal via normalized product Legendre decomposition
     @inbounds for q = minimum(inds):ℓ-1
-        productcfs::Vector{T} = zeros(T,2*ℓ+1)
+        productcfs = zeros(T,2*ℓ+1)
         @inbounds for i = 0:q
             productcfs[1+2*q-2*i] = productseriescfs(q,q,i)
         end

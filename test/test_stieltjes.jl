@@ -123,6 +123,7 @@ end
 #################################################
 # ∫f(x)g(x)(t-x)^a dx evaluation where f and g in Legendre
 #################################################
+
 @testset "Pow kernel" begin
     @testset "Multiplication methods" begin
         P = Normalized(Legendre())
