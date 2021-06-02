@@ -263,7 +263,7 @@ bandwidths(M::Clenshaw) = (length(M.c)-1,length(M.c)-1)
 Base.array_summary(io::IO, C::Clenshaw{T}, inds::Tuple{Vararg{OneToInf{Int}}}) where T =
     print(io, Base.dims2string(length.(inds)), " Clenshaw{$T} with $(length(C.c)) degree polynomial")
 
-struct ClenshawLayout <: AbstractBandedLayout end
+struct ClenshawLayout <: AbstractLazyBandedLayout end
 MemoryLayout(::Type{<:Clenshaw}) = ClenshawLayout()
 sublayout(::ClenshawLayout, ::Type{<:NTuple{2,AbstractUnitRange{Int}}}) = ClenshawLayout()
 sub_materialize(::ClenshawLayout, V) = BandedMatrix(V)
