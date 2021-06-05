@@ -383,5 +383,5 @@ end
 function dot(v::AbstractVector{T}, W::PowerLawMatrix, q::AbstractVector{T}) where T
     vpad, qpad = paddeddata(v), paddeddata(q)
     vl, ql = length(vpad), length(qpad)
-    return dot(vpad,W[1:vl,1:ql],qpad)
+    return dot(vpad,W[1:vl,1:ql]*qpad)
 end
