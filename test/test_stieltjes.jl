@@ -146,6 +146,7 @@ end
         @test g'*(P'*(w.*P)*f) ≈ -2.656108697646584 # Mathematica
     end
     @testset "Equivalence to multiplication in integer case" begin
+        # TODO: overload integer input to make this work
         P = Normalized(Legendre())
         x = axes(P,1)
         a = 1

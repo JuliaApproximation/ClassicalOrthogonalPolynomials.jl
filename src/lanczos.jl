@@ -58,6 +58,7 @@ function resizedata!(L::LanczosData, N)
     resizedata!(L.R, N, N)
     resizedata!(L.γ, N)
     resizedata!(L.β, N)
+    resizedata!(L.W, (N,N))
     lanczos!(L.ncols+1:N, L.X, L.W, L.γ, L.β, L.R)
     L.ncols = N
     L
