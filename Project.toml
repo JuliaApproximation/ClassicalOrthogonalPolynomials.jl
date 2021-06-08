@@ -1,7 +1,7 @@
 name = "ClassicalOrthogonalPolynomials"
 uuid = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
 authors = ["Sheehan Olver <solver@mac.com>"]
-version = "0.3.7"
+version = "0.4"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
@@ -25,15 +25,15 @@ QuasiArrays = "c4ea9172-b204-11e9-377d-29865faadc5c"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
-ArrayLayouts = "0.6.2, 0.7"
+ArrayLayouts = "0.7"
 BandedMatrices = "0.16.5"
 BlockArrays = "0.15"
 BlockBandedMatrices = "0.10"
-ContinuumArrays = "0.7.3"
+ContinuumArrays = "0.8"
 DomainSets = "0.4, 0.5"
 FFTW = "1.1"
 FastGaussQuadrature = "0.4.3"
-FastTransforms = "0.11, 0.12"
+FastTransforms = "0.12"
 FillArrays = "0.11"
 HypergeometricFunctions = "0.3.4"
 InfiniteArrays = "0.10.3"
@@ -41,9 +41,9 @@ InfiniteLinearAlgebra = "0.5.3"
 IntervalSets = "0.5"
 LazyArrays = "0.21"
 LazyBandedMatrices = "0.5.5"
-QuasiArrays = "0.5"
-SpecialFunctions = "0.10, 1"
-julia = "1.5"
+QuasiArrays = "0.6"
+SpecialFunctions = "1"
+julia = "1.6"
 
 [extras]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"

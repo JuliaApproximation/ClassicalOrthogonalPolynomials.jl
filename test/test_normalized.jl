@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, Test
+using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, LinearAlgebra, Test
 import ClassicalOrthogonalPolynomials: NormalizedBasisLayout, recurrencecoefficients, Normalized, Clenshaw, weighted
 import LazyArrays: CachedVector, PaddedLayout
 import ContinuumArrays: MappedWeightedBasisLayout
@@ -79,6 +79,13 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
         @testset "show" begin
             @test stringmime("text/plain", Normalized(Legendre())) == "Normalized(Legendre{Float64})"
+        end
+
+        @testset "qr" begin
+            P = Legendre()
+            Q,R = qr(P)
+            @test Q == Normalized(Legendre())
+            @test R[1:10,1:10] == (P\Q)[1:10,1:10]
         end
     end
 

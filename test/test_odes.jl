@@ -170,4 +170,14 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         u = L \ [airyai(-ε^(-2/3)); airyai(ε^(2/3)); zeros(∞)]
         @test T[-0.1,:]'u ≈ airyai(-0.1*ε^(-2/3))
     end
+
+    @testset "combo operators" begin
+        T = Chebyshev()
+        C = Ultraspherical(2)
+        x = axes(T,1)
+        D = Derivative(x)
+        L = x .* D + cos.(x) .* D^2
+        M = C \ (L * T)
+        @test C[0.1,:]' * (M * (T \ exp.(x))) ≈ (0.1 + cos(0.1))*exp(0.1)
+    end
 end

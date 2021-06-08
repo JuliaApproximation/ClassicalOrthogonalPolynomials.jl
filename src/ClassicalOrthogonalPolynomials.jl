@@ -11,11 +11,11 @@ import Base: @_inline_meta, axes, getindex, convert, prod, *, /, \, +, -,
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, colsupport, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
-                _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout, 
+                _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
                 AbstractCachedVector, AbstractCachedMatrix, paddeddata
 import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
                         subdiagonaldata, diagonaldata, supdiagonaldata
-import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal
+import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, AbstractLazyBandedLayout
 import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
 import FillArrays: AbstractFill, getindex_value
@@ -39,14 +39,14 @@ import FastGaussQuadrature: jacobimoment
 import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray
 import BandedMatrices: bandwidths
 
-export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial, 
+export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial,
             Hermite, Jacobi, Legendre, Chebyshev, ChebyshevT, ChebyshevU, ChebyshevInterval, Ultraspherical, Fourier, Laguerre,
             HermiteWeight, JacobiWeight, ChebyshevWeight, ChebyshevGrid, ChebyshevTWeight, ChebyshevUWeight, UltrasphericalWeight, LegendreWeight, LaguerreWeight,
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
-            ∞, Derivative, .., Inclusion, 
+            ∞, Derivative, .., Inclusion,
             chebyshevt, chebyshevu, legendre, jacobi,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
-            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted
 
 if VERSION < v"1.6-"
     oneto(n) = Base.OneTo(n)
@@ -278,10 +278,10 @@ end
 
 _tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
 
-jacobimatrix(V::SubQuasiArray{<:Any,2,<:Any,<:Tuple{Inclusion,OneTo}}) = 
+jacobimatrix(V::SubQuasiArray{<:Any,2,<:Any,<:Tuple{Inclusion,OneTo}}) =
     _tritrunc(jacobimatrix(parent(V)), maximum(parentindices(V)[2]))
 
-grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,AbstractUnitRange}}) = 
+grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,AbstractUnitRange}}) =
     eigvals(symtridiagonalize(jacobimatrix(P)))
 
 function golubwelsch(X)
