@@ -1,4 +1,5 @@
 module ClassicalOrthogonalPolynomials
+using IntervalSets: UnitRange
 using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, BlockArrays,
     IntervalSets, DomainSets, ArrayLayouts, SpecialFunctions,
     InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW,

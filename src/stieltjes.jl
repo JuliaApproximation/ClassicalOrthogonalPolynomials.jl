@@ -210,34 +210,33 @@ size(K::PowerLawMatrix) = (ℵ₀,ℵ₀) # potential to add maximum size of ope
 copy(K::PowerLawMatrix{T,PP}) where {T,PP} = K # Immutable entries
 
 # data filling
-cache_filldata!(K::PowerLawMatrix, inds) = fillcoeffmatrix!(K, inds)
+#TODO: fix the weird inds
+cache_filldata!(K::PowerLawMatrix, inds, _) = fillcoeffmatrix!(K, inds)
 
 # because it really only makes sense to compute this symmetric operator in square blocks, we have to slightly rework some of LazyArrays caching and resizing
 function getindex(K::PowerLawMatrix, I::CartesianIndex)
-    resizedata!(K, Tuple(I))
+    resizedata!(K, I)
     K.data[I]
 end
-function getindex(K::PowerLawMatrix, I::Vararg{Int,2})
-    resizedata!(K, Tuple([I...]))
-    K.data[I...]
+function getindex(K::PowerLawMatrix, k::Int, j::Int)
+    resizedata!(K, k, j)
+    K.data[k, j]
 end
-function getindex(K::PowerLawMatrix, I::Vararg{UnitRange,2})
-    resizedata!(K, (maximum(I[1]),maximum(I[2])))
-    K.data[I...]
+function getindex(K::PowerLawMatrix, kr::AbstractVector, jr::AbstractVector)
+    resizedata!(K, maximum(kr),maximum(jr))
+    K.data[kr, jr]
 end
-function resizedata!(K::PowerLawMatrix, nm) 
+function resizedata!(K::PowerLawMatrix, n::Integer, m::Integer)
     olddata = K.data
     νμ = size(olddata)
-    nm = (maximum(nm),maximum(nm))
-    nm = max.(νμ,nm)
-    nm = (maximum(nm),maximum(nm))
+    nm = max.(νμ,max(n,m))
     if νμ ≠ nm
         K.data = similar(K.data, nm...)
         K.data[axes(olddata)...] = olddata
     end
     if maximum(nm) > maximum(νμ)
         inds = maximum(νμ):maximum(nm)
-        cache_filldata!(K, inds)
+        cache_filldata!(K, inds, inds)
         K.datasize = nm
     end
     K
@@ -345,7 +344,7 @@ function gennormalizedpower(a::T, t::T, ℓ::Int) where T <: Real
 end
 
 # the following version takes a previously computed block that has been resized and fills in the missing data guided by indices in inds
-function fillcoeffmatrix!(K::PowerLawMatrix, inds::UnitRange)
+function fillcoeffmatrix!(K::PowerLawMatrix, inds::AbstractUnitRange)
     # the remaining cases can be constructed iteratively
     a = K.a; t = K.t; T = eltype(promote(a,t));
     ℓ = maximum(inds)

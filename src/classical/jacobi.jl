@@ -177,11 +177,13 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::HalfWeighted
 \(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
 \(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
 
-function \(A::AbstractQuasiArray, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized})
+function _norm_expand_ldiv(A, w_B)
     w,B = w_B.args
     B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
     (A \ (w .* B̃)) * D
 end
+\(A::AbstractQuasiArray, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
+\(A::WeightedOrthogonalPolynomial, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
 
 axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b
