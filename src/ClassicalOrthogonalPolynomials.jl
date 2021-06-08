@@ -327,11 +327,11 @@ function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}}, 
     parent(A) \ parent(B)
 end
 
+# assume we can expand w_B in wA to reduce to polynomial multiplication
 function \(wA::WeightedOrthogonalPolynomial, wB::WeightedOrthogonalPolynomial)
-    w_A,A = arguments(wA)
+    _,A = arguments(wA)
     w_B,B = arguments(wB)
-    w_A == w_B || error("Not implemented")
-    A\B
+    A \ ((A * (wA \ w_B)) .* B)
 end
 
 
