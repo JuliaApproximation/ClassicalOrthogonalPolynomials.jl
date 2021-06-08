@@ -49,11 +49,8 @@ export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomia
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
             jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted
 
-if VERSION < v"1.6-"
-    oneto(n) = Base.OneTo(n)
-else
-    import Base: oneto
-end
+
+import Base: oneto
 
 
 include("interlace.jl")

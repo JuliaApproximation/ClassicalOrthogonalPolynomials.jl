@@ -186,6 +186,10 @@ axes(Q::Weighted) = axes(Q.P)
 copy(Q::Weighted) = Q
 
 ==(A::Weighted, B::Weighted) = A.P == B.P
+function \(w_A::Weighted{T}, w_B::Weighted{V}) where {T,V}
+    w_A.P == w_B.P && return Eye{promote_type(T,V)}(∞)
+    convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
+end
 
 weight(wP::Weighted) = orthogonalityweight(wP.P)
 
