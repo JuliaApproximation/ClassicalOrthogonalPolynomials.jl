@@ -46,7 +46,7 @@ export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomia
             ∞, Derivative, .., Inclusion, 
             chebyshevt, chebyshevu, legendre, jacobi,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
-            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted
 
 if VERSION < v"1.6-"
     oneto(n) = Base.OneTo(n)

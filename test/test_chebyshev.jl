@@ -130,9 +130,12 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
         @testset "Weighted" begin
             WT = Weighted(ChebyshevT())
+            @test WT == copy(WT)
+            @test WT \ WT == Eye(∞)
             @test wT[0.1,1:10] ≈ WT[0.1,1:10]
             @test WT \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ wT \ (exp.(x) ./ sqrt.(1 .- x.^2))
             @test WT[:,1:20] \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ (WT \ (exp.(x) ./ sqrt.(1 .- x.^2)))[1:20]
+            @test WT \ (x .* WT) == T \ (x .* T)
         end
 
         @testset "mapped" begin
