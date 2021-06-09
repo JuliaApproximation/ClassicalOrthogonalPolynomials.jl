@@ -222,7 +222,7 @@ function getindex(K::PowerLawMatrix, k::Int, j::Int)
     resizedata!(K, k, j)
     K.data[k, j]
 end
-function getindex(K::PowerLawMatrix, kr::AbstractVector, jr::AbstractVector)
+function getindex(K::PowerLawMatrix, kr::AbstractUnitRange, jr::AbstractUnitRange)
     resizedata!(K, maximum(kr),maximum(jr))
     K.data[kr, jr]
 end
