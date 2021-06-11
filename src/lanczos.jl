@@ -49,7 +49,7 @@ function LanczosData(w::AbstractQuasiVector, P::AbstractQuasiMatrix)
     x = axes(P,1)
     wP = weighted(P)
     X = jacobimatrix(P)
-    W = Clenshaw(P * (wP \ w), P)
+    W = wP \ (w .* P)
     LanczosData(X, W)
 end
 
@@ -58,6 +58,7 @@ function resizedata!(L::LanczosData, N)
     resizedata!(L.R, N, N)
     resizedata!(L.γ, N)
     resizedata!(L.β, N)
+    resizedata!(L.W, N, N)
     lanczos!(L.ncols+1:N, L.X, L.W, L.γ, L.β, L.R)
     L.ncols = N
     L

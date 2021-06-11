@@ -280,11 +280,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
     @testset "show" begin
         T = Chebyshev()
-        if VERSION < v"1.6-"
-            @test stringmime("text/plain", T * [1; 2; Zeros(∞)]) == "Chebyshev{1,Float64} * [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …]"
-        else
-            @test stringmime("text/plain", T * [1; 2; Zeros(∞)]) == "ChebyshevT{Float64} * [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …]"
-        end
+        @test stringmime("text/plain", T * [1; 2; Zeros(∞)]) == "ChebyshevT{Float64} * [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …]"
     end
 
     @testset "Complex eltype" begin

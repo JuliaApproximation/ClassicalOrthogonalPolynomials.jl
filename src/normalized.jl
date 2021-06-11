@@ -166,12 +166,27 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalW
 
 
 abstract type AbstractWeighted{T} <: Basis{T} end
+struct WeightedOPLayout <: AbstractBasisLayout end
 
-MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout()
+# make act like WeightedBasisLayout
+ContinuumArrays._grid(::WeightedOPLayout, P) = ContinuumArrays._grid(WeightedBasisLayout(), P)
+ContinuumArrays._factorize(::WeightedOPLayout, P) = ContinuumArrays._factorize(WeightedBasisLayout(), P)
+ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:AbstractAffineQuasiVector,<:AbstractVector}}) = sublayout(WeightedBasisLayout(), inds)
+ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:Inclusion,<:AbstractVector}}) = sublayout(WeightedBasisLayout(), inds)
+
+MemoryLayout(::Type{<:AbstractWeighted}) = WeightedOPLayout()
 ContinuumArrays.unweightedbasis(wP::AbstractWeighted) = wP.P
-\(w_A::AbstractWeighted, w_B::AbstractWeighted) = convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
-\(w_A::AbstractWeighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
-\(A::AbstractQuasiArray, w_B::AbstractWeighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
+function copy(L::Ldiv{WeightedOPLayout,WeightedOPLayout})
+    L.A.P == L.B.P && return Eye{eltype(L)}(∞)
+    convert(WeightedOrthogonalPolynomial, L.A) \ convert(WeightedOrthogonalPolynomial, L.B)
+end
+
+copy(L::Ldiv{WeightedOPLayout,<:AbstractLazyLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+copy(L::Ldiv{WeightedOPLayout,<:AbstractBasisLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+copy(L::Ldiv{<:AbstractLazyLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
+copy(L::Ldiv{<:AbstractBasisLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
+copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
+copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
 
 """
     Weighted(P)
@@ -186,7 +201,6 @@ axes(Q::Weighted) = axes(Q.P)
 copy(Q::Weighted) = Q
 
 ==(A::Weighted, B::Weighted) = A.P == B.P
-
 weight(wP::Weighted) = orthogonalityweight(wP.P)
 
 convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = weight(P) .* unweightedbasis(P)

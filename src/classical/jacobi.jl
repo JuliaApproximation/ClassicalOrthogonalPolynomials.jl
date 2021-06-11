@@ -177,11 +177,13 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::HalfWeighted
 \(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
 \(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
 
-function \(A::AbstractQuasiArray, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized})
+function _norm_expand_ldiv(A, w_B)
     w,B = w_B.args
     B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
     (A \ (w .* B̃)) * D
 end
+\(A::AbstractQuasiArray, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
+\(A::WeightedOrthogonalPolynomial, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
 
 axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b
@@ -292,6 +294,17 @@ function recurrencecoefficients(P::Jacobi)
     (A,B,C)
 end
 
+# explicit special case for normalized Legendre
+# todo: do we want these explicit constructors for normalized Legendre?
+# function jacobimatrix(::Normalized{<:Any,<:Legendre{T}}) where T
+#     b = (one(T):∞) ./sqrt.(4 .*(one(T):∞).^2 .-1)
+#     Symmetric(_BandedMatrix(Vcat(zeros(∞)', (b)'), ∞, 1, 0), :L)
+# end
+# function recurrencecoefficients(::Normalized{<:Any,<:Legendre{T}}) where T
+#     n = zero(T):∞
+#     nn = one(T):∞
+#     ((2n .+ 1) ./ (n .+ 1) ./ sqrt.(1 .-2 ./(3 .+2n)), Zeros{T}(∞), Vcat(zero(T),nn ./ (nn .+ 1) ./ sqrt.(1 .-4 ./(3 .+2nn))))
+# end
 
 @simplify *(X::Identity, P::Legendre) = ApplyQuasiMatrix(*, P, P\(X*P))
 
