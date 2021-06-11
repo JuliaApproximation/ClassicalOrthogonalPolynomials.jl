@@ -214,10 +214,6 @@ copy(K::PowerLawMatrix{T,PP}) where {T,PP} = K # Immutable entries
 cache_filldata!(K::PowerLawMatrix, inds, _) = fillcoeffmatrix!(K, inds)
 
 # because it really only makes sense to compute this symmetric operator in square blocks, we have to slightly rework some of LazyArrays caching and resizing
-function getindex(K::PowerLawMatrix, I::CartesianIndex)
-    resizedata!(K, I)
-    K.data[I]
-end
 function getindex(K::PowerLawMatrix, k::Int, j::Int)
     resizedata!(K, k, j)
     K.data[k, j]
@@ -278,31 +274,31 @@ end
 # compute r-th coefficient of product expansion of order p and order q normalized Legendre polynomials
 productseriescfs(p::T, q::T, r::T) where T = sqrt((2*p+1)*(2*q+1)/((2*(p+q-2*r)+1)))*(2*(p+q-2*r)+1)/(2*(p+q-r)+1)*exp(loggamma(r+one(T)/2)+loggamma(p-r+one(T)/2)+loggamma(q-r+one(T)/2)-loggamma(q-r+one(T))-loggamma(p-r+one(T))-loggamma(r+one(T))-loggamma(q+p-r+one(T)/2)+loggamma(q+p-r+one(T)))/π
 
-# this generates the entire operator via normalized product Legendre decomposition
-# this is very stable but scales rather poorly with high orders, so we only use it for testing
-function productoperator(a::T, t::T, ℓ::Int) where T
-    op::Matrix{T} = zeros(T,ℓ,ℓ)
-    # first row where n arbitrary and m==0
-    first = powerleg_backwardsfirstrow(a,t,2*ℓ+1)
-    op[1,:] = first[1:ℓ]
-    # generate remaining rows
-    for p = 1:ℓ-1
-        for q = p:ℓ-1
-            productcfs = zeros(T,2*ℓ+1)
-            for i = 0:min(p,q)
-                productcfs[1+q+p-2*i] = productseriescfs(p,q,i)
-            end
-            op[p+1,q+1] = dot(first,productcfs)
-        end
-    end
-    # matrix is symmetric
-    for m = 1:ℓ
-        for n = m+1:ℓ
-            op[n,m] = op[m,n]
-        end
-    end
-    return op
-end
+# # this generates the entire operator via normalized product Legendre decomposition
+# # this is very stable but scales rather poorly with high orders, so we only use it for testing
+# function productoperator(a::T, t::T, ℓ::Int) where T
+#     op::Matrix{T} = zeros(T,ℓ,ℓ)
+#     # first row where n arbitrary and m==0
+#     first = powerleg_backwardsfirstrow(a,t,2*ℓ+1)
+#     op[1,:] = first[1:ℓ]
+#     # generate remaining rows
+#     for p = 1:ℓ-1
+#         for q = p:ℓ-1
+#             productcfs = zeros(T,2*ℓ+1)
+#             for i = 0:min(p,q)
+#                 productcfs[1+q+p-2*i] = productseriescfs(p,q,i)
+#             end
+#             op[p+1,q+1] = dot(first,productcfs)
+#         end
+#     end
+#     # matrix is symmetric
+#     for m = 1:ℓ
+#         for n = m+1:ℓ
+#             op[n,m] = op[m,n]
+#         end
+#     end
+#     return op
+# end
 
 # This function returns the full ℓ×ℓ dot product operator, relying on several different methods for first row, second row, diagonal and remaining elements. We don't use this outside of the initial block.
 function gennormalizedpower(a::T, t::T, ℓ::Int) where T <: Real

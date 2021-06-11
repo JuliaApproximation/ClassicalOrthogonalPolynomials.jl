@@ -402,5 +402,12 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test Jacobi(0, 0)[0.1,1:11]'*L[1:11,1:10] ≈ HalfWeighted{:a}(Normalized(Jacobi(1, 0)))[0.1,1:10]'
         L = Normalized(Jacobi(0, 0)) \ HalfWeighted{:a}(Jacobi(1, 0))
         @test Normalized(Jacobi(0, 0))[0.1,1:11]'*L[1:11,1:10] ≈ HalfWeighted{:a}(Jacobi(1, 0))[0.1,1:10]'
+
+        @testset "different weighted" begin
+            L = Weighted(Jacobi(0,0)) \ Weighted(Jacobi(1,1))
+            @test L[1:10,1:10] ≈ (Legendre() \ Weighted(Jacobi(1,1)))[1:10,1:10]
+            @test Weighted(Jacobi(0,0)) \ Legendre() == Eye(∞)
+            @test Weighted(Jacobi(0,0)) \ (Legendre() * [1; zeros(∞)]) ≈ [1; zeros(∞)]
+        end
     end
 end
