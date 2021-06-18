@@ -118,6 +118,25 @@ end
         @test S isa ClassicalOrthogonalPolynomials.PowKernel
         @test_broken S*P
     end
+
+    @testset "Ideal Fluid Flow" begin
+        T = ChebyshevT()
+        U = ChebyshevU()
+        x = axes(U,1)
+        H = inv.(x .- x')
+
+        c = exp(0.5im)
+
+
+        u = Weighted(U) * ((H * Weighted(U)) \ imag(c * x))
+
+        ε  = eps(); 
+        @test (inv.(0.1+ε*im .- x') * u + inv.(0.1-ε*im .- x') * u)/2 ≈ imag(c*0.1)
+        @test real(inv.(0.1+ε*im .- x') * u ) ≈ imag(c*0.1)
+
+        v = (s,t) -> (z = (s + im*t); imag(c*z) - real(inv.(z .- x') * u))
+        @test v(0.1,0.2) ≈ 0.18496257285081724 # Emperical
+    end
 end
 
 #################################################
