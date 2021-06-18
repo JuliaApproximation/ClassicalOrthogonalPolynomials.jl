@@ -169,6 +169,13 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         L = Vcat(T[[-1,1],:], A)
         u = L \ [airyai(-ε^(-2/3)); airyai(ε^(2/3)); zeros(∞)]
         @test T[-0.1,:]'u ≈ airyai(-0.1*ε^(-2/3))
+
+        @testset "auto-vcat" begin
+            L = [T[[begin,end],:]; C \ (D^2 * T - x .* T)]
+            c = L \ [airyai(-1); airyai(1); zeros(∞)]
+            u = T*c
+            @test u[0.0] ≈ airyai(0.0)
+        end
     end
 
     @testset "combo operators" begin
