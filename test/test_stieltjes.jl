@@ -36,8 +36,8 @@ end
 
         f = wT * [[1,2,3]; zeros(∞)];
         J = T \ (x .* T)
-        # TODO: fix LazyBandedMatrices.copy(M::Mul{Broadcast...}) to call simplify
-        @test_broken π*((z*I-J) \ f.args[2])[1,1] ≈ (S*f)[1]
+    
+        @test π*((z*I-J) \ f.args[2])[1,1] ≈ (S*f)[1]
         @test π*((z*I-J) \ f.args[2])[1,1] ≈ (S*f.args[1]*f.args[2])[1]
 
         x = Inclusion(0..1)
@@ -108,7 +108,7 @@ end
         L = log.(abs.(x .- x'))
         u =  wT * (2 *(T \ exp.(x)))
         @test u[0.1] ≈ exp(0.1)/sqrt(0.1-0.1^2)
-        @test_broken (L * u)[0.5] ≈ -7.471469928754152 # Mathematica
+        @test (L * u)[0.5] ≈ -7.471469928754152 # Mathematica
     end
 
     @testset "pow kernel" begin
