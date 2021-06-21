@@ -27,7 +27,7 @@ SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 [compat]
 ArrayLayouts = "0.7"
 BandedMatrices = "0.16.5"
-BlockArrays = "0.15"
+BlockArrays = "0.15, 0.16"
 BlockBandedMatrices = "0.10"
 ContinuumArrays = "0.8.1"
 DomainSets = "0.4, 0.5"
