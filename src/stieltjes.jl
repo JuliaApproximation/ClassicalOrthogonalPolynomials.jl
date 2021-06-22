@@ -143,6 +143,9 @@ end
     w = orthogonalityweight(P)
     X = jacobimatrix(P)
     z, x = parent(S).args[1].args
+    if z in axes(P,1) # use Hilbert
+        transpose((inv.(x .- x') * wP)[z,:])
+    end
     transpose((X'-z*I) \ [-sum(w)*_p0(P); zeros(∞)])
 end
 
