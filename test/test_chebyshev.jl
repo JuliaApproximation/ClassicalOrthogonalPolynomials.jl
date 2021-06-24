@@ -140,6 +140,9 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test WT \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ wT \ (exp.(x) ./ sqrt.(1 .- x.^2))
             @test WT[:,1:20] \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ (WT \ (exp.(x) ./ sqrt.(1 .- x.^2)))[1:20]
             @test WT \ (x .* WT) == T \ (x .* T)
+            @test sum(WT; dims=1)[:,1:10] ≈ [π zeros(1,9)]
+            @test sum(WT[:,1]) ≈ π
+            @test iszero(sum(WT[:,2]))
         end
 
         @testset "mapped" begin
@@ -362,6 +365,11 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
     @testset "plot" begin
         @test ContinuumArrays.plotgrid(ChebyshevT()[:,1:5]) == ChebyshevGrid{2}(200)
+    end
+
+    @testset "conversion" begin
+        T = ChebyshevT()
+        @test ChebyshevT{ComplexF64}() ≡ convert(AbstractQuasiArray{ComplexF64}, T) ≡ convert(AbstractQuasiMatrix{ComplexF64}, T)
     end
 end
 
