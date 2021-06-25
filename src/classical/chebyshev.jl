@@ -172,6 +172,7 @@ function \(w_A::WeightedChebyshevT, w_B::WeightedChebyshevU)
     _BandedMatrix(Vcat(Fill(one(T)/2, 1, ∞), Zeros{T}(1, ∞), Fill(-one(T)/2, 1, ∞)), ℵ₀, 2, 0)
 end
 
+\(w_A::WeightedChebyshevU, w_B::WeightedChebyshevT) = inv(w_B \ w_A)
 \(T::ChebyshevT, U::ChebyshevU) = inv(U \ T)
 
 ####
