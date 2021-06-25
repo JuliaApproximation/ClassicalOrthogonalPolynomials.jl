@@ -36,8 +36,8 @@ end
 
         f = wT * [[1,2,3]; zeros(∞)];
         J = T \ (x .* T)
-        # TODO: fix LazyBandedMatrices.copy(M::Mul{Broadcast...}) to call simplify
-        @test_broken π*((z*I-J) \ f.args[2])[1,1] ≈ (S*f)[1]
+    
+        @test π*((z*I-J) \ f.args[2])[1,1] ≈ (S*f)[1]
         @test π*((z*I-J) \ f.args[2])[1,1] ≈ (S*f.args[1]*f.args[2])[1]
 
         x = Inclusion(0..1)
@@ -47,6 +47,19 @@ end
         f = wT2 * [[1,2,3]; zeros(∞)];
 
         @test (π/2*(((z-1/2)*I - J/2) \ f.args[2]))[1] ≈ (S*f.args[1]*f.args[2])[1]
+
+        @testset "Real point" begin
+            t = 2.0
+            T = ChebyshevT()
+            U = ChebyshevU()
+            x = axes(T,1)
+            @test inv.(t .- x') * Weighted(T) ≈ inv.((t+eps()im) .- x') * Weighted(T)
+            @test (inv.(t .- x') * Weighted(U))[1:10] ≈ (inv.((t+eps()im) .- x') * Weighted(U))[1:10]
+            
+            t = 0.5
+            @test_broken inv.(t .- x') * Weighted(T)
+            @test_broken inv.(t .- x') * Weighted(U)
+        end
     end
 
     @testset "Hilbert" begin
@@ -108,7 +121,7 @@ end
         L = log.(abs.(x .- x'))
         u =  wT * (2 *(T \ exp.(x)))
         @test u[0.1] ≈ exp(0.1)/sqrt(0.1-0.1^2)
-        @test_broken (L * u)[0.5] ≈ -7.471469928754152 # Mathematica
+        @test (L * u)[0.5] ≈ -7.471469928754152 # Mathematica
     end
 
     @testset "pow kernel" begin
@@ -117,6 +130,25 @@ end
         S = abs.(x .- x').^0.5
         @test S isa ClassicalOrthogonalPolynomials.PowKernel
         @test_broken S*P
+    end
+
+    @testset "Ideal Fluid Flow" begin
+        T = ChebyshevT()
+        U = ChebyshevU()
+        x = axes(U,1)
+        H = inv.(x .- x')
+
+        c = exp(0.5im)
+
+
+        u = Weighted(U) * ((H * Weighted(U)) \ imag(c * x))
+
+        ε  = eps(); 
+        @test (inv.(0.1+ε*im .- x') * u + inv.(0.1-ε*im .- x') * u)/2 ≈ imag(c*0.1)
+        @test real(inv.(0.1+ε*im .- x') * u ) ≈ imag(c*0.1)
+
+        v = (s,t) -> (z = (s + im*t); imag(c*z) - real(inv.(z .- x') * u))
+        @test v(0.1,0.2) ≈ 0.18496257285081724 # Emperical
     end
 end
 

@@ -22,6 +22,8 @@ on -1..1.
 struct Chebyshev{kind,T} <: AbstractJacobi{T} end
 Chebyshev{kind}() where kind = Chebyshev{kind,Float64}()
 
+AbstractQuasiArray{T}(::Chebyshev{kind}) where {T,kind} = Chebyshev{kind,T}()
+AbstractQuasiMatrix{T}(::Chebyshev{kind}) where {T,kind} = Chebyshev{kind,T}()
 
 const WeightedChebyshev{kind,T} = WeightedBasis{T,<:ChebyshevWeight{kind},<:Chebyshev{kind}}
 

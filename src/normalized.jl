@@ -83,7 +83,8 @@ QuasiArrays.ApplyQuasiArray(Q::Normalized) = ApplyQuasiArray(*, arguments(ApplyL
 
 ArrayLayouts.mul(Q::Normalized, C::AbstractArray) = ApplyQuasiArray(*, Q, C)
 
-grid(Q::SubQuasiArray{<:Any,2,<:Normalized}) = grid(view(parent(Q).P, parentindices(Q)...))
+grid(Q::SubQuasiArray{<:Any,2,<:Normalized,<:Tuple{Inclusion,Any}}) = grid(view(parent(Q).P, parentindices(Q)...))
+plotgrid(Q::SubQuasiArray{<:Any,2,<:Normalized,<:Tuple{Inclusion,Any}}) = plotgrid(view(parent(Q).P, parentindices(Q)...))
 
 # transform_ldiv(Q::Normalized, C::AbstractQuasiArray) = Q.scaling .\ (Q.P \ C)
 function transform_ldiv(Q::Normalized, C::AbstractQuasiArray)
@@ -215,3 +216,10 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = 
 summary(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
 
 __sum(::NormalizedBasisLayout, A, dims) = __sum(ApplyLayout{typeof(*)}(), A, dims)
+function __sum(::WeightedOPLayout, A, dims)
+    @assert dims == 1
+    Hcat(sum(weight(A)), Zeros{eltype(A)}(1,∞))
+end
+
+_sum(p::SubQuasiArray{T,1,<:Weighted,<:Tuple{Inclusion,Int}}, ::Colon) where T = 
+    parentindices(p)[2] == 1 ? convert(T, sum(weight(parent(p)))) : zero(T)
