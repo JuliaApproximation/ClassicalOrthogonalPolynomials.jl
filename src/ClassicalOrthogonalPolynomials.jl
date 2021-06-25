@@ -280,7 +280,7 @@ _tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
 jacobimatrix(V::SubQuasiArray{<:Any,2,<:Any,<:Tuple{Inclusion,OneTo}}) =
     _tritrunc(jacobimatrix(parent(V)), maximum(parentindices(V)[2]))
 
-grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,AbstractUnitRange}}) =
+grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}}) =
     eigvals(symtridiagonalize(jacobimatrix(P)))
 
 function golubwelsch(X)
