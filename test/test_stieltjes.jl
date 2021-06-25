@@ -47,6 +47,19 @@ end
         f = wT2 * [[1,2,3]; zeros(∞)];
 
         @test (π/2*(((z-1/2)*I - J/2) \ f.args[2]))[1] ≈ (S*f.args[1]*f.args[2])[1]
+
+        @testset "Real point" begin
+            t = 2.0
+            T = ChebyshevT()
+            U = ChebyshevU()
+            x = axes(T,1)
+            @test inv.(t .- x') * Weighted(T) ≈ inv.((t+eps()im) .- x') * Weighted(T)
+            @test (inv.(t .- x') * Weighted(U))[1:10] ≈ (inv.((t+eps()im) .- x') * Weighted(U))[1:10]
+            
+            t = 0.5
+            @test_broken inv.(t .- x') * Weighted(T)
+            @test_broken inv.(t .- x') * Weighted(U)
+        end
     end
 
     @testset "Hilbert" begin

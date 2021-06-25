@@ -143,9 +143,7 @@ end
     w = orthogonalityweight(P)
     X = jacobimatrix(P)
     z, x = parent(S).args[1].args
-    if z in axes(P,1) # use Hilbert
-        transpose((inv.(x .- x') * wP)[z,:])
-    end
+    z in axes(P,1) && transpose((inv.(x .- x') * wP)[z,:])
     transpose((X'-z*I) \ [-sum(w)*_p0(P); zeros(∞)])
 end
 
@@ -154,6 +152,7 @@ sqrtx2(x::Real) = sign(x)*sqrt(x^2-1)
 
 @simplify function *(S::StieltjesPoint, wP::Weighted{<:Any,<:ChebyshevU})
     z, x = parent(S).args[1].args
+    z in axes(wP,1) && transpose((inv.(x .- x') * wP)[z,:])
     ξ = inv(z + sqrtx2(z))
     transpose(π * ξ.^oneto(∞))
 end
