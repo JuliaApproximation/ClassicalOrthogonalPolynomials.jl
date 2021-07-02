@@ -117,6 +117,13 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         U = chebyshevu(0..1)
         @test (U*(U\x))[0.1] ≈ 0.1
         @test (U* (U \ exp.(x)))[0.1] ≈ exp(0.1)
+
+        @testset "Trivial map" begin
+            T = ChebyshevT()
+            x = Inclusion(-1..1)
+            @test T == T[x,:] == T[x,1:∞] == T[:,1:∞]
+            @test T[x,:] == T
+        end
     end
 
     @testset "weighted" begin

@@ -231,4 +231,13 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         Q̃ = LanczosPolynomial( @.(inv(1+x̃^2)))
         @test all((x,w) .≈ golubwelsch(Q̃[:,Base.OneTo(10)]))
     end
+
+    @testset "ambiguity (#45)" begin
+        x = Inclusion(-1.0..1)
+        a = 1.5
+        ϕ = x.^4 - (a^2 + 1)*x.^2 .+ a^2
+        Pϕ = Normalized(LanczosPolynomial(ϕ))
+        P = Normalized(Legendre())
+        Cϕ = Pϕ\P
+    end
 end
