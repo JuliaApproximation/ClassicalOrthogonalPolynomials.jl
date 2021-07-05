@@ -143,6 +143,10 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test sum(WT; dims=1)[:,1:10] ≈ [π zeros(1,9)]
             @test sum(WT[:,1]) ≈ π
             @test iszero(sum(WT[:,2]))
+
+            WU = Weighted(ChebyshevU())
+            @test (WT \ WU)[1:10,1:10] ≈ inv(WU \ WT)[1:10,1:10]
+            @test_broken (WU \ WT)[1,1] == 2
         end
 
         @testset "mapped" begin
