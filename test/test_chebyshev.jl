@@ -146,7 +146,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
             WU = Weighted(ChebyshevU())
             @test (WT \ WU)[1:10,1:10] ≈ inv(WU \ WT)[1:10,1:10]
-            @test_broken (WU \ WT)[1,1] == 2
+            @test_skip (WU \ WT)[1,1] == 2
         end
 
         @testset "mapped" begin
