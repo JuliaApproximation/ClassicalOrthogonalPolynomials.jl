@@ -100,7 +100,8 @@ Jacobi(C::ChebyshevU{T}) where T = Jacobi(one(T)/2,one(T)/2)
 factorize(L::SubQuasiArray{T,2,<:ChebyshevT,<:Tuple{<:Inclusion,<:OneTo}}) where T =
     TransformFactorization(grid(L), plan_chebyshevtransform(Array{T}(undef, size(L,2))))
 
-factorize(L::SubQuasiArray{T,2,<:ChebyshevU,<:Tuple{<:Inclusion,<:OneTo}}) where T =
+# TODO: extend plan_chebyshevutransform
+factorize(L::SubQuasiArray{T,2,<:ChebyshevU,<:Tuple{<:Inclusion,<:OneTo}}) where T<:FastTransforms.fftwNumber =
     TransformFactorization(grid(L), plan_chebyshevutransform(Array{T}(undef, size(L,2))))
 
 
@@ -171,6 +172,7 @@ function \(w_A::WeightedChebyshevT, w_B::WeightedChebyshevU)
     _BandedMatrix(Vcat(Fill(one(T)/2, 1, ∞), Zeros{T}(1, ∞), Fill(-one(T)/2, 1, ∞)), ℵ₀, 2, 0)
 end
 
+\(w_A::WeightedChebyshevU, w_B::WeightedChebyshevT) = inv(w_B \ w_A)
 \(T::ChebyshevT, U::ChebyshevU) = inv(U \ T)
 
 ####
