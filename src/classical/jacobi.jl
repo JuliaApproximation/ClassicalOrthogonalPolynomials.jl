@@ -62,9 +62,14 @@ singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
 singularitiesbroadcast(_, L::LegendreWeight) = L # Assume we stay smooth
 singularitiesbroadcast(::typeof(exp), L::LegendreWeight) = L
 singularitiesbroadcast(::typeof(Base.literal_pow), ::typeof(^), L::LegendreWeight, ::Val) = L
+
+
+for op in (:+, :*)
+    @eval singularitiesbroadcast(::typeof($op), A, B, C, D...) = singularitiesbroadacst(*, singularitiesbroadcast(*, A, B), C, D...)
+end
 for op in (:+, :-, :*)
     @eval begin
-        singularitiesbroadcast(::typeof($op), L::LegendreWeight...) = LegendreWeight{promote_type(map(eltype,L)...)}()
+        singularitiesbroadcast(::typeof($op), A::LegendreWeight, B::LegendreWeight) = LegendreWeight{promote_type(eltype(A), eltype(B))}()
         singularitiesbroadcast(::typeof($op), L::LegendreWeight, ::NoSingularities) = L
         singularitiesbroadcast(::typeof($op), ::NoSingularities, L::LegendreWeight) = L
     end
@@ -76,6 +81,7 @@ _parent(::NoSingularities) = NoSingularities()
 _parent(a) = parent(a)
 _parentindices(a::NoSingularities, b...) = _parentindices(b...)
 _parentindices(a, b...) = parentindices(a)
+# for singularitiesbroadcast(literal_pow), ^, ...)
 singularitiesbroadcast(F::Function, G::Function, V::SubQuasiArray, K) = singularitiesbroadcast(F, G, parent(V), K)[parentindices(V)...]
 singularitiesbroadcast(F, V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(F, map(_parent,V)...)[_parentindices(V...)...]
 
