@@ -244,23 +244,21 @@ function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, C::Sub
 end
 
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::AbstractQuasiVector, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}})
-    T = promote_type(eltype(f), eltype(C))
-    axes(f,1) == axes(C,1) || throw(DimensionMismatch())
-    P = parent(C)
-    kr,_ = parentindices(C)
-    F = P \ (f[invmap(kr)] .* P)
-    C * F
-end
+# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::AbstractQuasiVector, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}})
+#     T = promote_type(eltype(f), eltype(C))
+#     axes(f,1) == axes(C,1) || throw(DimensionMismatch())
+#     P = parent(C)
+#     kr,jr = parentindices(C)
+#     (f[invmap(kr)] .* P)[kr,jr]
+# end
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::AbstractQuasiVector, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
-    T = promote_type(eltype(f), eltype(C))
-    axes(f,1) == axes(C,1) || throw(DimensionMismatch())
-    P = parent(C)
-    kr,jr = parentindices(C)
-    F = P \ (f[invmap(kr)] .* P)
-    P[kr,:] * view(F,:,jr)
-end
+# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::AbstractQuasiVector, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
+#     T = promote_type(eltype(f), eltype(C))
+#     axes(f,1) == axes(C,1) || throw(DimensionMismatch())
+#     P = parent(C)
+#     kr,jr = parentindices(C)
+#     (f[invmap(kr)] .* P)[kr,jr]
+# end
 
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::Broadcasted, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}) =
     broadcast(*, materialize(f), C)

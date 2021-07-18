@@ -164,8 +164,8 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
 
             WT̃ = w[2x .- 1] .* T[2x .- 1, :]
-            @test MemoryLayout(wT̃) isa MappedWeightedBasisLayout
-            v = wT̃ * (wT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
+            @test MemoryLayout(WT̃) isa MappedWeightedBasisLayout
+            v = WT̃ * (WT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
         end
     end
