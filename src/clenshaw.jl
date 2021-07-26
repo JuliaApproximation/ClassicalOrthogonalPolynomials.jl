@@ -31,14 +31,14 @@ for (get, vie) in ((:getindex, :view), (:(Base.unsafe_getindex), :(Base.unsafe_v
     end
 end
 
-function copyto!(dest::AbstractArray, V::SubArray{<:Any,1,<:OrthogonalPolynomial,<:Tuple{<:Number,<:OneTo}})
+function copyto!(dest::AbstractVector, V::SubArray{<:Any,1,<:OrthogonalPolynomial,<:Tuple{<:Number,<:OneTo}})
     P = parent(V)
     x,n = parentindices(V)
     A,B,C = recurrencecoefficients(P)
     forwardrecurrence!(dest, A, B, C, x, _p0(P))
 end
 
-function copyto!(dest::AbstractArray, V::SubArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{<:AbstractVector,<:AbstractUnitRange}})
+function forwardrecurrence_copyto!(dest::AbstractMatrix, V)
     checkbounds(dest, axes(V)...)
     P = parent(V)
     xr,jr = parentindices(V)
@@ -51,8 +51,10 @@ function copyto!(dest::AbstractArray, V::SubArray{<:Any,2,<:OrthogonalPolynomial
     end
     dest
 end
+copyto!(dest::AbstractMatrix, V::SubArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{<:AbstractVector,<:AbstractUnitRange}}) = forwardrecurrence_copyto!(dest, V)
+copyto!(dest::LayoutMatrix, V::SubArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{<:AbstractVector,<:AbstractUnitRange}}) = forwardrecurrence_copyto!(dest, V)
 
-function copyto!(dest::AbstractArray, V::SubArray{<:Any,1,<:OrthogonalPolynomial,<:Tuple{<:Number,<:UnitRange}})
+function copyto!(dest::AbstractVector, V::SubArray{<:Any,1,<:OrthogonalPolynomial,<:Tuple{<:Number,<:UnitRange}})
     checkbounds(dest, axes(V)...)
     P = parent(V)
     x,jr = parentindices(V)
