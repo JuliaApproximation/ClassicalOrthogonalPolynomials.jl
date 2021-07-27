@@ -245,6 +245,18 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         x = Inclusion(0..1)
         @test sum(wT[2x .- 1, :]; dims=1)[1,1:10] == [π/2; zeros(9)]
         @test sum(wT[2x .- 1, :] * [[1,2,3]; zeros(∞)]) == π/2
+
+        T = Chebyshev()
+        x = axes(T,1)
+        @test sum(T * (T \ exp.(x))) ≈ ℯ - inv(ℯ)
+    end
+
+    @testset "cumsum" begin
+        T = ChebyshevT()
+        x = axes(T,1)
+        @test (T \ cumsum(T; dims=1)) * (T \ exp.(x)) ≈ T \ (exp.(x) .- exp(-1))
+        f = T * (T \ exp.(x))
+        @test T \ cumsum(f) ≈ T \ (exp.(x) .- exp(-1))
     end
 
     @testset "algebra" begin
