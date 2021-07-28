@@ -30,34 +30,50 @@ C = Ultraspherical(2)
 x = axes(T,1)
 D = Derivative(x)
 
-ε = 0.5
-
-c = [T[[begin,end],:]; C \ (ε*D^2 * T - x .* (D* T) + T)] \ [1; 2; zeros(∞)]
+f = (C \T)*(T\(@.(x*exp(x^2))))
+ε = 1/100
+A = [T[[begin,end],:]; C \ ((ε*D^2 - x .* D + I) * T)]
+b = [0; 0; f]
+c = A \ b
 u = T*c
-plot(u)
+
+u[1/2]
+
 
 # odd
-f = T \ (x .* exp.(x.^2))
-c = [T[[begin,end],:]; C \ (ε*D^2 * T - x .* (D* T) + T)] \ [0; 0; f]
+T = ChebyshevT{BigFloat}()
+C = Ultraspherical{BigFloat}(2)
+x = axes(T,1)
+D = Derivative(x)
+
+f = (C \T)*(T\(@.(x*exp(x^2))))
+ε = big(1)/100
+# c = [T[[begin,end],:]; C \ ((ε*D^2 - x .* D + I) * T)] \ [0; 0; f]
+
+A = [T[[begin,end],:]; C \ ((ε*D^2 - x .* D + I) * T)]
+b = [0; 0; f]
+n = 10_000; c = [A[1:n,1:n] \ b[1:n]; zeros(BigFloat,∞)]
 u = T*c
-plot(u)
 
-import ForwardDiff: derivative
+let x = big(1)/2
+    u[x], -2ε^(3/2) * exp(1/2ε)*sqrt(convert(typeof(x),π)/2) * (x + exp(-(x+1)/ε) - exp((x-1)/ε))
+end
 
+u[big(1)/2] - (-5.20717919984334519032651253279531326480746523413400676407697947991776188139192)
 
 plot((T * (T \ (@. -2ε^(3/2) * exp(1/2ε)*sqrt(π/2) * (x + exp(-(x+1)/ε) - exp((x-1)/ε))))))
 plot!(u)
 D
 
-let x = 0.1
-    2ε^(3/2) * (D*T*f)[0] * exp(1/2ε)*sqrt(π/2) * (x + exp(-(x+1)/ε) - exp((x-1)/ε))
-end
+
 u[0.1]
 
 
 # even
 f = (x.^2 .* exp.(x.^2))
 χ = -sum(T * (T\ (f./x.^2)))/2
+
+diff(f)
 
 A = randn(5,5)
 T \ cumsum(T; dims=1)
