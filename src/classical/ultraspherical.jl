@@ -109,11 +109,11 @@ end
     T = promote_type(eltype(D),eltype(WS))
     if λ == 1
         A = _BandedMatrix((-(one(T):∞))', ℵ₀, 1,-1)
-        ApplyQuasiMatrix(*, ChebyshevTWeight{T}() .* ChebyshevT{T}(), A)
+        ApplyQuasiMatrix(*, Weighted(ChebyshevT{T}()), A)
     else
         n = (0:∞)
         A = _BandedMatrix((-one(T)/(2*(λ-1)) * ((n.+1) .* (n .+ (2λ-1))))', ℵ₀, 1,-1)
-        ApplyQuasiMatrix(*, WeightedUltraspherical{T}(λ-1), A)
+        ApplyQuasiMatrix(*, Weighted(Ultraspherical{T}(λ-1)), A)
     end
 end
 
@@ -168,7 +168,7 @@ function \(C2::Ultraspherical{<:Any,<:Integer}, C1::Ultraspherical{<:Any,<:Integ
         _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros{T}(1,∞), (λ ./ ((0:∞) .+ λ))'), ℵ₀, 0, 2)
     elseif C2.λ == λ_Int
         Eye{T}(∞)
-    elseif C2.λ_Int > λ_Int
+    elseif C2.λ > λ_Int
         (C2 \ Ultraspherical(λ_Int+1)) * (Ultraspherical(λ_Int+1)\C1)
     else
         error("Not implemented")
