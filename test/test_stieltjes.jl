@@ -151,6 +151,13 @@ end
         u =  wT * (2 *(T \ exp.(x)))
         @test u[0.1] ≈ exp(0.1)/sqrt(0.1-0.1^2)
         @test (L * u)[0.5] ≈ -7.471469928754152 # Mathematica
+
+        @testset "mapped" begin
+            T = chebyshevt(0..1)
+            x = axes(T,1)
+            L = log.(abs.(x .- x'))
+            @test T[0.2,:]'*((T\L*Weighted(T)) * (T\exp.(x))) ≈ -2.9976362326874373 # Mathematica
+        end
     end
 
     @testset "pow kernel" begin
