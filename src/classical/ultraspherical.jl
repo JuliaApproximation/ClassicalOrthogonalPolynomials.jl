@@ -73,8 +73,8 @@ function jacobimatrix(P::Ultraspherical{T}) where T
 end
 
 # These return vectors A[k], B[k], C[k] are from DLMF. Cause of MikaelSlevinsky we need an extra entry in C ... for now.
-function recurrencecoefficients(C::Ultraspherical)
-    λ = C.λ
+function recurrencecoefficients(C::Ultraspherical{T}) where T
+    λ = convert(T,C.λ)
     n = 0:∞
     (2(n .+ λ) ./ (n .+ 1), Zeros{typeof(λ)}(∞), (n .+ (2λ-1)) ./ (n .+ 1))
 end
@@ -91,28 +91,29 @@ end
 @simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::Legendre)
     T = promote_type(eltype(D),eltype(S))
     A = _BandedMatrix(Ones{T}(1,∞), ℵ₀, -1,1)
-    ApplyQuasiMatrix(*, Ultraspherical{T}(3/2), A)
+    ApplyQuasiMatrix(*, Ultraspherical{T}(convert(T,3)/2), A)
 end
 
 
 # Ultraspherical(λ+1)\(D*Ultraspherical(λ))
 @simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::Ultraspherical)
-    A = _BandedMatrix(Fill(2S.λ,1,∞), ℵ₀, -1,1)
-    ApplyQuasiMatrix(*, Ultraspherical{eltype(S)}(S.λ+1), A)
+    T = promote_type(eltype(D),eltype(S))
+    A = _BandedMatrix(Fill(2convert(T,S.λ),1,∞), ℵ₀, -1,1)
+    ApplyQuasiMatrix(*, Ultraspherical{T}(S.λ+1), A)
 end
 
 # Ultraspherical(λ-1)\ (D*wUltraspherical(λ))
 @simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::Weighted{<:Any,<:Ultraspherical})
     S = WS.P
     λ = S.λ
-    T = eltype(WS)
+    T = promote_type(eltype(D),eltype(WS))
     if λ == 1
-        A = _BandedMatrix((-(1:∞))', ℵ₀, 1,-1)
-        ApplyQuasiMatrix(*, ChebyshevTWeight{T}() .* ChebyshevT{T}(), A)
+        A = _BandedMatrix((-(one(T):∞))', ℵ₀, 1,-1)
+        ApplyQuasiMatrix(*, Weighted(ChebyshevT{T}()), A)
     else
         n = (0:∞)
         A = _BandedMatrix((-one(T)/(2*(λ-1)) * ((n.+1) .* (n .+ (2λ-1))))', ℵ₀, 1,-1)
-        ApplyQuasiMatrix(*, WeightedUltraspherical{T}(λ-1), A)
+        ApplyQuasiMatrix(*, Weighted(Ultraspherical{T}(λ-1)), A)
     end
 end
 
@@ -160,30 +161,32 @@ end
 \(T::Chebyshev, C::Ultraspherical) = inv(C \ T)
 
 function \(C2::Ultraspherical{<:Any,<:Integer}, C1::Ultraspherical{<:Any,<:Integer})
-    λ = C1.λ
     T = promote_type(eltype(C2), eltype(C1))
-    if C2.λ == λ+1
-        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ℵ₀, 0, 2)
-    elseif C2.λ == λ
+    λ_Int = C1.λ
+    λ = convert(T,λ_Int)
+    if C2.λ == λ_Int+1
+        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros{T}(1,∞), (λ ./ ((0:∞) .+ λ))'), ℵ₀, 0, 2)
+    elseif C2.λ == λ_Int
         Eye{T}(∞)
-    elseif C2.λ > λ
-        (C2 \ Ultraspherical(λ+1)) * (Ultraspherical(λ+1)\C1)
+    elseif C2.λ > λ_Int
+        (C2 \ Ultraspherical(λ_Int+1)) * (Ultraspherical(λ_Int+1)\C1)
     else
         error("Not implemented")
     end
 end
 
 function \(C2::Ultraspherical, C1::Ultraspherical)
-    λ = C1.λ
     T = promote_type(eltype(C2), eltype(C1))
+    λ_Int = C1.λ
+    λ = convert(T,λ_Int)
     if C2.λ == λ+1
-        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros(1,∞), (λ ./ ((0:∞) .+ λ))'), ℵ₀, 0, 2)
-    elseif C2.λ == λ
+        _BandedMatrix( Vcat(-(λ ./ ((0:∞) .+ λ))', Zeros{T}(1,∞), (λ ./ ((0:∞) .+ λ))'), ℵ₀, 0, 2)
+    elseif C2.λ == λ_Int
         Eye{T}(∞)
-    elseif isinteger(C2.λ-λ) && C2.λ > λ
-        Cm = Ultraspherical{T}(λ+1)
+    elseif isinteger(C2.λ-λ_Int) && C2.λ > λ_Int
+        Cm = Ultraspherical{T}(λ_Int+1)
         (C2 \ Cm) * (Cm \ C1)
-    elseif isinteger(C2.λ-λ)
+    elseif isinteger(C2.λ-λ_Int)
         inv(C1 \ C2)
     else
         error("Not implemented")
@@ -193,13 +196,14 @@ end
 function \(w_A::WeightedUltraspherical, w_B::WeightedUltraspherical)
     wA,A = w_A.args
     wB,B = w_B.args
+    T = promote_type(eltype(w_A),eltype(w_B))
 
     if wA == wB
         A \ B
     elseif B.λ == A.λ+1 && wB.λ == wA.λ+1 # Lower
-        λ = A.λ
+        λ = convert(T,A.λ)
         _BandedMatrix(Vcat(((2λ:∞) .* ((2λ+1):∞) ./ (4λ .* (λ+1:∞)))',
-                            Zeros(1,∞),
+                            Zeros{T}(1,∞),
                             (-(1:∞) .* (2:∞) ./ (4λ .* (λ+1:∞)))'), ℵ₀, 2,0)
     else
         error("not implemented for $A and $wB")

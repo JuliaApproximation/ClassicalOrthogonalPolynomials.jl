@@ -7,7 +7,7 @@ using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, Bloc
 
 import Base: @_inline_meta, axes, getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy,
-                first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum,
+                first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
                 to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, colsupport, adjointlayout,
@@ -19,7 +19,7 @@ import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_mat
 import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, AbstractLazyBandedLayout
 import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
-import FillArrays: AbstractFill, getindex_value
+import FillArrays: AbstractFill, getindex_value, SquareEye
 
 import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclusion, SubQuasiArray,
                     QuasiDiagonal, MulQuasiArray, MulQuasiMatrix, MulQuasiVector, QuasiMatMulMat,
