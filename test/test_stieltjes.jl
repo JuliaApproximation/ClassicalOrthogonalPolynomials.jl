@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, Test
 import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated, orthogonalityweight, Weighted, gennormalizedpower, *, dot, PowerLawMatrix, PowKernelPoint
 import InfiniteArrays: I
 
@@ -23,6 +23,26 @@ end
 
 
 @testset "Singular integrals" begin
+    @testset "weights" begin
+        w_T = ChebyshevTWeight()
+        w_U = ChebyshevUWeight()
+        w_P = LegendreWeight()
+        x = axes(w_T,1)
+        H = inv.(x .- x')
+        @test iszero(H*w_T)
+        @test (H*w_U)[0.1] ≈ π/10
+        @test (H*w_P)[0.1] ≈ log(1.1) - log(1-0.1)
+
+        w_T = orthogonalityweight(chebyshevt(0..1))
+        w_U = orthogonalityweight(chebyshevu(0..1))
+        w_P = orthogonalityweight(legendre(0..1))
+        x = axes(w_T,1)
+        H = inv.(x .- x')
+        @test iszero(H*w_T)
+        @test (H*w_U)[0.1] ≈ (2*0.1-1)*π
+        @test (H*w_P)[0.1] ≈ (log(1+(-0.8)) - log(1-(-0.8)))
+    end
+
     @testset "Stieltjes" begin
         T = Chebyshev()
         wT = ChebyshevWeight() .* T
@@ -82,15 +102,16 @@ end
         @test (Ultraspherical(1) \ (H*wT) * (wT \ wU))[1:10,1:10] ==
                     ((Ultraspherical(1) \ Chebyshev()) * (Chebyshev() \ (H*wU)))[1:10,1:10]
 
-        # Other axes
-        x = Inclusion(0..1)
-        y = 2x .- 1
-        H = inv.(x .- x')
-
-        wT2 = wT[y,:]
-        wU2 = wU[y,:]
-        @test (Ultraspherical(1)[y,:]\(H*wT2))[1:10,1:10] == diagm(1 => fill(-π,9))
-        @test_broken (Chebyshev()[y,:]\(H*wU2))[1:10,1:10] == diagm(-1 => fill(1.0π,9))
+        @testset "Other axes" begin
+            x = Inclusion(0..1)
+            y = 2x .- 1
+            H = inv.(x .- x')
+            
+            wT2 = wT[y,:]
+            wU2 = wU[y,:]
+            @test (Ultraspherical(1)[y,:]\(H*wT2))[1:10,1:10] == diagm(1 => fill(-π,9))
+            @test_broken (Chebyshev()[y,:]\(H*wU2))[1:10,1:10] == diagm(-1 => fill(1.0π,9))
+        end
 
         @testset "Legendre" begin
             P = Legendre()
@@ -98,6 +119,14 @@ end
             @test Q[0.1,1:3] ≈ [log(0.1+1)-log(1-0.1), 0.1*(log(0.1+1)-log(1-0.1))-2,-3*0.1 + 1/2*(-1 + 3*0.1^2)*(log(0.1+1)-log(1-0.1))]
             X = jacobimatrix(P)
             @test Q[0.1,1:11]'*X[1:11,1:10] ≈ (0.1 * Array(Q[0.1,1:10])' - [2 zeros(1,9)])
+        end
+
+        @testset "mapped" begin
+            T = chebyshevt(0..1)
+            U = chebyshevu(0..1)
+            x = axes(T,1)
+            H = inv.(x .- x')
+            @test U\H*Weighted(T) isa BandedMatrix
         end
     end
 
