@@ -158,6 +158,8 @@ end
 # Conversion
 #####
 
+\(::Chebyshev{kind,T}, ::Chebyshev{kind,V}) where {kind,T,V} = SquareEye{promote_type(T,V)}(ℵ₀)
+
 function \(U::ChebyshevU, C::ChebyshevT)
     T = promote_type(eltype(U), eltype(C))
     _BandedMatrix(Vcat(-Ones{T}(1,∞)/2,
@@ -218,6 +220,8 @@ function \(A::ChebyshevT, B::Legendre)
         end, 1:∞, (1:∞)'))
 end
 
+\(A::AbstractJacobi, B::Chebyshev) = ApplyArray(inv,B \ A)
+
 
 function \(A::Jacobi, B::WeightedBasis{<:Any,<:JacobiWeight,<:Chebyshev})
     w, T = B.args
@@ -253,6 +257,13 @@ function _sum(A::WeightedBasis{T,<:ChebyshevWeight,<:Chebyshev}, dims) where T
     Hcat(convert(T, π), Zeros{T}(1,∞))
 end
 
+function cumsum(T::ChebyshevT{V}; dims::Integer) where V
+    @assert dims == 1
+    Σ = _BandedMatrix(Vcat(-one(V) ./ (-2:2:∞)', Zeros{V}(1,∞), Hcat(one(V), one(V) ./ (4:2:∞)')), ℵ₀, 0, 2)
+    ApplyQuasiArray(*, T, Vcat((-1).^(0:∞)'* Σ, Σ))
+end
+
+cumsum(f::Expansion{<:Any,<:ChebyshevT}) = cumsum(f.args[1]; dims=1) * f.args[2]
 
 ####
 # algebra
