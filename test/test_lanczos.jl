@@ -243,8 +243,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
 
     @testset "3-mul-singularity" begin
         m = 1
+        x = Inclusion(0..1)
         Q = LanczosPolynomial(@. x^m*(1-x)^m*(2-x)^m)
-        x = axes(Q,1)
         @test Q[0.1,:]'*(Q \exp.(x)) ≈ exp(0.1)
     end
 end
