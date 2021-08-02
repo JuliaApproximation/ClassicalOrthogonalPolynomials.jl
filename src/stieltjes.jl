@@ -71,13 +71,13 @@ end
 
 @simplify function *(H::Hilbert, w::ChebyshevUWeight)
     T = promote_type(eltype(H), eltype(w))
-    fill(convert(T,π), axes(w,1))
+    convert(T,π) * axes(w,1)
 end
 
 @simplify function *(H::Hilbert, w::LegendreWeight)
     T = promote_type(eltype(H), eltype(w))
     x = axes(w,1)
-    log.(x .+ 1) .- log.(1 .- x)
+    log.(x .+ one(T)) .- log.(one(T) .- x)
 end
 
 @simplify function *(H::Hilbert, wT::Weighted{<:Any,<:ChebyshevT}) 
@@ -95,10 +95,30 @@ end
     P = wP.P
     w = orthogonalityweight(P)
     A = recurrencecoefficients(P)[1]
-    (-A[1]*sum(w))*[zero(axes(P,1)) associated(P)] + (H*w) .* P
+    Q = associated(P)
+    (-A[1]*sum(w))*[zero(axes(P,1)) Q] + (H*w) .* P
 end
 
 @simplify *(H::Hilbert, P::Legendre) = H * Weighted(P)
+
+
+
+@simplify function *(H::Hilbert, w::SubQuasiArray{<:Any,1})
+    T = promote_type(eltype(H), eltype(w))
+    m = parentindices(w)[1]
+    P = parent(w)
+    x = axes(P,1)
+    (inv.(x .- x') * P)[m]
+end
+
+@simplify function *(H::Hilbert, wP::Weighted{<:Any,<:SubQuasiArray{<:Any,2}})
+    T = promote_type(eltype(H), eltype(wP))
+    kr,jr = parentindices(wP.P)
+    P = parent(wP.P)
+    x = axes(P,1)
+    (inv.(x .- x') * Weighted(P))[kr,jr]
+end
+
 
 ### 
 # LogKernel
@@ -106,7 +126,17 @@ end
 
 @simplify function *(L::LogKernel, wT::Weighted{<:Any,<:ChebyshevT}) 
     T = promote_type(eltype(L), eltype(wT))
-    ChebyshevT{T}() * Diagonal(Vcat(-π*log(2*one(T)),-convert(T,π)./(1:∞)))
+    ChebyshevT{T}() * Diagonal(Vcat(-convert(T,π)*log(2*one(T)),-convert(T,π)./(1:∞)))
+end
+
+@simplify function *(H::LogKernel, wT::Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:ChebyshevT,<:Tuple{AbstractAffineQuasiVector,Slice}}})
+    V = promote_type(eltype(H), eltype(wT))
+    kr,jr = parentindices(wT.P)
+    T = parent(wT.P)
+    x = axes(T,1)
+    W = Weighted(T)
+    A = kr.A
+    T[kr,:] * Diagonal(Vcat(-convert(V,π)*(log(2*one(V))+log(abs(A)))/A,-convert(V,π)./(A * (1:∞))))
 end
 
 

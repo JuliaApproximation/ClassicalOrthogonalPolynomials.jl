@@ -323,7 +323,6 @@ end
 
 
 function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,OneTo}}) where T
-    x,w = golubwelsch(L)
     Q = Normalized(parent(L))[parentindices(L)...]
     D = L \ Q
     F = factorize(Q)
