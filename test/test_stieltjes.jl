@@ -91,7 +91,7 @@ end
 
         @testset "weights" begin
             @test H * ChebyshevTWeight() ≡ QuasiZeros{Float64}((x,))
-            @test H * ChebyshevUWeight() ≡ QuasiFill(1.0π,(x,))
+            @test H * ChebyshevUWeight() == π*x
             @test (H * LegendreWeight())[0.1] ≈ log((0.1+1)/(1-0.1))
         end
 
