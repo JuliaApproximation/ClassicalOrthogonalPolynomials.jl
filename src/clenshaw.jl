@@ -269,7 +269,9 @@ Base.array_summary(io::IO, C::Clenshaw{T}, inds::Tuple{Vararg{OneToInf{Int}}}) w
 struct ClenshawLayout <: AbstractLazyBandedLayout end
 MemoryLayout(::Type{<:Clenshaw}) = ClenshawLayout()
 sublayout(::ClenshawLayout, ::Type{<:NTuple{2,AbstractUnitRange{Int}}}) = ClenshawLayout()
-sublayout(::ClenshawLayout, ::Type{<:Tuple{AbstractUnitRange{Int},AbstractInfUnitRange{Int}}}) = LazyBandedLayout()
+sublayout(::ClenshawLayout, ::Type{<:Tuple{AbstractUnitRange{Int},Union{Slice,AbstractInfUnitRange{Int}}}}) = LazyBandedLayout()
+sublayout(::ClenshawLayout, ::Type{<:Tuple{Union{Slice,AbstractInfUnitRange{Int}},AbstractUnitRange{Int}}}) = LazyBandedLayout()
+sublayout(::ClenshawLayout, ::Type{<:Tuple{Union{Slice,AbstractInfUnitRange{Int}},Union{Slice,AbstractInfUnitRange{Int}}}}) = LazyBandedLayout()
 sub_materialize(::ClenshawLayout, V) = BandedMatrix(V)
 
 function _BandedMatrix(::ClenshawLayout, V::SubArray{<:Any,2})
