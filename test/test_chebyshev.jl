@@ -36,6 +36,8 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @testset "inf-range-indexing" begin
                 @test T[[begin,end],2:∞][:,2:5] == T[[-1,1],3:6]
             end
+
+            @test copyto!(BandedMatrix{Float64}(undef,(2,5),(1,4)),view(T,[0.1,0.2],1:5)) == T[[0.1,0.2],1:5]
         end
 
         @testset "U" begin
@@ -124,6 +126,10 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test T == T[x,:] == T[x,1:∞] == T[:,1:∞]
             @test T[x,:] == T
         end
+
+        @testset "broadcast" begin
+            @test (x.^2 .* T)[0.1,1:10] ≈ 0.1^2 * T[0.1,1:10]
+        end
     end
 
     @testset "weighted" begin
@@ -164,8 +170,8 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
 
             WT̃ = w[2x .- 1] .* T[2x .- 1, :]
-            @test MemoryLayout(wT̃) isa MappedWeightedBasisLayout
-            v = wT̃ * (wT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
+            @test MemoryLayout(WT̃) isa MappedWeightedBasisLayout
+            v = WT̃ * (WT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
         end
     end
@@ -291,6 +297,14 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test M[2:10,2:10] == M[1:10,1:10][2:10,2:10]
         @test M[3:10,5:20] == M[1:10,1:20][3:10,5:20]
         @test M[100_000:101_000,100_000:101_000] == M[2:1002,2:1002]
+        @test M[1:10,2:∞][:,1:5] == M[1:10,2:6]
+        @test M[1:10,:][:,1:5] == M[1:10,1:5]
+        @test M[2:∞,1:5][1:5,:] == M[2:6,1:5]
+        @test M[:,1:5][1:5,:] == M[1:5,1:5]
+        @test M[2:∞,3:∞][1:5,1:5] == M[2:6,3:7]
+        @test M[:,3:∞][1:5,1:5] == M[1:5,3:7]
+        @test M[2:∞,:][1:5,1:5] == M[2:6,1:5]
+        @test M[:,:][1:5,1:5] == M[1:5,1:5]
 
         @test Eye(∞) * M isa Clenshaw
 
