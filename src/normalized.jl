@@ -182,6 +182,7 @@ function copy(L::Ldiv{WeightedOPLayout,WeightedOPLayout})
     convert(WeightedOrthogonalPolynomial, L.A) \ convert(WeightedOrthogonalPolynomial, L.B)
 end
 
+copy(L::Ldiv{WeightedOPLayout,<:BroadcastLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
 copy(L::Ldiv{WeightedOPLayout,<:AbstractLazyLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
 copy(L::Ldiv{WeightedOPLayout,<:AbstractBasisLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
 copy(L::Ldiv{<:AbstractLazyLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)

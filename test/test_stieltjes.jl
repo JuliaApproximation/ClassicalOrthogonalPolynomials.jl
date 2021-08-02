@@ -56,7 +56,7 @@ end
 
         f = wT * [[1,2,3]; zeros(∞)];
         J = T \ (x .* T)
-    
+
         @test π*((z*I-J) \ f.args[2])[1,1] ≈ (S*f)[1]
         @test π*((z*I-J) \ f.args[2])[1,1] ≈ (S*f.args[1]*f.args[2])[1]
 
@@ -75,7 +75,7 @@ end
             x = axes(T,1)
             @test inv.(t .- x') * Weighted(T) ≈ inv.((t+eps()im) .- x') * Weighted(T)
             @test (inv.(t .- x') * Weighted(U))[1:10] ≈ (inv.((t+eps()im) .- x') * Weighted(U))[1:10]
-            
+
             t = 0.5
             @test_broken inv.(t .- x') * Weighted(T)
             @test_broken inv.(t .- x') * Weighted(U)
@@ -106,11 +106,11 @@ end
             x = Inclusion(0..1)
             y = 2x .- 1
             H = inv.(x .- x')
-            
+
             wT2 = wT[y,:]
             wU2 = wU[y,:]
             @test (Ultraspherical(1)[y,:]\(H*wT2))[1:10,1:10] == diagm(1 => fill(-π,9))
-            @test_broken (Chebyshev()[y,:]\(H*wU2))[1:10,1:10] == diagm(-1 => fill(1.0π,9))
+            @test (Chebyshev()[y,:]\(H*wU2))[1:10,1:10] == diagm(-1 => fill(1.0π,9))
         end
 
         @testset "Legendre" begin
@@ -179,7 +179,7 @@ end
 
         u = Weighted(U) * ((H * Weighted(U)) \ imag(c * x))
 
-        ε  = eps(); 
+        ε  = eps();
         @test (inv.(0.1+ε*im .- x') * u + inv.(0.1-ε*im .- x') * u)/2 ≈ imag(c*0.1)
         @test real(inv.(0.1+ε*im .- x') * u ) ≈ imag(c*0.1)
 

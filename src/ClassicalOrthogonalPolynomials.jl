@@ -1,4 +1,6 @@
 module ClassicalOrthogonalPolynomials
+using LazyBandedMatrices: LazyBandedLayout
+using InfiniteArrays: parentindices
 using IntervalSets: UnitRange
 using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, BlockArrays,
     IntervalSets, DomainSets, ArrayLayouts, SpecialFunctions,
@@ -7,9 +9,9 @@ using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, Bloc
 
 import Base: @_inline_meta, axes, getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy,
-                first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum,
+                first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
                 to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
-import Base.Broadcast: materialize, BroadcastStyle, broadcasted
+import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, colsupport, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
                 _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
@@ -19,7 +21,7 @@ import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_mat
 import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, AbstractLazyBandedLayout
 import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
-import FillArrays: AbstractFill, getindex_value
+import FillArrays: AbstractFill, getindex_value, SquareEye
 
 import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclusion, SubQuasiArray,
                     QuasiDiagonal, MulQuasiArray, MulQuasiMatrix, MulQuasiVector, QuasiMatMulMat,
@@ -31,7 +33,7 @@ import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, Infini
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     inbounds_getindex, grid, plotgrid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
     AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
-    checkpoints, weight, unweightedbasis, MappedBasisLayouts, __sum
+    checkpoints, weight, unweightedbasis, MappedBasisLayouts, __sum, invmap
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints
 
@@ -45,7 +47,7 @@ export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomia
             HermiteWeight, JacobiWeight, ChebyshevWeight, ChebyshevGrid, ChebyshevTWeight, ChebyshevUWeight, UltrasphericalWeight, LegendreWeight, LaguerreWeight,
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
             ∞, Derivative, .., Inclusion,
-            chebyshevt, chebyshevu, legendre, jacobi,
+            chebyshevt, chebyshevu, legendre, jacobi, ultraspherical,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
             jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted
 
@@ -240,6 +242,26 @@ function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, C::Sub
     X = kr.A \ (Y     - kr.b * Eye{T}(∞))
     P[kr, :] * X
 end
+
+
+# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::AbstractQuasiVector, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}})
+#     T = promote_type(eltype(f), eltype(C))
+#     axes(f,1) == axes(C,1) || throw(DimensionMismatch())
+#     P = parent(C)
+#     kr,jr = parentindices(C)
+#     (f[invmap(kr)] .* P)[kr,jr]
+# end
+
+# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::AbstractQuasiVector, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
+#     T = promote_type(eltype(f), eltype(C))
+#     axes(f,1) == axes(C,1) || throw(DimensionMismatch())
+#     P = parent(C)
+#     kr,jr = parentindices(C)
+#     (f[invmap(kr)] .* P)[kr,jr]
+# end
+
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::Broadcasted, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}) =
+    broadcast(*, materialize(f), C)
 
 function jacobimatrix(C::SubQuasiArray{T,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) where T
     P = parent(C)
