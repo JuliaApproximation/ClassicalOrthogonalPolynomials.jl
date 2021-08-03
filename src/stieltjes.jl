@@ -209,7 +209,7 @@ function cache_filldata!(H::HilbertVandermonde{T}, kr, jr) where T
     isempty(jr) && return
     H.data[(n+1):maximum(kr),1:m] .= zero(T)
     for j in (m+1):maximum(jr)
-        H.data[kr,j] .= H.M[kr,:] * [H.data[:,j-1]; Zeros{T}(∞)]
+        H.data[kr,j] .= (H.M * [H.data[:,j-1]; Zeros{T}(∞)])[kr]
     end
 end
 
