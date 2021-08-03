@@ -193,7 +193,11 @@ sqrtx2(x::Real) = sign(x)*sqrt(x^2-1)
     transpose(convert(T,π) * ξ.^oneto(∞))
 end
 
+"""
+   HilbertVandermonde(M, data)
 
+represents the matrix with columns M^k * data[:,end].
+"""
 mutable struct HilbertVandermonde{T,MM} <: AbstractCachedMatrix{T}
     M::MM
     data::Matrix{T}
