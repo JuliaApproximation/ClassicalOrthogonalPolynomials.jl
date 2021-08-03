@@ -188,6 +188,15 @@ end
         v = (s,t) -> (z = (s + im*t); imag(c*z) - real(inv.(z .- x') * u))
         @test v(0.1,0.2) ≈ 0.18496257285081724 # Emperical
     end
+
+    @testset "OffHilbert" begin
+        U = ChebyshevU()
+        W = Weighted(U)
+        t = axes(U,1)
+        x = Inclusion(2..3)
+        T̃ = chebyshevt(2..3)
+        H = T̃ \ inv.(x .- t') * W
+        @test T̃[2.3,1:100]' * H[1:100,1:100] ≈ (inv.(2.3 .- t') * W)[:,1:100]
 end
 
 #################################################

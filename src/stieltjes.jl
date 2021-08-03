@@ -186,11 +186,42 @@ sqrtx2(z::Number) = sqrt(z-1)*sqrt(z+1)
 sqrtx2(x::Real) = sign(x)*sqrt(x^2-1)
 
 @simplify function *(S::StieltjesPoint, wP::Weighted{<:Any,<:ChebyshevU})
+    T = promote_type(eltype(S), eltype(wP))
     z, x = parent(S).args[1].args
     z in axes(wP,1) && transpose((inv.(x .- x') * wP)[z,:])
     ξ = inv(z + sqrtx2(z))
-    transpose(π * ξ.^oneto(∞))
+    transpose(convert(T,π) * ξ.^oneto(∞))
 end
+
+
+mutable struct HilbertVandermonde{T,MM} <: AbstractCachedMatrix{T}
+    M::MM
+    data::Matrix{T}
+    datasize::NTuple{2,Int}
+end
+
+HilbertVandermonde(M, data::Matrix) = HilbertVandermonde(M, data, size(data))
+size(H::HilbertVandermonde) = (ℵ₀,ℵ₀)
+
+function cache_filldata!(H::HilbertVandermonde{T}, kr, jr) where T
+    n,m = H.datasize
+    isempty(kr) && return
+    isempty(jr) && return
+    H.data[(n+1):maximum(kr),1:m] .= zero(T)
+    for j in (m+1):maximum(jr)
+        H.data[kr,j] .= H.M[kr,:] * [H.data[:,j-1]; Zeros{T}(∞)]
+    end
+end
+
+@simplify function *(H::Hilbert{<:Any,<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
+    x = axes(H,1)
+    T̃ = chebyshevt(x)
+    ψ_1 = T̃ \ inv.(x .+ sqrtx2.(x))
+    data = convert(eltype(H),π) * Matrix(reshape(paddeddata(ψ_1),:,1))
+    T̃ * HilbertVandermonde(Clenshaw(T̃ * ψ_1, T̃), data)
+end
+
+
 
 
 @simplify function *(S::StieltjesPoint, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
