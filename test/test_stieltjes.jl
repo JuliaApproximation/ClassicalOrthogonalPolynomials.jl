@@ -115,6 +115,8 @@ end
 
         @testset "Legendre" begin
             P = Legendre()
+            x = axes(P,1)
+            H = inv.(x .- x')
             Q = H*P
             @test Q[0.1,1:3] ≈ [log(0.1+1)-log(1-0.1), 0.1*(log(0.1+1)-log(1-0.1))-2,-3*0.1 + 1/2*(-1 + 3*0.1^2)*(log(0.1+1)-log(1-0.1))]
             X = jacobimatrix(P)
