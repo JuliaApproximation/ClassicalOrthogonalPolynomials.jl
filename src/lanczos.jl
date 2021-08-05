@@ -49,7 +49,7 @@ function LanczosData(w::AbstractQuasiVector, P::AbstractQuasiMatrix)
     x = axes(P,1)
     wP = weighted(P)
     X = jacobimatrix(P)
-    W = Clenshaw(P * (wP \ w), P)
+    W = wP \ (w .* P)
     LanczosData(X, W)
 end
 
@@ -58,6 +58,7 @@ function resizedata!(L::LanczosData, N)
     resizedata!(L.R, N, N)
     resizedata!(L.γ, N)
     resizedata!(L.β, N)
+    resizedata!(L.W, N, N)
     lanczos!(L.ncols+1:N, L.X, L.W, L.γ, L.β, L.R)
     L.ncols = N
     L
@@ -68,6 +69,10 @@ struct LanczosConversion{T} <: LayoutMatrix{T}
 end
 
 size(::LanczosConversion) = (∞,∞)
+copy(R::LanczosConversion) = R
+
+Base.permutedims(R::LanczosConversion{<:Number}) = transpose(R)
+
 bandwidths(::LanczosConversion) = (0,∞)
 colsupport(L::LanczosConversion, j) = 1:maximum(j)
 rowsupport(L::LanczosConversion, j) = minimum(j):∞
@@ -177,6 +182,8 @@ orthogonalpolynomial(w::SubQuasiArray) = orthogonalpolynomial(parent(w))[parenti
 orthonormalpolynomial(w::AbstractQuasiVector) = normalize(orthogonalpolynomial(w))
 
 
+
+
 orthogonalityweight(Q::LanczosPolynomial) = Q.w
 
 axes(Q::LanczosPolynomial) = (axes(Q.w,1),OneToInf())
@@ -184,7 +191,6 @@ axes(Q::LanczosPolynomial) = (axes(Q.w,1),OneToInf())
 _p0(Q::LanczosPolynomial) = inv(Q.data.γ[1])*_p0(Q.P)
 
 jacobimatrix(Q::LanczosPolynomial) = SymTridiagonal(LanczosJacobiBand(Q.data, :d), LanczosJacobiBand(Q.data, :du))
-recurrencecoefficients(Q::LanczosPolynomial) = normalized_recurrencecoefficients(Q)
 
 Base.summary(io::IO, Q::LanczosPolynomial{T}) where T = print(io, "LanczosPolynomial{$T} with weight with singularities $(singularities(Q.w))")
 Base.show(io::IO, Q::LanczosPolynomial{T}) where T = summary(io, Q)
@@ -221,8 +227,19 @@ function ldiv(Qn::SubQuasiArray{<:Any,2,<:LanczosPolynomial,<:Tuple{<:Inclusion,
     Q = parent(Qn)
     LanczosConversion(Q.data)[jr,jr] \ (Q.P[:,jr] \ C)
 end
+
+struct LanczosLayout <: AbstractBasisLayout end
+
+MemoryLayout(::Type{<:LanczosPolynomial}) = LanczosLayout()
 arguments(::ApplyLayout{typeof(*)}, Q::LanczosPolynomial) = Q.P, LanczosConversion(Q.data)
+copy(L::Ldiv{LanczosLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
+copy(L::Ldiv{LanczosLayout,Lay}) where Lay<:BroadcastLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
+copy(L::Ldiv{LanczosLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{LanczosLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
 LazyArrays._mul_arguments(Q::LanczosPolynomial) = arguments(ApplyLayout{typeof(*)}(), Q)
 LazyArrays._mul_arguments(Q::QuasiAdjoint{<:Any,<:LanczosPolynomial}) = arguments(ApplyLayout{typeof(*)}(), Q)
 
-\(A::LanczosPolynomial, x::AbstractQuasiVector) = ApplyQuasiArray(A) \ x
+
+broadcastbasis(::typeof(+), P::Union{Normalized,LanczosPolynomial}, Q::Union{Normalized,LanczosPolynomial}) = broadcastbasis(+, P.P, Q.P)
+broadcastbasis(::typeof(+), P::Union{Normalized,LanczosPolynomial}, Q) = broadcastbasis(+, P.P, Q)
+broadcastbasis(::typeof(+), P, Q::Union{Normalized,LanczosPolynomial}) = broadcastbasis(+, P, Q.P)

@@ -47,6 +47,7 @@ getproperty(w::LegendreWeight{T}, ::Symbol) where T = zero(T)
 sum(::LegendreWeight{T}) where T = 2one(T)
 
 _weighted(::LegendreWeight, P) = P
+_weighted(::SubQuasiArray{<:Any,1,<:LegendreWeight}, P) = P
 
 broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(*), ::LegendreWeight{T}, ::LegendreWeight{V}) where {T,V} =
     LegendreWeight{promote_type(T,V)}()
@@ -61,9 +62,14 @@ singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
 singularitiesbroadcast(_, L::LegendreWeight) = L # Assume we stay smooth
 singularitiesbroadcast(::typeof(exp), L::LegendreWeight) = L
 singularitiesbroadcast(::typeof(Base.literal_pow), ::typeof(^), L::LegendreWeight, ::Val) = L
+
+
+for op in (:+, :*)
+    @eval singularitiesbroadcast(::typeof($op), A, B, C, D...) = singularitiesbroadcast(*, singularitiesbroadcast(*, A, B), C, D...)
+end
 for op in (:+, :-, :*)
     @eval begin
-        singularitiesbroadcast(::typeof($op), ::LegendreWeight{T}, ::LegendreWeight{V}) where {T,V} = LegendreWeight{promote_type(T,V)}()
+        singularitiesbroadcast(::typeof($op), A::LegendreWeight, B::LegendreWeight) = LegendreWeight{promote_type(eltype(A), eltype(B))}()
         singularitiesbroadcast(::typeof($op), L::LegendreWeight, ::NoSingularities) = L
         singularitiesbroadcast(::typeof($op), ::NoSingularities, L::LegendreWeight) = L
     end
@@ -75,8 +81,10 @@ _parent(::NoSingularities) = NoSingularities()
 _parent(a) = parent(a)
 _parentindices(a::NoSingularities, b...) = _parentindices(b...)
 _parentindices(a, b...) = parentindices(a)
+# for singularitiesbroadcast(literal_pow), ^, ...)
 singularitiesbroadcast(F::Function, G::Function, V::SubQuasiArray, K) = singularitiesbroadcast(F, G, parent(V), K)[parentindices(V)...]
 singularitiesbroadcast(F, V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(F, map(_parent,V)...)[_parentindices(V...)...]
+singularitiesbroadcast(::typeof(*), V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(*, map(_parent,V)...)[_parentindices(V...)...]
 
 
 singularitiesbroadcast(::typeof(*), ::LegendreWeight, b::AbstractJacobiWeight) = b
@@ -121,7 +129,7 @@ end
 Jacobi(a::V, b::T) where {T,V} = Jacobi{float(promote_type(T,V))}(a, b)
 
 jacobi(a,b) = Jacobi(a,b)
-jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi(a,b)[affine(d,ChebyshevInterval{T}()), :]
+jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi{float(promote_type(eltype(a),eltype(b),T))}(a,b)[affine(d,ChebyshevInterval{T}()), :]
 
 Jacobi(P::Legendre{T}) where T = Jacobi(zero(T), zero(T))
 
@@ -163,8 +171,10 @@ copy(Q::HalfWeighted) = Q
 
 convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:a,T,<:Jacobi}) where T = JacobiWeight(Q.P.a,zero(T)) .* Q.P
 convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:b,T,<:Jacobi}) where T = JacobiWeight(zero(T),Q.P.b) .* Q.P
-convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:a,T,<:Normalized}) where T = JacobiWeight(Q.P.P.a,zero(T)) .* Q.P
-convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:b,T,<:Normalized}) where T = JacobiWeight(zero(T),Q.P.P.b) .* Q.P
+function convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{lr,T,<:Normalized}) where {T,lr}
+    w,_ = arguments(convert(WeightedOrthogonalPolynomial, HalfWeighted{lr}(Q.P.P)))
+    w .* Q.P
+end
 
 getindex(Q::HalfWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = convert(WeightedOrthogonalPolynomial, Q)[x,jr]
 
@@ -174,11 +184,13 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::HalfWeighted
 \(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
 \(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
 
-function \(A::AbstractQuasiArray, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized})
+function _norm_expand_ldiv(A, w_B)
     w,B = w_B.args
     B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
     (A \ (w .* B̃)) * D
 end
+\(A::AbstractQuasiArray, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
+\(A::WeightedOrthogonalPolynomial, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
 
 axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b
@@ -199,10 +211,16 @@ summary(io::IO, P::Jacobi) = print(io, "Jacobi($(P.a), $(P.b))")
 # transforms
 ###
 
-function grid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{<:Inclusion,<:AbstractUnitRange}}) where T
+function grid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,Any}}) where T
     kr,jr = parentindices(Pn)
     ChebyshevGrid{1,T}(maximum(jr))
 end
+
+function plotgrid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,Any}}) where T
+    kr,jr = parentindices(Pn)
+    ChebyshevGrid{2,T}(40maximum(jr))
+end
+
 
 function ldiv(::Legendre{V}, f::AbstractQuasiVector) where V
     T = ChebyshevT{V}()
@@ -283,6 +301,17 @@ function recurrencecoefficients(P::Jacobi)
     (A,B,C)
 end
 
+# explicit special case for normalized Legendre
+# todo: do we want these explicit constructors for normalized Legendre?
+# function jacobimatrix(::Normalized{<:Any,<:Legendre{T}}) where T
+#     b = (one(T):∞) ./sqrt.(4 .*(one(T):∞).^2 .-1)
+#     Symmetric(_BandedMatrix(Vcat(zeros(∞)', (b)'), ∞, 1, 0), :L)
+# end
+# function recurrencecoefficients(::Normalized{<:Any,<:Legendre{T}}) where T
+#     n = zero(T):∞
+#     nn = one(T):∞
+#     ((2n .+ 1) ./ (n .+ 1) ./ sqrt.(1 .-2 ./(3 .+2n)), Zeros{T}(∞), Vcat(zero(T),nn ./ (nn .+ 1) ./ sqrt.(1 .-4 ./(3 .+2nn))))
+# end
 
 @simplify *(X::Identity, P::Legendre) = ApplyQuasiMatrix(*, P, P\(X*P))
 
@@ -494,4 +523,6 @@ function _sum(P::Legendre{T}, dims) where T
 end
 
 _sum(p::SubQuasiArray{T,1,Legendre{T},<:Tuple{Inclusion,Int}}, ::Colon) where T = parentindices(p)[2] == 1 ? convert(T, 2) : zero(T)
+_sum(P::AbstractJacobi{T}, dims) where T = 2 * (Legendre{T}() \ P)[1:1,:]
+
 

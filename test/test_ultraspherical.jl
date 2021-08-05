@@ -1,4 +1,5 @@
-using ClassicalOrthogonalPolynomials, BandedMatrices, LazyArrays, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, BandedMatrices, LazyArrays, ForwardDiff, Test
+import LazyArrays: rowsupport, colsupport
 
 @testset "Ultraspherical" begin
     @testset "Transforms" begin
@@ -116,5 +117,31 @@ using ClassicalOrthogonalPolynomials, BandedMatrices, LazyArrays, Test
 
         @test Ultraspherical(1/2) \ (JacobiWeight(0,0) .* Jacobi(0,0)) isa Diagonal
         @test (JacobiWeight(0,0) .* Jacobi(0,0)) \ Ultraspherical(1/2) isa Diagonal
+    end
+
+    @testset "D^2 * mapped" begin
+        T = chebyshevt(0..1)
+        C = ultraspherical(2,0..1)
+        r = axes(T,1)
+        D = Derivative(r)
+        D₂ = C \ (D^2 * T)
+        # r²D₂ = C \ (r.^2 .* (D^2 * T))
+
+        c = [randn(100); zeros(∞)]
+        @test C[0.1,:]'*(D₂ * c) ≈ 4*(Derivative(axes(ChebyshevT(),1))^2 * (ChebyshevT() * c))[2*0.1-1]
+        @test_broken C[0.1,:]'*(r²D₂ * c) ≈ 0.1^2 * C[0.1,:]'*(D₂ * c)
+    end
+  
+    @testset "BigFloat" begin
+        U = Ultraspherical{BigFloat}(1)
+        T = ChebyshevT{BigFloat}()
+        x = axes(U,1)
+        D = Derivative(x)
+        
+        @test Weighted(T) \ (D * Weighted(U)) isa BandedMatrix{BigFloat}
+
+        C³ = Ultraspherical{BigFloat}(3)
+        c = [1; 2; 3; zeros(BigFloat,∞)]
+        @test C³[big(1)/10,:]'*(C³ \ U) * c ≈ U[big(1)/10,:]'c
     end
 end

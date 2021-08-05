@@ -1,14 +1,41 @@
-using ContinuumArrays, FillArrays, InfiniteArrays, Plots
+using ClassicalOrthogonalPolynomials, Plots, Test
+import ArrayLayouts: diagonal
+
+###
+# We can solve ODEs like the Airy equation
+#
+# u(-1) = airyai(-1)
+# u(1) = airyai(1)
+# u'' = x * u
+#
+# using the ultraspherical spectral method. 
 
 T = Chebyshev()
 C = Ultraspherical(2)
-D = Derivative(axes(T,1))
-A = (C\(D^2*T))+100(C\T)
+x = axes(T,1)
+D = Derivative(x)
 
-n = 100
-c = [T[[-1,1],1:n]; A[1:n-2,1:n]] \ [1;2;zeros(n-2)]
-u = T*Vcat(c,Zeros(∞))
+c = [T[[begin,end],:]; C \ ((D^2 - diagonal(x))*T)] \ [airyai(-1); airyai(1); zeros(∞)]
+u = T*c
 
-xx = range(-1,1;length=1000)
-plot(xx,u[xx])
+@test u[0.0] ≈ airyai(0.0)
+plot(u)
 
+
+##
+# Lee & Greengard
+# ε*u'' - x*u' + u = 0, u(-1) = 1, u(1) = 2
+##
+
+T = ChebyshevT()
+C = Ultraspherical(2)
+x = axes(T,1)
+D = Derivative(x)
+
+ε = 1/100
+A = [T[[begin,end],:]; C \ ((ε*D^2 - x .* D + I) * T)]
+c = A \ [1; 2; zeros(∞)]
+u = T*c
+plot(u)
+
+C \ (ε*D^2 - x .* D + I) 

@@ -55,17 +55,6 @@ axes(Q::Normalized) = axes(Q.P)
 
 _p0(Q::Normalized) = Q.scaling[1]
 
-# p_{n+1} = (A_n * x + B_n) * p_n - C_n * p_{n-1}
-# q_{n+1}/h[n+1] = (A_n * x + B_n) * q_n/h[n] - C_n * p_{n-1}/h[n-1]
-# q_{n+1} = (h[n+1]/h[n] * A_n * x + h[n+1]/h[n] * B_n) * q_n - h[n+1]/h[n-1] * C_n * p_{n-1}
-
-function normalized_recurrencecoefficients(Q::AbstractQuasiMatrix{T}) where T
-    X = jacobimatrix(Q)
-    a,b = diagonaldata(X), supdiagonaldata(X)
-    inv.(b), -(a ./ b), Vcat(zero(T), b) ./ b
-end
-
-recurrencecoefficients(Q::Normalized{T}) where T = normalized_recurrencecoefficients(Q)
 
 # x * p[n] = c[n-1] * p[n-1] + a[n] * p[n] + b[n] * p[n+1]
 # x * q[n]/h[n] = c[n-1] * q[n-1]/h[n-1] + a[n] * q[n]/h[n] + b[n] * q[n+1]/h[n+1]
@@ -94,7 +83,8 @@ QuasiArrays.ApplyQuasiArray(Q::Normalized) = ApplyQuasiArray(*, arguments(ApplyL
 
 ArrayLayouts.mul(Q::Normalized, C::AbstractArray) = ApplyQuasiArray(*, Q, C)
 
-grid(Q::SubQuasiArray{<:Any,2,<:Normalized}) = grid(view(parent(Q).P, parentindices(Q)...))
+grid(Q::SubQuasiArray{<:Any,2,<:Normalized,<:Tuple{Inclusion,Any}}) = grid(view(parent(Q).P, parentindices(Q)...))
+plotgrid(Q::SubQuasiArray{<:Any,2,<:Normalized,<:Tuple{Inclusion,Any}}) = plotgrid(view(parent(Q).P, parentindices(Q)...))
 
 # transform_ldiv(Q::Normalized, C::AbstractQuasiArray) = Q.scaling .\ (Q.P \ C)
 function transform_ldiv(Q::Normalized, C::AbstractQuasiArray)
@@ -133,6 +123,8 @@ for Lay in (:(ApplyLayout{typeof(*)}),:(BroadcastLayout{typeof(+)}),:(BroadcastL
         @inline copy(L::Ldiv{<:NormalizedBasisLayout,$Lay,<:Any,<:AbstractQuasiVector}) = copy(Ldiv{ApplyLayout{typeof(*)},$Lay}(L.A, L.B))
     end
 end
+
+copy(L::Ldiv{Lay,<:NormalizedBasisLayout}) where Lay<:MappedBasisLayouts = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
 
 # want to use special re-expansion routines without expanding Normalized basis
 @inline copy(L::Ldiv{<:NormalizedBasisLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
@@ -175,12 +167,28 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalW
 
 
 abstract type AbstractWeighted{T} <: Basis{T} end
+struct WeightedOPLayout <: AbstractBasisLayout end
 
-MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout()
+# make act like WeightedBasisLayout
+ContinuumArrays._grid(::WeightedOPLayout, P) = ContinuumArrays._grid(WeightedBasisLayout(), P)
+ContinuumArrays._factorize(::WeightedOPLayout, P) = ContinuumArrays._factorize(WeightedBasisLayout(), P)
+ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:AbstractAffineQuasiVector,<:AbstractVector}}) = sublayout(WeightedBasisLayout(), inds)
+ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:Inclusion,<:AbstractVector}}) = sublayout(WeightedBasisLayout(), inds)
+
+MemoryLayout(::Type{<:AbstractWeighted}) = WeightedOPLayout()
 ContinuumArrays.unweightedbasis(wP::AbstractWeighted) = wP.P
-\(w_A::AbstractWeighted, w_B::AbstractWeighted) = convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
-\(w_A::AbstractWeighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
-\(A::AbstractQuasiArray, w_B::AbstractWeighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
+function copy(L::Ldiv{WeightedOPLayout,WeightedOPLayout})
+    L.A.P == L.B.P && return Eye{eltype(L)}(∞)
+    convert(WeightedOrthogonalPolynomial, L.A) \ convert(WeightedOrthogonalPolynomial, L.B)
+end
+
+copy(L::Ldiv{WeightedOPLayout,<:BroadcastLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+copy(L::Ldiv{WeightedOPLayout,<:AbstractLazyLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+copy(L::Ldiv{WeightedOPLayout,<:AbstractBasisLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+copy(L::Ldiv{<:AbstractLazyLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
+copy(L::Ldiv{<:AbstractBasisLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
+copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
+copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
 
 """
     Weighted(P)
@@ -195,7 +203,6 @@ axes(Q::Weighted) = axes(Q.P)
 copy(Q::Weighted) = Q
 
 ==(A::Weighted, B::Weighted) = A.P == B.P
-
 weight(wP::Weighted) = orthogonalityweight(wP.P)
 
 convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = weight(P) .* unweightedbasis(P)
@@ -208,3 +215,12 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = 
     convert(WeightedOrthogonalPolynomial, parent(Ac))' * convert(WeightedOrthogonalPolynomial, wB)
 
 summary(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
+
+__sum(::NormalizedBasisLayout, A, dims) = __sum(ApplyLayout{typeof(*)}(), A, dims)
+function __sum(::WeightedOPLayout, A, dims)
+    @assert dims == 1
+    Hcat(sum(weight(A)), Zeros{eltype(A)}(1,∞))
+end
+
+_sum(p::SubQuasiArray{T,1,<:Weighted,<:Tuple{Inclusion,Int}}, ::Colon) where T = 
+    parentindices(p)[2] == 1 ? convert(T, sum(weight(parent(p)))) : zero(T)

@@ -32,6 +32,12 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test axes(T[1:1,:]) === (oneto(1), oneto(∞))
             @test T[1:1,:][:,1:5] == ones(1,5)
             @test T[0.1,:][1:10] ≈ T[0.1,1:10] ≈ (T')[1:10,0.1]
+
+            @testset "inf-range-indexing" begin
+                @test T[[begin,end],2:∞][:,2:5] == T[[-1,1],3:6]
+            end
+
+            @test copyto!(BandedMatrix{Float64}(undef,(2,5),(1,4)),view(T,[0.1,0.2],1:5)) == T[[0.1,0.2],1:5]
         end
 
         @testset "U" begin
@@ -113,6 +119,17 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         U = chebyshevu(0..1)
         @test (U*(U\x))[0.1] ≈ 0.1
         @test (U* (U \ exp.(x)))[0.1] ≈ exp(0.1)
+
+        @testset "Trivial map" begin
+            T = ChebyshevT()
+            x = Inclusion(-1..1)
+            @test T == T[x,:] == T[x,1:∞] == T[:,1:∞]
+            @test T[x,:] == T
+        end
+
+        @testset "broadcast" begin
+            @test (x.^2 .* T)[0.1,1:10] ≈ 0.1^2 * T[0.1,1:10]
+        end
     end
 
     @testset "weighted" begin
@@ -130,9 +147,19 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
         @testset "Weighted" begin
             WT = Weighted(ChebyshevT())
+            @test WT == copy(WT)
+            @test WT \ WT == Eye(∞)
             @test wT[0.1,1:10] ≈ WT[0.1,1:10]
             @test WT \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ wT \ (exp.(x) ./ sqrt.(1 .- x.^2))
             @test WT[:,1:20] \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ (WT \ (exp.(x) ./ sqrt.(1 .- x.^2)))[1:20]
+            @test WT \ (x .* WT) == T \ (x .* T)
+            @test sum(WT; dims=1)[:,1:10] ≈ [π zeros(1,9)]
+            @test sum(WT[:,1]) ≈ π
+            @test iszero(sum(WT[:,2]))
+
+            WU = Weighted(ChebyshevU())
+            @test (WT \ WU)[1:10,1:10] ≈ inv(WU \ WT)[1:10,1:10]
+            @test_skip (WU \ WT)[1,1] == 2
         end
 
         @testset "mapped" begin
@@ -143,8 +170,8 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
 
             WT̃ = w[2x .- 1] .* T[2x .- 1, :]
-            @test MemoryLayout(wT̃) isa MappedWeightedBasisLayout
-            v = wT̃ * (wT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
+            @test MemoryLayout(WT̃) isa MappedWeightedBasisLayout
+            v = WT̃ * (WT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
         end
     end
@@ -224,6 +251,18 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         x = Inclusion(0..1)
         @test sum(wT[2x .- 1, :]; dims=1)[1,1:10] == [π/2; zeros(9)]
         @test sum(wT[2x .- 1, :] * [[1,2,3]; zeros(∞)]) == π/2
+
+        T = Chebyshev()
+        x = axes(T,1)
+        @test sum(T * (T \ exp.(x))) ≈ ℯ - inv(ℯ)
+    end
+
+    @testset "cumsum" begin
+        T = ChebyshevT()
+        x = axes(T,1)
+        @test (T \ cumsum(T; dims=1)) * (T \ exp.(x)) ≈ T \ (exp.(x) .- exp(-1))
+        f = T * (T \ exp.(x))
+        @test T \ cumsum(f) ≈ T \ (exp.(x) .- exp(-1))
     end
 
     @testset "algebra" begin
@@ -258,6 +297,14 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test M[2:10,2:10] == M[1:10,1:10][2:10,2:10]
         @test M[3:10,5:20] == M[1:10,1:20][3:10,5:20]
         @test M[100_000:101_000,100_000:101_000] == M[2:1002,2:1002]
+        @test M[1:10,2:∞][:,1:5] == M[1:10,2:6]
+        @test M[1:10,:][:,1:5] == M[1:10,1:5]
+        @test M[2:∞,1:5][1:5,:] == M[2:6,1:5]
+        @test M[:,1:5][1:5,:] == M[1:5,1:5]
+        @test M[2:∞,3:∞][1:5,1:5] == M[2:6,3:7]
+        @test M[:,3:∞][1:5,1:5] == M[1:5,3:7]
+        @test M[2:∞,:][1:5,1:5] == M[2:6,1:5]
+        @test M[:,:][1:5,1:5] == M[1:5,1:5]
 
         @test Eye(∞) * M isa Clenshaw
 
@@ -277,11 +324,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
     @testset "show" begin
         T = Chebyshev()
-        if VERSION < v"1.6-"
-            @test stringmime("text/plain", T * [1; 2; Zeros(∞)]) == "Chebyshev{1,Float64} * [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …]"
-        else
-            @test stringmime("text/plain", T * [1; 2; Zeros(∞)]) == "ChebyshevT{Float64} * [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …]"
-        end
+        @test stringmime("text/plain", T * [1; 2; Zeros(∞)]) == "ChebyshevT{Float64} * [1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, …]"
     end
 
     @testset "Complex eltype" begin
@@ -348,6 +391,22 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test chebyshevu.(0:5, 0.1) == ChebyshevU()[0.1, 1:6]
         @test chebyshevu.(0:5, BigFloat(1)/10) == ChebyshevU{BigFloat}()[BigFloat(1)/10, 1:6]
         @test chebyshevu.(0:5, 2) == Base.unsafe_getindex(ChebyshevU(), 2, 1:6)
+    end
+
+    @testset "Adjoint views" begin
+        T = ChebyshevT(); U = ChebyshevU()
+        D = Derivative(axes(T,1))
+        V = view(T,:,[1,3,4])
+        @test (U\(D*V))[1:5,:] == (U \ (V'D')')[1:5,:] == (U\(D*T))[1:5,[1,3,4]] 
+    end
+
+    @testset "plot" begin
+        @test ContinuumArrays.plotgrid(ChebyshevT()[:,1:5]) == ChebyshevGrid{2}(200)
+    end
+
+    @testset "conversion" begin
+        T = ChebyshevT()
+        @test ChebyshevT{ComplexF64}() ≡ convert(AbstractQuasiArray{ComplexF64}, T) ≡ convert(AbstractQuasiMatrix{ComplexF64}, T)
     end
 end
 

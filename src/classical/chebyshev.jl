@@ -22,6 +22,8 @@ on -1..1.
 struct Chebyshev{kind,T} <: AbstractJacobi{T} end
 Chebyshev{kind}() where kind = Chebyshev{kind,Float64}()
 
+AbstractQuasiArray{T}(::Chebyshev{kind}) where {T,kind} = Chebyshev{kind,T}()
+AbstractQuasiMatrix{T}(::Chebyshev{kind}) where {T,kind} = Chebyshev{kind,T}()
 
 const WeightedChebyshev{kind,T} = WeightedBasis{T,<:ChebyshevWeight{kind},<:Chebyshev{kind}}
 
@@ -41,8 +43,10 @@ WeightedChebyshev() = WeightedChebyshevT()
 
 chebyshevt() = ChebyshevT()
 chebyshevt(d::AbstractInterval{T}) where T = ChebyshevT{float(T)}()[affine(d, ChebyshevInterval{T}()), :]
+chebyshevt(d::Inclusion) = chebyshevt(d.domain)
 chebyshevu() = ChebyshevU()
 chebyshevu(d::AbstractInterval{T}) where T = ChebyshevU{float(T)}()[affine(d, ChebyshevInterval{T}()), :]
+chebyshevu(d::Inclusion) = chebyshevu(d.domain)
 
 """
      chebyshevt(n, z)
@@ -98,7 +102,8 @@ Jacobi(C::ChebyshevU{T}) where T = Jacobi(one(T)/2,one(T)/2)
 factorize(L::SubQuasiArray{T,2,<:ChebyshevT,<:Tuple{<:Inclusion,<:OneTo}}) where T =
     TransformFactorization(grid(L), plan_chebyshevtransform(Array{T}(undef, size(L,2))))
 
-factorize(L::SubQuasiArray{T,2,<:ChebyshevU,<:Tuple{<:Inclusion,<:OneTo}}) where T =
+# TODO: extend plan_chebyshevutransform
+factorize(L::SubQuasiArray{T,2,<:ChebyshevU,<:Tuple{<:Inclusion,<:OneTo}}) where T<:FastTransforms.fftwNumber =
     TransformFactorization(grid(L), plan_chebyshevutransform(Array{T}(undef, size(L,2))))
 
 
@@ -155,6 +160,8 @@ end
 # Conversion
 #####
 
+\(::Chebyshev{kind,T}, ::Chebyshev{kind,V}) where {kind,T,V} = SquareEye{promote_type(T,V)}(ℵ₀)
+
 function \(U::ChebyshevU, C::ChebyshevT)
     T = promote_type(eltype(U), eltype(C))
     _BandedMatrix(Vcat(-Ones{T}(1,∞)/2,
@@ -169,6 +176,7 @@ function \(w_A::WeightedChebyshevT, w_B::WeightedChebyshevU)
     _BandedMatrix(Vcat(Fill(one(T)/2, 1, ∞), Zeros{T}(1, ∞), Fill(-one(T)/2, 1, ∞)), ℵ₀, 2, 0)
 end
 
+\(w_A::WeightedChebyshevU, w_B::WeightedChebyshevT) = inv(w_B \ w_A)
 \(T::ChebyshevT, U::ChebyshevU) = inv(U \ T)
 
 ####
@@ -214,6 +222,8 @@ function \(A::ChebyshevT, B::Legendre)
         end, 1:∞, (1:∞)'))
 end
 
+\(A::AbstractJacobi, B::Chebyshev) = ApplyArray(inv,B \ A)
+
 
 function \(A::Jacobi, B::WeightedBasis{<:Any,<:JacobiWeight,<:Chebyshev})
     w, T = B.args
@@ -249,6 +259,13 @@ function _sum(A::WeightedBasis{T,<:ChebyshevWeight,<:Chebyshev}, dims) where T
     Hcat(convert(T, π), Zeros{T}(1,∞))
 end
 
+function cumsum(T::ChebyshevT{V}; dims::Integer) where V
+    @assert dims == 1
+    Σ = _BandedMatrix(Vcat(-one(V) ./ (-2:2:∞)', Zeros{V}(1,∞), Hcat(one(V), one(V) ./ (4:2:∞)')), ℵ₀, 0, 2)
+    ApplyQuasiArray(*, T, Vcat((-1).^(0:∞)'* Σ, Σ))
+end
+
+cumsum(f::Expansion{<:Any,<:ChebyshevT}) = cumsum(f.args[1]; dims=1) * f.args[2]
 
 ####
 # algebra

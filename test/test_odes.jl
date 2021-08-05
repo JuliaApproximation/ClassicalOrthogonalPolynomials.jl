@@ -94,7 +94,7 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         S = Jacobi(true,true)
         w = JacobiWeight(true,true)
         D = Derivative(axes(S,1))
-        X = Diagonal(Inclusion(axes(S,1)))
+        X = QuasiDiagonal(axes(S,1))
 
         @test ((Legendre() \ S)*(S\(w.*S)))[1:10,1:10] ≈ (Legendre() \ (w .* S))[1:10,1:10]
         @test (Ultraspherical(3/2)\(D^2*(w.*S)))[1:10,1:10] ≈ diagm(0 => -(2:2:20))
@@ -169,5 +169,22 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         L = Vcat(T[[-1,1],:], A)
         u = L \ [airyai(-ε^(-2/3)); airyai(ε^(2/3)); zeros(∞)]
         @test T[-0.1,:]'u ≈ airyai(-0.1*ε^(-2/3))
+
+        @testset "auto-vcat" begin
+            L = [T[[begin,end],:]; C \ (D^2 * T - x .* T)]
+            c = L \ [airyai(-1); airyai(1); zeros(∞)]
+            u = T*c
+            @test u[0.0] ≈ airyai(0.0)
+        end
+    end
+
+    @testset "combo operators" begin
+        T = Chebyshev()
+        C = Ultraspherical(2)
+        x = axes(T,1)
+        D = Derivative(x)
+        L = x .* D + cos.(x) .* D^2
+        M = C \ (L * T)
+        @test C[0.1,:]' * (M * (T \ exp.(x))) ≈ (0.1 + cos(0.1))*exp(0.1)
     end
 end

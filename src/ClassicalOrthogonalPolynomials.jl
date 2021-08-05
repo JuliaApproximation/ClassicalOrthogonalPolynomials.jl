@@ -1,36 +1,39 @@
 module ClassicalOrthogonalPolynomials
+using LazyBandedMatrices: LazyBandedLayout
+using InfiniteArrays: parentindices
+using IntervalSets: UnitRange
 using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, BlockArrays,
     IntervalSets, DomainSets, ArrayLayouts, SpecialFunctions,
     InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW,
-    LazyBandedMatrices
+    LazyBandedMatrices, HypergeometricFunctions
 
 import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy,
-                first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum,
+                first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
                 to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
-import Base.Broadcast: materialize, BroadcastStyle, broadcasted
+import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, colsupport, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
-                _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout, 
-                AbstractCachedVector, AbstractCachedMatrix
+                _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
+                AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!
 import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
                         subdiagonaldata, diagonaldata, supdiagonaldata
-import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1
-import LinearAlgebra: pinv, factorize, qr, adjoint, transpose
+import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1, AbstractLazyBandedLayout
+import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
-import FillArrays: AbstractFill, getindex_value
+import FillArrays: AbstractFill, getindex_value, SquareEye
 
 import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclusion, SubQuasiArray,
                     QuasiDiagonal, MulQuasiArray, MulQuasiMatrix, MulQuasiVector, QuasiMatMulMat,
                     ApplyQuasiArray, ApplyQuasiMatrix, LazyQuasiArrayApplyStyle, AbstractQuasiArrayApplyStyle,
                     LazyQuasiArray, LazyQuasiVector, LazyQuasiMatrix, LazyLayout, LazyQuasiArrayStyle,
-                    _getindex, layout_getindex, _factorize
+                    _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
-    inbounds_getindex, grid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
+    inbounds_getindex, grid, plotgrid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
     AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
-    checkpoints, weight, unweightedbasis, AbstractConcatBasis
+    checkpoints, weight, unweightedbasis, MappedBasisLayouts, __sum, invmap
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints
 
@@ -39,21 +42,17 @@ import FastGaussQuadrature: jacobimoment
 import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray, block, blockindex, BlockSlice
 import BandedMatrices: bandwidths
 
-export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial, 
+export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial,
             Hermite, Jacobi, Legendre, Chebyshev, ChebyshevT, ChebyshevU, ChebyshevInterval, Ultraspherical, Fourier, Laguerre,
             HermiteWeight, JacobiWeight, ChebyshevWeight, ChebyshevGrid, ChebyshevTWeight, ChebyshevUWeight, UltrasphericalWeight, LegendreWeight, LaguerreWeight,
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
-            ∞, Derivative, .., Inclusion, 
-            chebyshevt, chebyshevu, legendre, jacobi,
+            ∞, Derivative, .., Inclusion,
+            chebyshevt, chebyshevu, legendre, jacobi, ultraspherical,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
-            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight,
-            PiecewiseInterlace
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace
 
-if VERSION < v"1.6-"
-    oneto(n) = Base.OneTo(n)
-else
-    import Base: oneto
-end
+
+import Base: oneto
 
 
 include("interlace.jl")
@@ -64,7 +63,8 @@ cardinality(::EuclideanDomain) = ℵ₁
 cardinality(d::UnionDomain) = sum(map(cardinality, d.domains))
 checkpoints(d::UnionDomain) = union(map(checkpoints,d.domains)...)
 
-transform_ldiv(A, f, ::Tuple{<:Any,InfiniteCardinal{0}})  = adaptivetransform_ldiv(A, f)
+transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
+    adaptivetransform_ldiv(convert(AbstractQuasiArray{promote_type(T,V)}, A), f)
 
 function chop!(c::AbstractVector, tol::Real)
     @assert tol >= 0
@@ -129,6 +129,7 @@ Note that `X` is the transpose of the usual definition of the Jacobi matrix.
 """
 jacobimatrix(P) = error("Override for $(typeof(P))")
 
+
 """
     recurrencecoefficients(P)
 
@@ -147,7 +148,11 @@ The relationship with the Jacobi matrix is:
 C[n+1]/A[n+1] == X[n,n+1]
 ```
 """
-recurrencecoefficients(P) = error("Override for $(typeof(P))")
+function recurrencecoefficients(Q::AbstractQuasiMatrix{T}) where T
+    X = jacobimatrix(Q)
+    c,a,b = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
+    inv.(c), -(a ./ c), Vcat(zero(T), b) ./ c
+end
 
 
 const WeightedOrthogonalPolynomial{T, A<:AbstractQuasiVector, B<:OrthogonalPolynomial} = WeightedBasis{T, A, B}
@@ -240,6 +245,26 @@ function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, C::Sub
     P[kr, :] * X
 end
 
+
+# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::AbstractQuasiVector, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}})
+#     T = promote_type(eltype(f), eltype(C))
+#     axes(f,1) == axes(C,1) || throw(DimensionMismatch())
+#     P = parent(C)
+#     kr,jr = parentindices(C)
+#     (f[invmap(kr)] .* P)[kr,jr]
+# end
+
+# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::AbstractQuasiVector, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
+#     T = promote_type(eltype(f), eltype(C))
+#     axes(f,1) == axes(C,1) || throw(DimensionMismatch())
+#     P = parent(C)
+#     kr,jr = parentindices(C)
+#     (f[invmap(kr)] .* P)[kr,jr]
+# end
+
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::Broadcasted, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}) =
+    broadcast(*, materialize(f), C)
+
 function jacobimatrix(C::SubQuasiArray{T,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) where T
     P = parent(C)
     kr,jr = parentindices(C)
@@ -260,10 +285,51 @@ _vec(a::InfiniteArrays.ReshapedArray) = _vec(parent(a))
 _vec(a::Adjoint{<:Any,<:AbstractVector}) = a'
 
 include("clenshaw.jl")
+include("ratios.jl")
+include("normalized.jl")
+include("lanczos.jl")
+
+function _tritrunc(_, X, n)
+    c,a,b = subdiagonaldata(X),diagonaldata(X),supdiagonaldata(X)
+    Tridiagonal(c[OneTo(n-1)],a[OneTo(n)],b[OneTo(n-1)])
+end
+
+function _tritrunc(::SymTridiagonalLayout, X, n)
+    a,b = diagonaldata(X),supdiagonaldata(X)
+    SymTridiagonal(a[OneTo(n)],b[OneTo(n-1)])
+end
+
+_tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
+
+jacobimatrix(V::SubQuasiArray{<:Any,2,<:Any,<:Tuple{Inclusion,OneTo}}) =
+    _tritrunc(jacobimatrix(parent(V)), maximum(parentindices(V)[2]))
+
+grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}}) =
+    eigvals(symtridiagonalize(jacobimatrix(P)))
+
+function golubwelsch(X)
+    D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
+    D, V[1,:].^2
+end
+
+function golubwelsch(V::SubQuasiArray)
+    x,w = golubwelsch(jacobimatrix(V))
+    w .*= sum(orthogonalityweight(parent(V)))
+    x,w
+end
+
+function factorize(L::SubQuasiArray{T,2,<:Normalized,<:Tuple{Inclusion,OneTo}}) where T
+    x,w = golubwelsch(L)
+    TransformFactorization(x, L[x,:]'*Diagonal(w))
+end
 
 
-factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{<:Inclusion,<:OneTo}}) where T =
-    TransformFactorization(grid(L), nothing, qr(L[grid(L),:])) # Use QR so type-stable
+function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,OneTo}}) where T
+    Q = Normalized(parent(L))[parentindices(L)...]
+    D = L \ Q
+    F = factorize(Q)
+    TransformFactorization(F.grid, D*F.plan)
+end
 
 function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{<:Inclusion,<:AbstractUnitRange}}) where T
     _,jr = parentindices(L)
@@ -282,22 +348,20 @@ function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}}, 
     parent(A) \ parent(B)
 end
 
+# assume we can expand w_B in wA to reduce to polynomial multiplication
 function \(wA::WeightedOrthogonalPolynomial, wB::WeightedOrthogonalPolynomial)
-    w_A,A = arguments(wA)
+    _,A = arguments(wA)
     w_B,B = arguments(wB)
-    w_A == w_B || error("Not implemented")
-    A\B
+    A \ ((A * (wA \ w_B)) .* B)
 end
 
-include("ratios.jl")
-include("normalized.jl")
-include("lanczos.jl")
-include("hermite.jl")
-include("jacobi.jl")
-include("chebyshev.jl")
-include("ultraspherical.jl")
-include("laguerre.jl")
-include("fourier.jl")
+
+include("classical/hermite.jl")
+include("classical/jacobi.jl")
+include("classical/chebyshev.jl")
+include("classical/ultraspherical.jl")
+include("classical/laguerre.jl")
+include("classical/fourier.jl")
 include("stieltjes.jl")
 
 

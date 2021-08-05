@@ -1,5 +1,5 @@
-using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, QuasiArrays, ContinuumArrays, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, LanczosData
+using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, Test
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, orthogonalityweight, golubwelsch
 
 @testset "Lanczos" begin
     @testset "Legendre" begin
@@ -11,11 +11,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, Lan
         Q̃ = Normalized(P);
         A,B,C = recurrencecoefficients(Q);
         Ã,B̃,C̃ = recurrencecoefficients(Q̃);
-        if VERSION ≥ v"1.6-"
-            @test @inferred(A[1:10]) ≈ Ã[1:10] ≈ [A[k] for k=1:10]
-            @test @inferred(B[1:10]) ≈ B̃[1:10] ≈ [B[k] for k=1:10]
-            @test @inferred(C[2:10]) ≈ C̃[2:10] ≈ [C[k] for k=2:10]
-        end
+
+        @test @inferred(A[1:10]) ≈ Ã[1:10] ≈ [A[k] for k=1:10]
+        @test @inferred(B[1:10]) ≈ B̃[1:10] ≈ [B[k] for k=1:10]
+        @test @inferred(C[2:10]) ≈ C̃[2:10] ≈ [C[k] for k=2:10]
 
         @test A[1:10] isa Vector{Float64}
         @test B[1:10] isa Vector{Float64}
@@ -84,9 +83,19 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, Lan
         w = P * [1; zeros(∞)];
         Q = LanczosPolynomial(w);
         R = Normalized(P) \ Q
+        @test bandwidths(R) == (0,∞)
+        @test orthogonalityweight(Q) == w
+        @test permutedims(R) === transpose(R)
         @test R * [1; 2; 3; zeros(∞)] ≈ [R[1:3,1:3] * [1,2,3]; zeros(∞)]
         @test R \ [1; 2; 3; zeros(∞)] ≈ [1; 2; 3; zeros(∞)]
         @test (Q * (Q \ (1 .- x.^2)))[0.1] ≈ (1-0.1^2)
+
+        ũ = Normalized(P)*[1; 2; 3; zeros(∞)]
+        u = Q*[1; 2; 3; zeros(∞)]
+        ū = P * (P\u)
+        @test (u + u)[0.1] ≈ (ũ + u)[0.1] ≈ (u + ũ)[0.1] ≈ (ũ + ũ)[0.1] ≈ (ū + u)[0.1] ≈ (u + ū)[0.1] ≈ (ū + ū)[0.1] ≈ 2u[0.1]
+
+        @test Q \ u ≈ Q \ ũ ≈ Q \ ū
     end
 
     @testset "Jacobi via Lanczos" begin
@@ -209,6 +218,34 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, Lan
         @test X.dv[3:10] ≈ [X[k,k] for k in 3:10]
         @test X.dv[3:∞][1:5] ≈ X.dv[3:7]
         @test X.dv[3:∞][2:∞][1:5] ≈ X.dv[4:8]
+    end
+
+    @testset "golubwelsch" begin
+        x = axes(Legendre(),1)
+        Q = LanczosPolynomial( @.(inv(1+x^2)))
+        x,w = golubwelsch(Q[:,Base.OneTo(10)])
+        @test sum(w) ≈ π/2
+        @test sum(x.^2 .* w) ≈ 2 - π/2
+
+        x̃ = Inclusion(-1..1)
+        Q̃ = LanczosPolynomial( @.(inv(1+x̃^2)))
+        @test all((x,w) .≈ golubwelsch(Q̃[:,Base.OneTo(10)]))
+    end
+
+    @testset "ambiguity (#45)" begin
+        x = Inclusion(-1.0..1)
+        a = 1.5
+        ϕ = x.^4 - (a^2 + 1)*x.^2 .+ a^2
+        Pϕ = Normalized(LanczosPolynomial(ϕ))
+        P = Normalized(Legendre())
+        Cϕ = Pϕ\P
+    end
+
+    @testset "3-mul-singularity" begin
+        m = 1
+        x = Inclusion(0..1)
+        Q = LanczosPolynomial(@. x^m*(1-x)^m*(2-x)^m)
+        @test Q[0.1,:]'*(Q \exp.(x)) ≈ exp(0.1)
     end
 
     @testset "1/sqrt(1-x^2) + δ₂" begin

@@ -1,5 +1,5 @@
-using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, Test
-import ClassicalOrthogonalPolynomials: NormalizedBasisLayout, recurrencecoefficients, Normalized, Clenshaw, weighted
+using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, LinearAlgebra, Test
+import ClassicalOrthogonalPolynomials: NormalizedBasisLayout, recurrencecoefficients, Normalized, Clenshaw, weighted, grid, plotgrid
 import LazyArrays: CachedVector, PaddedLayout
 import ContinuumArrays: MappedWeightedBasisLayout
 
@@ -79,6 +79,13 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
         @testset "show" begin
             @test stringmime("text/plain", Normalized(Legendre())) == "Normalized(Legendre{Float64})"
+        end
+
+        @testset "qr" begin
+            P = Legendre()
+            Q,R = qr(P)
+            @test Q == Normalized(Legendre())
+            @test R[1:10,1:10] == (P\Q)[1:10,1:10]
         end
     end
 
@@ -194,5 +201,12 @@ import ContinuumArrays: MappedWeightedBasisLayout
         # @test (x-y) * Q[x,1:n]'*Q[y,1:n] ≈ (x-y) * Q[x,:]'*Pn*Q[y,:] ≈ (x-y) * Q[x,:]'*Pn*Q[y,:]
         # Q[x,:]' * ((X*Pn - Pn*X)* Q[y,:])
         @test (x-y) * Q[x,1:n]'*Q[y,1:n] ≈ Q[x,n:n+1]' * (X*Pn - Pn*X)[n:n+1,n:n+1] * Q[y,n:n+1]
+    end
+
+    @testset "plotting" begin
+        P = Legendre()
+        Q = Normalized(P)
+        @test grid(Q[:,1:5]) == grid(Q[:,collect(1:5)]) == grid(P[:,1:5])
+        @test plotgrid(Q[:,1:5]) == plotgrid(Q[:,collect(1:5)]) == plotgrid(P[:,1:5])
     end
 end

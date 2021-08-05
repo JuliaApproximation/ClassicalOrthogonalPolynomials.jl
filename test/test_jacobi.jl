@@ -163,6 +163,13 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         f̃ = @.(sqrt(1 - x̃) * exp(x̃))
         @test wP̃[0.1,1:100]'*(wP̃[:,1:100] \ f̃) ≈ sqrt(1-0.1) * exp(0.1)
         @test (wP̃ * (wP̃ \ f̃))[0.1] ≈ sqrt(1-0.1) * exp(0.1)
+
+        @testset "bug" begin
+            P = jacobi(0,-1/2,0..1)
+            x = axes(P,1)
+            u = P * (P \ exp.(x))
+            @test u[0.1] ≈ exp(0.1)
+        end
     end
 
     @testset "trivial weight" begin
@@ -242,7 +249,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         w = JacobiWeight(1.0,1.0)
         wS = w .* S
 
-        W = Diagonal(w)
+        W = QuasiDiagonal(w)
         @test W[0.1,0.2] ≈ 0.0
     end
 
@@ -395,5 +402,12 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test Jacobi(0, 0)[0.1,1:11]'*L[1:11,1:10] ≈ HalfWeighted{:a}(Normalized(Jacobi(1, 0)))[0.1,1:10]'
         L = Normalized(Jacobi(0, 0)) \ HalfWeighted{:a}(Jacobi(1, 0))
         @test Normalized(Jacobi(0, 0))[0.1,1:11]'*L[1:11,1:10] ≈ HalfWeighted{:a}(Jacobi(1, 0))[0.1,1:10]'
+
+        @testset "different weighted" begin
+            L = Weighted(Jacobi(0,0)) \ Weighted(Jacobi(1,1))
+            @test L[1:10,1:10] ≈ (Legendre() \ Weighted(Jacobi(1,1)))[1:10,1:10]
+            @test Weighted(Jacobi(0,0)) \ Legendre() == Eye(∞)
+            @test Weighted(Jacobi(0,0)) \ (Legendre() * [1; zeros(∞)]) ≈ [1; zeros(∞)]
+        end
     end
 end
