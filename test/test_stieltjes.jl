@@ -190,13 +190,25 @@ end
     end
 
     @testset "OffHilbert" begin
-        U = ChebyshevU()
-        W = Weighted(U)
-        t = axes(U,1)
-        x = Inclusion(2..3)
-        T̃ = chebyshevt(2..3)
-        H = T̃ \ inv.(x .- t') * W
-        @test T̃[2.3,1:100]' * H[1:100,1:100] ≈ (inv.(2.3 .- t') * W)[:,1:100]
+        @testset "ChebyshevU" begin
+            U = ChebyshevU()
+            W = Weighted(U)
+            t = axes(U,1)
+            x = Inclusion(2..3)
+            T = chebyshevt(2..3)
+            H = T \ inv.(x .- t') * W
+            @test T[2.3,1:100]' * H[1:100,1:100] ≈ (inv.(2.3 .- t') * W)[:,1:100]
+        end
+
+        @testset "mapped" begin
+            U = chebyshevu(-1..0)
+            W = Weighted(U)
+            t = axes(U,1)
+            x = Inclusion(2..3)
+            T = chebyshevt(2..3)
+            H = T \ inv.(x .- t') * W
+            @test T[2.3,1:100]' * H[1:100,1:100] ≈ (inv.(2.3 .- t') * W)[:,1:100]
+        end
     end
 end
 
