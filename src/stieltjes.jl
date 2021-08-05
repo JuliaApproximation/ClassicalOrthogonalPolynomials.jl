@@ -117,6 +117,7 @@ end
     (inv.(x .- x') * P)[m]
 end
 
+
 @simplify function *(H::Hilbert, wP::Weighted{<:Any,<:SubQuasiArray{<:Any,2}})
     T = promote_type(eltype(H), eltype(wP))
     kr,jr = parentindices(wP.P)
@@ -124,12 +125,16 @@ end
     x = axes(H,1)
     t = axes(H,2)
     t̃ = axes(P,1)
-    M = affine(t,t̃)
-    @assert x isa Inclusion
-    a,b = first(x),last(x)
-    x̃ = Inclusion((M.A * a .+ M.b)..(M.A * b .+ M.b)) # map interval to new interval
-    Q̃,M = arguments(*, inv.(x̃ .- t̃') * Weighted(P))
-    parent(Q̃)[affine(x,axes(parent(Q̃),1)),:] * M
+    if x == t
+        (inv.(t̃ .- t̃') * Weighted(P))[kr,jr]
+    else
+        M = affine(t,t̃)
+        @assert x isa Inclusion
+        a,b = first(x),last(x)
+        x̃ = Inclusion((M.A * a .+ M.b)..(M.A * b .+ M.b)) # map interval to new interval
+        Q̃,M = arguments(*, inv.(x̃ .- t̃') * Weighted(P))
+        parent(Q̃)[affine(x,axes(parent(Q̃),1)),:] * M
+    end
 end
 
 
