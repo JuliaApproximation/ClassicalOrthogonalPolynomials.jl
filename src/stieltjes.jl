@@ -103,6 +103,10 @@ end
 
 
 
+##
+# mapped
+###
+
 @simplify function *(H::Hilbert, w::SubQuasiArray{<:Any,1})
     T = promote_type(eltype(H), eltype(w))
     m = parentindices(w)[1]
@@ -116,11 +120,16 @@ end
 @simplify function *(H::Hilbert, wP::Weighted{<:Any,<:SubQuasiArray{<:Any,2}})
     T = promote_type(eltype(H), eltype(wP))
     kr,jr = parentindices(wP.P)
-        # TODO: mapping other geometries
-    @assert axes(H,1) == axes(H,2) == axes(wP,1)
     P = parent(wP.P)
-    x = axes(P,1)
-    (inv.(x .- x') * Weighted(P))[kr,jr]
+    x = axes(H,1)
+    t = axes(H,2)
+    t̃ = axes(P,1)
+    M = affine(t,t̃)
+    @assert x isa Inclusion
+    a,b = first(x),last(x)
+    x̃ = Inclusion((M.A * a .+ M.b)..(M.A * b .+ M.b)) # map interval to new interval
+    Q̃,M = arguments(*, inv.(x̃ .- t̃') * Weighted(P))
+    parent(Q̃)[affine(x,axes(parent(Q̃),1)),:] * M
 end
 
 
