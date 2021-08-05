@@ -21,7 +21,7 @@ OrthogonalPolynomialRatio(P::AbstractQuasiMatrix{T}, x) where T = OrthogonalPoly
 size(K::OrthogonalPolynomialRatio) = (ℵ₀,)
 
 
-function LazyArrays.cache_filldata!(R::OrthogonalPolynomialRatio, inds)
+function cache_filldata!(R::OrthogonalPolynomialRatio, inds)
     A,B,C = recurrencecoefficients(R.P)
     x = R.x
     data = R.data

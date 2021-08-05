@@ -58,40 +58,40 @@ associated(::ChebyshevU{T}) where T = ChebyshevU{T}()
 
 
 const StieltjesPoint{T,V,D} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{BroadcastQuasiMatrix{T,typeof(-),Tuple{T,QuasiAdjoint{V,Inclusion{V,D}}}}}}
-const ConvKernel{T,D} = BroadcastQuasiMatrix{T,typeof(-),Tuple{D,QuasiAdjoint{T,D}}}
-const Hilbert{T,D} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{ConvKernel{T,Inclusion{T,D}}}}
-const LogKernel{T,D} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D}}}}}}
-const PowKernel{T,D,F<:Real} = BroadcastQuasiMatrix{T,typeof(^),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D}}}},F}}
+const ConvKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(-),Tuple{D1,QuasiAdjoint{T,D2}}}
+const Hilbert{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}
+const LogKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}}}
+const PowKernel{T,D1,D2,F<:Real} = BroadcastQuasiMatrix{T,typeof(^),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}},F}}
 
 
-@simplify function *(H::Hilbert, w::ChebyshevTWeight)
+@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, w::ChebyshevTWeight)
     T = promote_type(eltype(H), eltype(w))
     zeros(T, axes(w,1))
 end
 
-@simplify function *(H::Hilbert, w::ChebyshevUWeight)
+@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, w::ChebyshevUWeight)
     T = promote_type(eltype(H), eltype(w))
     convert(T,π) * axes(w,1)
 end
 
-@simplify function *(H::Hilbert, w::LegendreWeight)
+@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, w::LegendreWeight)
     T = promote_type(eltype(H), eltype(w))
     x = axes(w,1)
     log.(x .+ one(T)) .- log.(one(T) .- x)
 end
 
-@simplify function *(H::Hilbert, wT::Weighted{<:Any,<:ChebyshevT}) 
+@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wT::Weighted{<:Any,<:ChebyshevT}) 
     T = promote_type(eltype(H), eltype(wT))
     ChebyshevU{T}() * _BandedMatrix(Fill(-convert(T,π),1,∞), ℵ₀, -1, 1)
 end
 
-@simplify function *(H::Hilbert, wU::Weighted{<:Any,<:ChebyshevU}) 
+@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wU::Weighted{<:Any,<:ChebyshevU}) 
     T = promote_type(eltype(H), eltype(wU))
     ChebyshevT{T}() * _BandedMatrix(Fill(convert(T,π),1,∞), ℵ₀, 1, -1)
 end
 
 
-@simplify function *(H::Hilbert, wP::Weighted{<:Any,<:OrthogonalPolynomial}) 
+@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wP::Weighted{<:Any,<:OrthogonalPolynomial}) 
     P = wP.P
     w = orthogonalityweight(P)
     A = recurrencecoefficients(P)[1]
@@ -99,13 +99,15 @@ end
     (-A[1]*sum(w))*[zero(axes(P,1)) Q] + (H*w) .* P
 end
 
-@simplify *(H::Hilbert, P::Legendre) = H * Weighted(P)
+@simplify *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, P::Legendre) = H * Weighted(P)
 
 
 
 @simplify function *(H::Hilbert, w::SubQuasiArray{<:Any,1})
     T = promote_type(eltype(H), eltype(w))
     m = parentindices(w)[1]
+    # TODO: mapping other geometries
+    @assert axes(H,1) == axes(H,2) == axes(w,1)
     P = parent(w)
     x = axes(P,1)
     (inv.(x .- x') * P)[m]
@@ -114,6 +116,8 @@ end
 @simplify function *(H::Hilbert, wP::Weighted{<:Any,<:SubQuasiArray{<:Any,2}})
     T = promote_type(eltype(H), eltype(wP))
     kr,jr = parentindices(wP.P)
+        # TODO: mapping other geometries
+    @assert axes(H,1) == axes(H,2) == axes(wP,1)
     P = parent(wP.P)
     x = axes(P,1)
     (inv.(x .- x') * Weighted(P))[kr,jr]
@@ -124,7 +128,7 @@ end
 # LogKernel
 ###
 
-@simplify function *(L::LogKernel, wT::Weighted{<:Any,<:ChebyshevT}) 
+@simplify function *(L::LogKernel{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wT::Weighted{<:Any,<:ChebyshevT}) 
     T = promote_type(eltype(L), eltype(wT))
     ChebyshevT{T}() * Diagonal(Vcat(-convert(T,π)*log(2*one(T)),-convert(T,π)./(1:∞)))
 end
@@ -132,6 +136,7 @@ end
 @simplify function *(H::LogKernel, wT::Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:ChebyshevT,<:Tuple{AbstractAffineQuasiVector,Slice}}})
     V = promote_type(eltype(H), eltype(wT))
     kr,jr = parentindices(wT.P)
+    @assert axes(H,1) == axes(H,2) == axes(wT,1)
     T = parent(wT.P)
     x = axes(T,1)
     W = Weighted(T)
@@ -181,11 +186,46 @@ sqrtx2(z::Number) = sqrt(z-1)*sqrt(z+1)
 sqrtx2(x::Real) = sign(x)*sqrt(x^2-1)
 
 @simplify function *(S::StieltjesPoint, wP::Weighted{<:Any,<:ChebyshevU})
+    T = promote_type(eltype(S), eltype(wP))
     z, x = parent(S).args[1].args
     z in axes(wP,1) && transpose((inv.(x .- x') * wP)[z,:])
     ξ = inv(z + sqrtx2(z))
-    transpose(π * ξ.^oneto(∞))
+    transpose(convert(T,π) * ξ.^oneto(∞))
 end
+
+"""
+   HilbertVandermonde(M, data)
+
+represents the matrix with columns M^k * data[:,end].
+"""
+mutable struct HilbertVandermonde{T,MM} <: AbstractCachedMatrix{T}
+    M::MM
+    data::Matrix{T}
+    datasize::NTuple{2,Int}
+end
+
+HilbertVandermonde(M, data::Matrix) = HilbertVandermonde(M, data, size(data))
+size(H::HilbertVandermonde) = (ℵ₀,ℵ₀)
+
+function cache_filldata!(H::HilbertVandermonde{T}, kr, jr) where T
+    n,m = H.datasize
+    isempty(kr) && return
+    isempty(jr) && return
+    H.data[(n+1):maximum(kr),1:m] .= zero(T)
+    for j in (m+1):maximum(jr)
+        H.data[kr,j] .= (H.M * [H.data[:,j-1]; Zeros{T}(∞)])[kr]
+    end
+end
+
+@simplify function *(H::Hilbert{<:Any,<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
+    x = axes(H,1)
+    T̃ = chebyshevt(x)
+    ψ_1 = T̃ \ inv.(x .+ sqrtx2.(x))
+    data = convert(eltype(H),π) * Matrix(reshape(paddeddata(ψ_1),:,1))
+    T̃ * HilbertVandermonde(Clenshaw(T̃ * ψ_1, T̃), data)
+end
+
+
 
 
 @simplify function *(S::StieltjesPoint, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
