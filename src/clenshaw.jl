@@ -95,9 +95,14 @@ end
 # Clenshaw
 ###
 
-function getindex(f::Expansion{<:Any,<:OrthogonalPolynomial}, x::Number)
+function unsafe_getindex(f::Expansion{<:Any,<:OrthogonalPolynomial}, x::Number)
     P,c = arguments(f)
     _p0(P)*clenshaw(paddeddata(c), recurrencecoefficients(P)..., x)
+end
+
+Base.@propagate_inbounds function getindex(f::Expansion{<:Any,<:OrthogonalPolynomial}, x::Number)
+    @inbounds checkbounds(f, x)
+    unsafe_getindex(f, x)
 end
 
 getindex(f::Expansion{T,<:OrthogonalPolynomial}, x::AbstractVector{<:Number}) where T = 

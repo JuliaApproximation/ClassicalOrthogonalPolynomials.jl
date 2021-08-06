@@ -7,7 +7,7 @@ using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, Bloc
     InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW,
     LazyBandedMatrices, HypergeometricFunctions
 
-import Base: @_inline_meta, axes, getindex, convert, prod, *, /, \, +, -,
+import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy,
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
                 to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
@@ -18,7 +18,7 @@ import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, colsupp
                 AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!
 import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
                         subdiagonaldata, diagonaldata, supdiagonaldata
-import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, AbstractLazyBandedLayout
+import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1, AbstractLazyBandedLayout
 import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
 import FillArrays: AbstractFill, getindex_value, SquareEye
@@ -39,7 +39,7 @@ import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurr
 
 import FastGaussQuadrature: jacobimoment
 
-import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray
+import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray, block, blockindex, BlockSlice
 import BandedMatrices: bandwidths
 
 export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial,
@@ -49,7 +49,7 @@ export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomia
             ∞, Derivative, .., Inclusion,
             chebyshevt, chebyshevu, legendre, jacobi, ultraspherical,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
-            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace
 
 
 import Base: oneto
@@ -61,7 +61,7 @@ include("interlace.jl")
 cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
 cardinality(::EuclideanDomain) = ℵ₁
 
-transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  = 
+transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
     adaptivetransform_ldiv(convert(AbstractQuasiArray{promote_type(T,V)}, A), f)
 
 function chop!(c::AbstractVector, tol::Real)

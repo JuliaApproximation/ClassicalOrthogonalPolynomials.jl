@@ -1,5 +1,5 @@
-using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, orthogonalityweight, golubwelsch
+using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, QuasiArrays, ContinuumArrays, Test
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, orthogonalityweight, golubwelsch, LanczosData
 
 @testset "Lanczos" begin
     @testset "Legendre" begin
@@ -246,5 +246,16 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         x = Inclusion(0..1)
         Q = LanczosPolynomial(@. x^m*(1-x)^m*(2-x)^m)
         @test Q[0.1,:]'*(Q \exp.(x)) ≈ exp(0.1)
+    end
+
+    @testset "1/sqrt(1-x^2) + δ₂" begin
+        U = ChebyshevU()
+        W = π/2*I + (Base.unsafe_getindex(U,2,:) * Base.unsafe_getindex(U,2,:)')
+        X = jacobimatrix(U)
+        dat = LanczosData(X, W);
+        w = QuasiArrays.UnionVcat(ChebyshevUWeight(), DiracDelta(2))
+        Q = LanczosPolynomial(w, U, dat);
+        R = U \ Q;
+        @test R[1:5,1:5] isa Matrix{Float64}
     end
 end
