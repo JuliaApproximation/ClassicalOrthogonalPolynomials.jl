@@ -1,5 +1,5 @@
-using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, orthogonalityweight, golubwelsch
+using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, QuasiArrays, ContinuumArrays, Test
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, orthogonalityweight, golubwelsch, LanczosData
 
 @testset "Lanczos" begin
     @testset "Legendre" begin

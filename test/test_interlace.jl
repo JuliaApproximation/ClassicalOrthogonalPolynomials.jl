@@ -1,5 +1,6 @@
 using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, Test
 import ClassicalOrthogonalPolynomials: PiecewiseInterlace
+
 @testset "Piecewise" begin
     T1,T2 = chebyshevt((-1)..0), chebyshevt(0..1)
     U1,U2 = chebyshevu((-1)..0), chebyshevu(0..1)

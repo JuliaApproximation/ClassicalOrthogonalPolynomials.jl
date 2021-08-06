@@ -60,8 +60,6 @@ include("interlace.jl")
 
 cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
 cardinality(::EuclideanDomain) = ℵ₁
-cardinality(d::UnionDomain) = sum(map(cardinality, d.domains))
-checkpoints(d::UnionDomain) = union(map(checkpoints,d.domains)...)
 
 transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
     adaptivetransform_ldiv(convert(AbstractQuasiArray{promote_type(T,V)}, A), f)
