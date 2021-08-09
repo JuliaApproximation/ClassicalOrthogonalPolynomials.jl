@@ -36,7 +36,7 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
     @testset "two-interval Hilbert" begin
         T1,T2 = chebyshevt((-2)..(-1)), chebyshevt(0..2)
         U1,U2 = chebyshevu((-2)..(-1)), chebyshevu(0..2)
-        W = PiecewiseInterlace(Weighted(U1), Weighted(U2))
+        W = PiecewiseInterlace(Weighted(U1), Weighted(U2)) 
         T = PiecewiseInterlace(T1, T2)
         x = axes(W,1)
         H = T \ inv.(x .- x') * W;
