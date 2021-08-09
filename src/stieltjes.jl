@@ -231,14 +231,14 @@ mutable struct HilbertVandermonde{T,MM} <: AbstractCachedMatrix{T}
     M::MM
     data::Matrix{T}
     datasize::NTuple{2,Int}
-    colsupport::Int
+    colsupport::Vector{Int}
 end
 
-HilbertVandermonde(M, data::Matrix) = HilbertVandermonde(M, data, size(data), 0)
+HilbertVandermonde(M, data::Matrix) = HilbertVandermonde(M, data, size(data), Int[])
 size(H::HilbertVandermonde) = (ℵ₀,ℵ₀)
 function colsupport(H::HilbertVandermonde, j)
     resizedata!(H, H.datasize[1], maximum(j))
-    1:H.colsupport
+    1:H.colsupport[j]
 end
 
 function cache_filldata!(H::HilbertVandermonde{T}, kr, jr) where T
@@ -246,9 +246,10 @@ function cache_filldata!(H::HilbertVandermonde{T}, kr, jr) where T
     isempty(kr) && return
     isempty(jr) && return
     H.data[(n+1):maximum(kr),1:m] .= zero(T)
+    resize!(H.colsupport, max(length(H.colsupport), maximum(jr)))
     for j in (m+1):maximum(jr)
         u = H.M * [H.data[:,j-1]; Zeros{T}(∞)]
-        H.colsupport = max(H.colsupport, maximum(colsupport(u,1)))
+        H.colsupport[j] = colsupport(u,1)
         H.data[kr,j] .= u[kr]
     end
 end

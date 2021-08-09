@@ -39,7 +39,7 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
         W = PiecewiseInterlace(Weighted(U1), Weighted(U2))
         T = PiecewiseInterlace(T1, T2)
         x = axes(W,1)
-        H = T \ inv.(x .- x') * W
+        H = T \ inv.(x .- x') * W;
 
         c = W \ broadcast(x -> exp(x)* (0 ≤ x ≤ 2 ? sqrt(2-x)*sqrt(x) : sqrt(-1-x)*sqrt(x+2)), x)
         @test T[0.5,1:200]'*(H*c)[1:200] ≈ -6.064426633490422

@@ -207,7 +207,8 @@ end
             x = Inclusion(2..3)
             T = chebyshevt(2..3)
             H = T \ inv.(x .- t') * W
-            @test T[2.3,1:100]' * H[1:100,1:100] ≈ (inv.(2.3 .- t') * W)[:,1:100]
+            N = 100
+            @test T[2.3,1:N]' * H[1:N,1:N] ≈ (inv.(2.3 .- t') * W)[:,1:N]
 
             U = chebyshevu((-2)..(-1))
             W = Weighted(U)
