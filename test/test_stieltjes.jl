@@ -208,6 +208,14 @@ end
             T = chebyshevt(2..3)
             H = T \ inv.(x .- t') * W
             @test T[2.3,1:100]' * H[1:100,1:100] ≈ (inv.(2.3 .- t') * W)[:,1:100]
+
+            U = chebyshevu((-2)..(-1))
+            W = Weighted(U)
+            T = chebyshevt(0..2)
+            x = axes(T,1)
+            t = axes(W,1)
+            H = T \ inv.(x .- t') * W
+            @test T[0.5,1:N]'*(H * (W \ @.(sqrt(-1-t)*sqrt(t+2)*exp(t))))[1:N] ≈ 0.047390454610749054
         end
     end
 end

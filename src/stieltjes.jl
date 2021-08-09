@@ -63,6 +63,8 @@ const Hilbert{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{ConvKernel{T,I
 const LogKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}}}
 const PowKernel{T,D1,D2,F<:Real} = BroadcastQuasiMatrix{T,typeof(^),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}},F}}
 
+Hilbert(x) = inv.(x .- x')
+
 
 @simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, w::ChebyshevTWeight)
     T = promote_type(eltype(H), eltype(w))
@@ -137,6 +139,19 @@ end
     end
 end
 
+@simplify function *(H::Hilbert, S::PiecewiseInterlace)
+    axes(H,2) == axes(S,1) || throw(DimensionMismatch())
+    @assert length(S.args) == 2
+    a,b = S.args
+    xa,xb = axes(a,1),axes(b,1)
+    Ha_a = inv.(xa .- xa') * a
+    Ha_b = inv.(xb .- xa') * a
+    Hb_a = inv.(xa .- xb') * b
+    Hb_b = inv.(xb .- xb') * b
+    c,d = Hb_a.args[1], Ha_b.args[1]
+    A,B,C,D = unitblocks(c \ Ha_a), unitblocks(c \ Hb_a), unitblocks(d \ Ha_b), unitblocks(d \ Hb_b)
+    PiecewiseInterlace(c,d)  * BlockBroadcastArray{promote_type(eltype(H),eltype(S))}(hvcat, 2, A, B, C, D)
+end
 
 ### 
 # LogKernel
@@ -216,10 +231,15 @@ mutable struct HilbertVandermonde{T,MM} <: AbstractCachedMatrix{T}
     M::MM
     data::Matrix{T}
     datasize::NTuple{2,Int}
+    colsupport::Int
 end
 
-HilbertVandermonde(M, data::Matrix) = HilbertVandermonde(M, data, size(data))
+HilbertVandermonde(M, data::Matrix) = HilbertVandermonde(M, data, size(data), 0)
 size(H::HilbertVandermonde) = (ℵ₀,ℵ₀)
+function colsupport(H::HilbertVandermonde, j)
+    resizedata!(H, H.datasize[1], maximum(j))
+    1:H.colsupport
+end
 
 function cache_filldata!(H::HilbertVandermonde{T}, kr, jr) where T
     n,m = H.datasize
@@ -227,7 +247,9 @@ function cache_filldata!(H::HilbertVandermonde{T}, kr, jr) where T
     isempty(jr) && return
     H.data[(n+1):maximum(kr),1:m] .= zero(T)
     for j in (m+1):maximum(jr)
-        H.data[kr,j] .= (H.M * [H.data[:,j-1]; Zeros{T}(∞)])[kr]
+        u = H.M * [H.data[:,j-1]; Zeros{T}(∞)]
+        H.colsupport = max(H.colsupport, maximum(colsupport(u,1)))
+        H.data[kr,j] .= u[kr]
     end
 end
 
