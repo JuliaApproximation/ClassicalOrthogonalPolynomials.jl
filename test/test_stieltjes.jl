@@ -197,6 +197,7 @@ end
             x = Inclusion(2..3)
             T = chebyshevt(2..3)
             H = T \ inv.(x .- t') * W;
+            @test last(colsupport(H,6)) ≤ 40
             @test T[2.3,1:100]'*(H * (W \ @.(sqrt(1-t^2)exp(t))))[1:100] ≈ 0.9068295340935111
             @test T[2.3,1:100]' * H[1:100,1:100] ≈ (inv.(2.3 .- t') * W)[:,1:100]
         end
