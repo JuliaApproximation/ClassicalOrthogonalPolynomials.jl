@@ -140,7 +140,7 @@ end
 
 @simplify function *(D::Derivative, S::AbstractInterlaceBasis)
     axes(D,2) == axes(S,1) || throw(DimensionMismatch())
-    args = arguments.(Ref(ApplyLayout{typeof(*)}()), Derivative.(axes.(S.args,1)) .* S.args)
+    args = arguments.(*, Derivative.(axes.(S.args,1)) .* S.args)
     all(length.(args) .== 2) || error("Not implemented")
     interlacebasis(S, map(first, args)...) * BlockBroadcastArray{promote_type(eltype(D),eltype(S))}(Diagonal, unitblocks.(last.(args))...)
 end

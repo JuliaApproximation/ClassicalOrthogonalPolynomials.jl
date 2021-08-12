@@ -44,9 +44,11 @@ WeightedChebyshev() = WeightedChebyshevT()
 chebyshevt() = ChebyshevT()
 chebyshevt(d::AbstractInterval{T}) where T = ChebyshevT{float(T)}()[affine(d, ChebyshevInterval{T}()), :]
 chebyshevt(d::Inclusion) = chebyshevt(d.domain)
+chebyshevt(S::AbstractQuasiMatrix) = chebyshevt(axes(S,1))
 chebyshevu() = ChebyshevU()
 chebyshevu(d::AbstractInterval{T}) where T = ChebyshevU{float(T)}()[affine(d, ChebyshevInterval{T}()), :]
 chebyshevu(d::Inclusion) = chebyshevu(d.domain)
+chebyshevu(S::AbstractQuasiMatrix) = chebyshevu(axes(S,1))
 
 """
      chebyshevt(n, z)

@@ -111,12 +111,13 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         T = Chebyshev()[2x .- 1,:]
         @test (T*(T\x))[0.1] ≈ 0.1
         @test (T* (T \ exp.(x)))[0.1] ≈ exp(0.1)
-        @test chebyshevt(0..1) == T
+        @test chebyshevt(0..1) == chebyshevt(Inclusion(0..1)) == chebyshevt(T) == T
 
         Tn = Chebyshev()[2x .- 1, [1,3,4]]
         @test (axes(Tn,1) .* Tn).args[2][1:5,:] ≈ (axes(T,1) .* T).args[2][1:5,[1,3,4]]
 
         U = chebyshevu(0..1)
+        @test chebyshevu(0..1) == chebyshevu(Inclusion(0..1)) == chebyshevu(T) == U
         @test (U*(U\x))[0.1] ≈ 0.1
         @test (U* (U \ exp.(x)))[0.1] ≈ exp(0.1)
 
