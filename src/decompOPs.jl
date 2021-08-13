@@ -1,15 +1,15 @@
 # This currently takes the weight multiplication operator as input.
 # I will probably change this to take the weight function instead.
-function cholesky_jacobimatrix(W)
+function cholesky_jacobimatrix(W::Symmetric)
     bands = CholeskyJacobiBands(W) # the cached array only needs to store two bands bc of symmetry
     return SymTridiagonal(bands[1,:],bands[2,:])
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data as two bands
 mutable struct CholeskyJacobiBands{T} <: AbstractCachedMatrix{T}
-    data
-    U
-    X
+    data::Matrix{T}
+    U::UpperTriangular
+    X::Symmetric{T}
     datasize::Int
     array
 end
@@ -18,8 +18,7 @@ end
 symmjacobim(J::SymTridiagonal) = Symmetric(BandedMatrix(0=>J.dv, 1=>J.ev))
 
 # Computes the initial data for the Jacobi operator bands
-function CholeskyJacobiBands(W)
-    T = eltype(W)
+function CholeskyJacobiBands(W::Symmetric{T}) where T
     U = cholesky(W).U
     X = symmjacobim(jacobimatrix(Normalized(Legendre()[affine(zero(T)..one(T),Inclusion(-one(T)..one(T))),:])))
     dat = zeros(T,2,10)
@@ -37,7 +36,7 @@ function resizedata!(K::CholeskyJacobiBands, nm::Integer)
     νμ = K.datasize
     if nm > νμ
         olddata = copy(K.data)
-        K.data = similar(K.data, nm, nm)
+        K.data = similar(K.data, 2, nm)
         K.data[axes(olddata)...] = olddata
         inds = νμ:nm
         cache_filldata!(K, inds)
@@ -45,7 +44,7 @@ function resizedata!(K::CholeskyJacobiBands, nm::Integer)
     end
     K
 end
-function cache_filldata!(J::CholeskyJacobiBands, inds)
+function cache_filldata!(J::CholeskyJacobiBands, inds::UnitRange{Int})
     for k in inds
         J.data[1,k] = (J.U * (J.X * (J.U \ [zeros(k-1); 1; zeros(∞)])))[k]
         J.data[2,k] = (J.U * (J.X * (J.U \ [zeros(k); 1; zeros(∞)])))[k]
@@ -56,7 +55,7 @@ function getindex(K::CholeskyJacobiBands, k::Integer, j::Integer)
     resizedata!(K, max(k,j))
     K.data[k, j]
 end
-function getindex(K::CholeskyJacobiBands, kr::Integer, jr::UnitRange{Integer})
+function getindex(K::CholeskyJacobiBands, kr::Integer, jr::UnitRange{Int})
     resizedata!(K, maximum(jr))
     K.data[kr, jr]
 end
