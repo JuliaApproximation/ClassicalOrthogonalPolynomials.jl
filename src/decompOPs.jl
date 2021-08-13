@@ -52,7 +52,6 @@ function cache_filldata!(J::CholeskyJacobiBands, inds)
     end
 end
 
-# Need to check which of these are actually useful in practice with tests
 function getindex(K::CholeskyJacobiBands, k::Integer, j::Integer)
     resizedata!(K, max(k,j))
     K.data[k, j]
