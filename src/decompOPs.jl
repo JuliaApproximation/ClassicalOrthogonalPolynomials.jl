@@ -1,7 +1,8 @@
 # This currently takes the weight multiplication operator as input.
 # I will probably change this to take the weight function instead.
-function cholesky_jacobimatrix(W::Symmetric)
-    bands = CholeskyJacobiBands(W) # the cached array only needs to store two bands bc of symmetry
+function cholesky_jacobimatrix(w, P::OrthogonalPolynomial)
+    W = Symmetric(P \ (w.(axes(P,1)) .* P)) # Compute weight multiplication via Clenshaw
+    bands = CholeskyJacobiBands(W, P) # the cached array only needs to store two bands bc of symmetry
     return SymTridiagonal(bands[1,:],bands[2,:])
 end
 
@@ -9,18 +10,16 @@ end
 mutable struct CholeskyJacobiBands{T} <: AbstractCachedMatrix{T}
     data::Matrix{T}
     U::UpperTriangular
-    X::Symmetric{T}
+    X::SymTridiagonal{T}
     datasize::Int
     array
 end
 
-# SymTridiagonal currently doesn't parse as Symmetric, so here's a Q&D workaround for conversion
-symmjacobim(J::SymTridiagonal) = Symmetric(BandedMatrix(0=>J.dv, 1=>J.ev))
-
 # Computes the initial data for the Jacobi operator bands
-function CholeskyJacobiBands(W::Symmetric{T}) where T
+function CholeskyJacobiBands(W::Symmetric{T}, P::OrthogonalPolynomial) where T
+    @assert P isa Normalized
     U = cholesky(W).U
-    X = symmjacobim(jacobimatrix(Normalized(Legendre()[affine(zero(T)..one(T),Inclusion(-one(T)..one(T))),:])))
+    X = jacobimatrix(P)
     dat = zeros(T,2,10)
     for k in 1:10
         dat[1,k] = (U * (X * (U \ [zeros(k-1); 1; zeros(∞)])))[k]
