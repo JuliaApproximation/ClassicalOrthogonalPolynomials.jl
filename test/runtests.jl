@@ -40,6 +40,7 @@ include("test_normalized.jl")
 include("test_lanczos.jl")
 include("test_stieltjes.jl")
 include("test_interlace.jl")
+include("test_decompOPs.jl")
 
 @testset "Auto-diff" begin
     U = Ultraspherical(1)

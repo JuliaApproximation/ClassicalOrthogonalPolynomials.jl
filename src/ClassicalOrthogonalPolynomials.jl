@@ -361,6 +361,9 @@ include("classical/ultraspherical.jl")
 include("classical/laguerre.jl")
 include("classical/fourier.jl")
 include("stieltjes.jl")
+include("decompOPs.jl")
+
+export cholesky_jacobimatrix
 
 
 end # module
