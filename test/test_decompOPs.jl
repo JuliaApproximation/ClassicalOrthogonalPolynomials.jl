@@ -1,5 +1,5 @@
 using Test, ClassicalOrthogonalPolynomials, BandedMatrices, LinearAlgebra, LazyArrays, ContinuumArrays, LazyBandedMatrices
-import ClassicalOrthogonalPolynomials: symmjacobim, CholeskyJacobiBands
+import ClassicalOrthogonalPolynomials: CholeskyJacobiBands
 import LazyArrays: AbstractCachedMatrix
 import LazyBandedMatrices: SymTridiagonal
 
