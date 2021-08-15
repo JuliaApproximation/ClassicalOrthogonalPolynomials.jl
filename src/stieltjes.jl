@@ -231,7 +231,7 @@ mutable struct HilbertVandermonde{T,MM} <: AbstractCachedMatrix{T}
     colsupport::Vector{Int}
 end
 
-HilbertVandermonde(M, data::Matrix) = HilbertVandermonde(M, data, size(data), Int[])
+HilbertVandermonde(M, data::Matrix) = HilbertVandermonde(M, data, size(data), fill(size(data,1), size(data,2)))
 size(H::HilbertVandermonde) = (ℵ₀,ℵ₀)
 function colsupport(H::HilbertVandermonde, j)
     resizedata!(H, H.datasize[1], maximum(j))

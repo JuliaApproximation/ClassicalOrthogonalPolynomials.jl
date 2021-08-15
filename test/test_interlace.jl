@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, Test
+using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, Test
 import ClassicalOrthogonalPolynomials: PiecewiseInterlace
 
 @testset "Piecewise" begin
@@ -36,12 +36,20 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
     @testset "two-interval Hilbert" begin
         T1,T2 = chebyshevt((-2)..(-1)), chebyshevt(0..2)
         U1,U2 = chebyshevu((-2)..(-1)), chebyshevu(0..2)
-        W = PiecewiseInterlace(Weighted(U1), Weighted(U2)) 
+        W = PiecewiseInterlace(Weighted(U1), Weighted(U2))
         T = PiecewiseInterlace(T1, T2)
         x = axes(W,1)
         H = T \ inv.(x .- x') * W;
+        
+        @test maximum(BlockArrays.blockcolsupport(H,5)) ≤ 50
 
         c = W \ broadcast(x -> exp(x)* (0 ≤ x ≤ 2 ? sqrt(2-x)*sqrt(x) : sqrt(-1-x)*sqrt(x+2)), x)
         @test T[0.5,1:200]'*(H*c)[1:200] ≈ -6.064426633490422
+
+        @testset "inversion" begin
+            H̃ = BlockHcat(Eye((axes(H,1),))[:,Block(1)], H);
+            @test blockcolsupport(H̃,1) == Block.(1:1)
+            @test blockcolsupport(H̃,2) == Block.(1:22)
+        end
     end
 end
