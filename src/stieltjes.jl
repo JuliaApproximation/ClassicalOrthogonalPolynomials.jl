@@ -256,7 +256,7 @@ end
 @simplify function *(H::Hilbert{<:Any,<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
     x = axes(H,1)
     T̃ = chebyshevt(x)
-    ψ_1 = T̃ \ inv.(x .+ sqrtx2.(x))
+    ψ_1 = T̃ \ inv.(x .+ sqrtx2.(x)) # same x .- sqrt(x^2 - 1) but with relative accuracy as x -> ∞
     data = convert(eltype(H),π) * Matrix(reshape(paddeddata(ψ_1),:,1))
     T̃ * HilbertVandermonde(Clenshaw(T̃ * ψ_1, T̃), data)
 end
