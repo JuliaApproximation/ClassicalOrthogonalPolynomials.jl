@@ -214,7 +214,7 @@ sqrtx2(x::Real) = sign(x)*sqrt(x^2-1)
 @simplify function *(S::StieltjesPoint, wP::Weighted{<:Any,<:ChebyshevU})
     T = promote_type(eltype(S), eltype(wP))
     z, xc = parent(S).args[1].args
-    z in axes(wP,1) && return transpose(view(inv.(xc' .- xc) * wP,z,:))
+    z in axes(wP,1) && return  (convert(T,π)*ChebyshevT()[z,2:end])'
     ξ = inv(z + sqrtx2(z))
     transpose(convert(T,π) * ξ.^oneto(∞))
 end

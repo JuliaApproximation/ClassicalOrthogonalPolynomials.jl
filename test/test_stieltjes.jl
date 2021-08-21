@@ -82,7 +82,11 @@ end
 
             t = 0.5
             @test (inv.(t .- x') * Weighted(T))[1,1:3] ≈ [0,-π,-π]
-            @test (inv.(t .- x') * Weighted(U))[1,1:3] ≈ [π/2,-π/2,-π]           
+            @test (inv.(t .- x') * Weighted(U))[1,1:3] ≈ [π/2,-π/2,-π]
+
+            t = 0.5+0im
+            @test (inv.(t .- x') * Weighted(T))[1,1:3] ≈ [0,-π,-π]
+            @test (inv.(t .- x') * Weighted(U))[1,1:3] ≈ [π/2,-π/2,-π]
         end
     end
 
