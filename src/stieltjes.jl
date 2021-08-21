@@ -57,7 +57,7 @@ associated(::ChebyshevT{T}) where T = ChebyshevU{T}()
 associated(::ChebyshevU{T}) where T = ChebyshevU{T}()
 
 
-const StieltjesPoint{T,V,D} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{BroadcastQuasiMatrix{T,typeof(-),Tuple{T,QuasiAdjoint{V,Inclusion{V,D}}}}}}
+const StieltjesPoint{T,W<:Number,V,D} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{BroadcastQuasiMatrix{T,typeof(-),Tuple{W,QuasiAdjoint{V,Inclusion{V,D}}}}}}
 const ConvKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(-),Tuple{D1,QuasiAdjoint{T,D2}}}
 const Hilbert{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}
 const LogKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}}}
@@ -203,8 +203,8 @@ end
     P = wP.P
     w = orthogonalityweight(P)
     X = jacobimatrix(P)
-    z, x = parent(S).args[1].args
-    z in axes(P,1) && transpose((inv.(x .- x') * wP)[z,:])
+    z, xc = parent(S).args[1].args
+    z in axes(P,1) && return transpose(view(inv.(xc' .- xc) * wP,z,:))
     transpose((X'-z*I) \ [-sum(w)*_p0(P); zeros(∞)])
 end
 
@@ -213,8 +213,8 @@ sqrtx2(x::Real) = sign(x)*sqrt(x^2-1)
 
 @simplify function *(S::StieltjesPoint, wP::Weighted{<:Any,<:ChebyshevU})
     T = promote_type(eltype(S), eltype(wP))
-    z, x = parent(S).args[1].args
-    z in axes(wP,1) && transpose((inv.(x .- x') * wP)[z,:])
+    z, xc = parent(S).args[1].args
+    z in axes(wP,1) && return transpose(view(inv.(xc' .- xc) * wP,z,:))
     ξ = inv(z + sqrtx2(z))
     transpose(convert(T,π) * ξ.^oneto(∞))
 end

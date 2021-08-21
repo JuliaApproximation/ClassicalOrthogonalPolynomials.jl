@@ -76,9 +76,13 @@ end
             @test inv.(t .- x') * Weighted(T) ≈ inv.((t+eps()im) .- x') * Weighted(T)
             @test (inv.(t .- x') * Weighted(U))[1:10] ≈ (inv.((t+eps()im) .- x') * Weighted(U))[1:10]
 
+            t = 2
+            @test inv.(t .- x') * Weighted(T) ≈ inv.((t+eps()im) .- x') * Weighted(T)
+            @test (inv.(t .- x') * Weighted(U))[1:10] ≈ (inv.((t+eps()im) .- x') * Weighted(U))[1:10]
+
             t = 0.5
-            @test_broken inv.(t .- x') * Weighted(T)
-            @test_broken inv.(t .- x') * Weighted(U)
+            @test (inv.(t .- x') * Weighted(T))[1,1:3] ≈ [0,-π,-π]
+            @test (inv.(t .- x') * Weighted(U))[1,1:3] ≈ [π/2,-π/2,-π]           
         end
     end
 
