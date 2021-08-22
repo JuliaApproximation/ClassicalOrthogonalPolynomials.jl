@@ -49,7 +49,7 @@ end
         x = axes(wT,1)
         z = 0.1+0.2im
         S = inv.(z .- x')
-        @test S isa StieltjesPoint{ComplexF64,Float64,ChebyshevInterval{Float64}}
+        @test S isa StieltjesPoint{ComplexF64,ComplexF64,Float64,ChebyshevInterval{Float64}}
 
         @test S * ChebyshevWeight() ≈ π/(sqrt(z-1)sqrt(z+1))
         @test S * JacobiWeight(0.1,0.2) ≈ 0.051643014475741864 - 2.7066092318596726im
