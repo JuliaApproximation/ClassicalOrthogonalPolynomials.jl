@@ -58,6 +58,7 @@ associated(::ChebyshevU{T}) where T = ChebyshevU{T}()
 
 
 const StieltjesPoint{T,W<:Number,V,D} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{BroadcastQuasiMatrix{T,typeof(-),Tuple{W,QuasiAdjoint{V,Inclusion{V,D}}}}}}
+const LogKernelPoint{T,W<:Number,V,D} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{BroadcastQuasiMatrix{T,typeof(-),Tuple{W,QuasiAdjoint{V,Inclusion{V,D}}}}}}}}
 const ConvKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(-),Tuple{D1,QuasiAdjoint{T,D2}}}
 const Hilbert{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}
 const LogKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}}}
@@ -217,6 +218,29 @@ sqrtx2(x::Real) = sign(x)*sqrt(x^2-1)
     z in axes(wP,1) && return  (convert(T,π)*ChebyshevT()[z,2:end])'
     ξ = inv(z + sqrtx2(z))
     transpose(convert(T,π) * ξ.^oneto(∞))
+end
+
+####
+# LogKernelPoint
+####
+
+@simplify function *(L::LogKernelPoint, wP::Weighted{<:Any,<:ChebyshevU})
+    T = promote_type(eltype(L), eltype(wP))
+    z, xc = parent(L).args[1].args[1].args
+    if z in axes(wP,1)
+        Tn = Vcat(convert(T,π)*log(2*one(T)), convert(T,π)*ChebyshevT()[z,2:end]./oneto(∞))
+        return transpose(0.5*(Tn[3:end]-Tn[1:end]))
+    else
+        # for U_k where k>=1
+        ξ = inv(z + sqrtx2(z))
+        zeta = (convert(T,π)*ξ.^oneto(∞))./oneto(∞)
+        zeta = (zeta[3:end]- zeta[1:end])/2
+
+        # for U_0
+        zeta = Vcat(convert(T,π)*(ξ^2/4 - (log.(abs.(ξ)) + log(2*one(T)))/2), zeta)
+        return transpose(zeta)
+    end
+    
 end
 
 """
