@@ -58,7 +58,7 @@ associated(::ChebyshevU{T}) where T = ChebyshevU{T}()
 
 
 const StieltjesPoint{T,W<:Number,V,D} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{BroadcastQuasiMatrix{T,typeof(-),Tuple{W,QuasiAdjoint{V,Inclusion{V,D}}}}}}
-const LogKernelPoint{T,W<:Number,V,D} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{BroadcastQuasiMatrix{T,typeof(-),Tuple{W,QuasiAdjoint{V,Inclusion{V,D}}}}}}}}
+const LogKernelPoint{T<:Real,C,W<:Number,V,D} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{BroadcastQuasiMatrix{C,typeof(-),Tuple{W,QuasiAdjoint{V,Inclusion{V,D}}}}}}}}
 const ConvKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(-),Tuple{D1,QuasiAdjoint{T,D2}}}
 const Hilbert{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}
 const LogKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}}}
@@ -229,16 +229,16 @@ end
     z, xc = parent(L).args[1].args[1].args
     if z in axes(wP,1)
         Tn = Vcat(convert(T,π)*log(2*one(T)), convert(T,π)*ChebyshevT()[z,2:end]./oneto(∞))
-        return transpose(0.5*(Tn[3:end]-Tn[1:end]))
+        return transpose((Tn[3:end]-Tn[1:end])/2)
     else
         # for U_k where k>=1
         ξ = inv(z + sqrtx2(z))
-        zeta = (convert(T,π)*ξ.^oneto(∞))./oneto(∞)
-        zeta = (zeta[3:end]- zeta[1:end])/2
+        ζ = (convert(T,π)*ξ.^oneto(∞))./oneto(∞)
+        ζ = (ζ[3:end]- ζ[1:end])/2
 
         # for U_0
-        zeta = Vcat(convert(T,π)*(ξ^2/4 - (log.(abs.(ξ)) + log(2*one(T)))/2), zeta)
-        return transpose(zeta)
+        ζ = Vcat(convert(T,π)*(ξ^2/4 - (log.(abs.(ξ)) + log(2*one(T)))/2), ζ)
+        return transpose(ζ)
     end
     
 end

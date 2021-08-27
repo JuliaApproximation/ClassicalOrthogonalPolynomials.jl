@@ -46,9 +46,9 @@ end
     @testset "LogKernelPoint" begin
         wU = Weighted(ChebyshevU())
         x = axes(wU,1)
-        z = 0.1
+        z = 0.1+0.2im
         L = log.(abs.(z.-x'))
-        @test L isa LogKernelPoint{Float64,Float64,Float64,ChebyshevInterval{Float64}}
+        @test L isa LogKernelPoint{Float64,ComplexF64,ComplexF64,Float64,ChebyshevInterval{Float64}}
 
         @testset "Real point" begin
             U = ChebyshevU()
@@ -60,8 +60,8 @@ end
             t = 0.5
             @test (log.(abs.(t .- x') )* Weighted(U))[1,1:3] ≈ [-1.4814921268505252, -1.308996938995747, 0.19634954084936207] #mathematica 
 
-            # t = 0.5+0im
-            # @test (log.(abs.(t .- x') )* Weighted(U))[1,1:3] ≈ [-1.4814921268505252, -1.308996938995747, 0.19634954084936207] #mathematica 
+            t = 0.5+0im
+            @test (log.(abs.(t .- x') )* Weighted(U))[1,1:3] ≈ [-1.4814921268505252, -1.308996938995747, 0.19634954084936207] #mathematica 
         end
     end
 
