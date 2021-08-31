@@ -42,15 +42,15 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
         x = axes(W,1)
         H = T \ inv.(x .- x') * W;
 
-        @test maximum(BlockArrays.blockcolsupport(H,5)) ≤ 50
+        @test maximum(BlockArrays.blockcolsupport(H,Block(5))) ≤ Block(50)
 
         c = W \ broadcast(x -> exp(x)* (0 ≤ x ≤ 2 ? sqrt(2-x)*sqrt(x) : sqrt(-1-x)*sqrt(x+2)), x)
         @test T[0.5,1:200]'*(H*c)[1:200] ≈ -6.064426633490422
 
         @testset "inversion" begin
             H̃ = BlockHcat(Eye((axes(H,1),))[:,Block(1)], H)
-            @test blockcolsupport(H̃,1) == Block.(1:1)
-            @test blockcolsupport(H̃,2) == Block.(1:22)
+            @test BlockArrays.blockcolsupport(H̃,1) == Block.(1:1)
+            @test BlockArrays.blockcolsupport(H̃,2) == Block.(1:22)
 
             UT = U \ T
             D = U \ Derivative(x) * T
