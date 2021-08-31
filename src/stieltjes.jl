@@ -80,18 +80,18 @@ end
     log.(x .+ one(T)) .- log.(one(T) .- x)
 end
 
-@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wT::Weighted{<:Any,<:ChebyshevT}) 
+@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wT::Weighted{<:Any,<:ChebyshevT})
     T = promote_type(eltype(H), eltype(wT))
     ChebyshevU{T}() * _BandedMatrix(Fill(-convert(T,π),1,∞), ℵ₀, -1, 1)
 end
 
-@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wU::Weighted{<:Any,<:ChebyshevU}) 
+@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wU::Weighted{<:Any,<:ChebyshevU})
     T = promote_type(eltype(H), eltype(wU))
     ChebyshevT{T}() * _BandedMatrix(Fill(convert(T,π),1,∞), ℵ₀, 1, -1)
 end
 
 
-@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wP::Weighted{<:Any,<:OrthogonalPolynomial}) 
+@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wP::Weighted{<:Any,<:OrthogonalPolynomial})
     P = wP.P
     w = orthogonalityweight(P)
     A = recurrencecoefficients(P)[1]
@@ -151,11 +151,11 @@ end
     PiecewiseInterlace(c,d)  * BlockBroadcastArray{promote_type(eltype(H),eltype(S))}(hvcat, 2, A, B, C, D)
 end
 
-### 
+###
 # LogKernel
 ###
 
-@simplify function *(L::LogKernel{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wT::Weighted{<:Any,<:ChebyshevT}) 
+@simplify function *(L::LogKernel{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wT::Weighted{<:Any,<:ChebyshevT})
     T = promote_type(eltype(L), eltype(wT))
     ChebyshevT{T}() * Diagonal(Vcat(-convert(T,π)*log(2*one(T)),-convert(T,π)./(1:∞)))
 end
@@ -173,11 +173,11 @@ end
 
 
 
-### 
+###
 # PowKernel
 ###
 
-@simplify function *(K::PowKernel, wT::Weighted{<:Any,<:Jacobi}) 
+@simplify function *(K::PowKernel, wT::Weighted{<:Any,<:Jacobi})
     T = promote_type(eltype(K), eltype(wT))
     cnv,α = K.args
     x,y = K.args[1].args[1].args
@@ -240,7 +240,7 @@ end
         ζ = Vcat(convert(T,π)*(ξ^2/4 - (log.(abs.(ξ)) + log(2*one(T)))/2), ζ)
         return transpose(ζ)
     end
-    
+
 end
 
 """
@@ -268,7 +268,7 @@ function cache_filldata!(H::HilbertVandermonde{T}, kr, jr) where T
     n,m = H.datasize
     isempty(jr) && return
     resize!(H.colsupport, max(length(H.colsupport), maximum(jr)))
-    
+
     isempty(kr) || (H.data[(n+1):maximum(kr),1:m] .= zero(T))
     for j in (m+1):maximum(jr)
         u = H.M * [H.data[:,j-1]; Zeros{T}(∞)]
@@ -282,7 +282,7 @@ end
     T̃ = chebyshevt(x)
     ψ_1 = T̃ \ inv.(x .+ sqrtx2.(x)) # same ψ_1 = x .- sqrt(x^2 - 1) but with relative accuracy as x -> ∞
     data = convert(eltype(H),π) * Matrix(reshape(paddeddata(ψ_1),:,1))
-    # Operator has columns π * ψ_1^k 
+    # Operator has columns π * ψ_1^k
     T̃ * HilbertVandermonde(Clenshaw(T̃ * ψ_1, T̃), data)
 end
 
@@ -297,14 +297,14 @@ end
     (inv.(z̃ .- x̃') * P)[:,parentindices(wT)[2]]
 end
 
-@simplify function *(H::Hilbert, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}) 
+@simplify function *(H::Hilbert, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
     P = parent(wT)
     x = axes(P,1)
     apply(*, inv.(x .- x'), P)[parentindices(wT)...]
 end
 
 
-@simplify function *(L::LogKernel, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}}) 
+@simplify function *(L::LogKernel, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}})
     V = promote_type(eltype(L), eltype(wT))
     wP = parent(wT)
     kr, jr = parentindices(wT)
@@ -319,7 +319,7 @@ end
 
 ### generic fallback
 for Op in (:Hilbert, :StieltjesPoint, :LogKernel, :PowKernel)
-    @eval @simplify function *(H::$Op, wP::WeightedBasis{<:Any,<:Weight,<:Any}) 
+    @eval @simplify function *(H::$Op, wP::WeightedBasis{<:Any,<:Weight,<:Any})
         w,P = wP.args
         Q = OrthogonalPolynomial(w)
         (H * Weighted(Q)) * (Q \ P)

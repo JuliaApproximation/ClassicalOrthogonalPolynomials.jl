@@ -42,7 +42,7 @@ end
         @test (H*w_U)[0.1] ≈ (2*0.1-1)*π
         @test (H*w_P)[0.1] ≈ (log(1+(-0.8)) - log(1-(-0.8)))
     end
-    
+
     @testset "LogKernelPoint" begin
         wU = Weighted(ChebyshevU())
         x = axes(wU,1)
@@ -53,15 +53,15 @@ end
         @testset "Real point" begin
             U = ChebyshevU()
             x = axes(U,1)
-            
+
             t = 2.0
             @test (log.(abs.(t .- x') )* Weighted(U))[1,1:3] ≈ [1.0362686329607178,-0.4108206734393296, -0.054364775221816465] #mathematica
-            
+
             t = 0.5
-            @test (log.(abs.(t .- x') )* Weighted(U))[1,1:3] ≈ [-1.4814921268505252, -1.308996938995747, 0.19634954084936207] #mathematica 
+            @test (log.(abs.(t .- x') )* Weighted(U))[1,1:3] ≈ [-1.4814921268505252, -1.308996938995747, 0.19634954084936207] #mathematica
 
             t = 0.5+0im
-            @test (log.(abs.(t .- x') )* Weighted(U))[1,1:3] ≈ [-1.4814921268505252, -1.308996938995747, 0.19634954084936207] #mathematica 
+            @test (log.(abs.(t .- x') )* Weighted(U))[1,1:3] ≈ [-1.4814921268505252, -1.308996938995747, 0.19634954084936207] #mathematica
         end
     end
 
