@@ -64,7 +64,7 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
             cμ = H̃[Block.(1:N), Block.(1:N)] \ Vp_cfs_N;
             c1,c2 = cμ[Block(1)]
             μ = W[:,Block.(1:N-1)] * cμ[Block.(2:N)]/2;
-            
+
             # H * μ == Vp(x) + c1 on first interval
             # H * μ == Vp(x) + c2 on second interval
         end
