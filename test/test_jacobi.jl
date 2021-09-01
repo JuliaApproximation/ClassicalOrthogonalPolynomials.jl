@@ -409,5 +409,13 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test Weighted(Jacobi(0,0)) \ Legendre() == Eye(∞)
             @test Weighted(Jacobi(0,0)) \ (Legendre() * [1; zeros(∞)]) ≈ [1; zeros(∞)]
         end
+
+        @testset "Mapped" begin
+            x = Inclusion(0..1)
+            W = Weighted(jacobi(1,1,0..1))
+            D = Derivative(x)
+            P¹ = Jacobi(1,1)
+            @test (D * W)[0.1,1:10] ≈ (D * Weighted(P¹)[affine(x,axes(P¹,1)),:])[0.1,1:10]
+        end
     end
 end

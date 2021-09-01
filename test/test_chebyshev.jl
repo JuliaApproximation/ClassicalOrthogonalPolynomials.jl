@@ -162,6 +162,15 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test (WT \ WU)[1:10,1:10] ≈ inv(WU \ WT)[1:10,1:10]
             @test_skip (WU \ WT)[1,1] == 2
         end
+        
+        @testset "Derivative" begin
+            WT = Weighted(ChebyshevT())
+            WU = Weighted(ChebyshevU())
+            x = axes(WT,1)
+            D = Derivative(x)
+            @test_broken D*WT # not implemented
+            @test(D*WU)[0.1,1:2] ≈ -1/sqrt(1-0.1^2) * [0.1, 4*0.1^2-2]
+        end
 
         @testset "mapped" begin
             x = Inclusion(0..1)
@@ -174,6 +183,9 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test MemoryLayout(WT̃) isa MappedWeightedBasisLayout
             v = WT̃ * (WT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
+
+            WU2 = Weighted(chebyshevu(0..1))
+            @test (Derivative(x) * WU2)[0.1,1:10] ≈ 2(Derivative(axes(T,1))*Weighted(ChebyshevU()))[2*0.1-1,1:10]
         end
     end
 

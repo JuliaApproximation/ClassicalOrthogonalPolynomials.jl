@@ -158,6 +158,12 @@ end
     ApplyQuasiMatrix(*, ChebyshevU{T}(), A)
 end
 
+@simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
+    T = promote_type(eltype(D),eltype(W))
+    Weighted(ChebyshevT{T}()) * _BandedMatrix((-one(T):-one(T):(-∞))', ℵ₀, 1,-1)
+end
+
+
 #####
 # Conversion
 #####

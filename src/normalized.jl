@@ -214,6 +214,20 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = 
 @simplify *(Ac::QuasiAdjoint{<:Any,<:Weighted}, wB::Weighted) = 
     convert(WeightedOrthogonalPolynomial, parent(Ac))' * convert(WeightedOrthogonalPolynomial, wB)
 
+
+# Derivative overloads, see ContinuumArrays.jl/src/bases.jl
+
+
+simplifiable(::typeof(*), A::Derivative, B::Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}) = simplifiable(*, Derivative(axes(parent(B),1)), Weighted(parent(B.P)))
+simplifiable(::typeof(*), Ac::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}}, Bc::QuasiAdjoint{<:Any,<:Derivative}) = simplifiable(*, Bc', Ac')
+function mul(A::Derivative, B::Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}})
+    axes(A,2) == axes(B,1) || throw(DimensionMismatch())
+    P = Weighted(parent(B.P))
+    kr,jr = parentindices(B.P)
+    (Derivative(axes(P,1))*P*kr.A)[kr,jr]
+end
+mul(Ac::QuasiAdjoint{<:Any,Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}}, Bc::QuasiAdjoint{<:Any,<:Derivative}) = mul(Bc', Ac')'    
+
 summary(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
 
 __sum(::NormalizedBasisLayout, A, dims) = __sum(ApplyLayout{typeof(*)}(), A, dims)
