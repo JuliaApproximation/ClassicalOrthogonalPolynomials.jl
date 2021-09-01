@@ -47,22 +47,38 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
     end
 
     @testset "orthogonality" begin
-        a,b = 0.1,0.2
-        x,w = gaussjacobi(3,a,b)
-        P = Jacobi(a,b)
+        @testset "legendre" begin
+            P̃ = Jacobi(0,0)
+            x = axes(P̃,1)
+            @test P̃'exp.(x) ≈ Legendre()'exp.(x)
+            @test P̃'P̃ isa Diagonal
+        end
 
-        M = P[x,1:3]'Diagonal(w)*P[x,1:3]
-        @test M ≈ Diagonal(M)
-        x,w = gaussradau(3,a,b)
-        M = P[x,1:3]'Diagonal(w)*P[x,1:3]
-        @test M ≈ Diagonal(M)
+        @testset "integer" begin
+            P¹ = Jacobi(1,1)
+            P = Legendre()
+            x = axes(P¹,1)
+            @test (P¹'exp.(x))[1:10] ≈ (P¹'P)[1:10,1:10] * (P \ exp.(x))[1:10]
+        end
 
-        w = JacobiWeight(a,b)
-        w_2 = sqrt.(w)
-        @test w_2 .^ 2 == w
-        @test (P' * (w .* P))[1:3,1:3] ≈ (P' * (w .* P))[1:3,1:3] ≈ ((w_2 .* P)'*(w_2 .* P))[1:3,1:3] ≈ M
+        @testset "fractional a,b" begin
+            a,b = 0.1,0.2
+            x,w = gaussjacobi(3,a,b)
+            P = Jacobi(a,b)
 
-        @test (Jacobi(0,0)'Jacobi(0,0))[1:10,1:10] ≈ (Legendre()'Legendre())[1:10,1:10]
+            M = P[x,1:3]'Diagonal(w)*P[x,1:3]
+            @test M ≈ Diagonal(M)
+            x,w = gaussradau(3,a,b)
+            M = P[x,1:3]'Diagonal(w)*P[x,1:3]
+            @test M ≈ Diagonal(M)
+
+            w = JacobiWeight(a,b)
+            w_2 = sqrt.(w)
+            @test w_2 .^ 2 == w
+            @test (P' * (w .* P))[1:3,1:3] ≈ (P' * (w .* P))[1:3,1:3] ≈ ((w_2 .* P)'*(w_2 .* P))[1:3,1:3] ≈ M
+
+            @test (Jacobi(0,0)'Jacobi(0,0))[1:10,1:10] ≈ (Legendre()'Legendre())[1:10,1:10]
+        end
     end
 
     @testset "operators" begin

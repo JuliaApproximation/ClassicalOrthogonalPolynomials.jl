@@ -96,7 +96,7 @@ end
 
 
 abstract type AbstractInterlaceBasis{T} <: Basis{T} end
-copy(A::AbstractInterlaceBasis) = interlacebasis(A, map(copy, A.args))
+copy(A::AbstractInterlaceBasis) = interlacebasis(A, map(copy, A.args)...)
 
 """
     PiecewiseInterlace(args...)
@@ -143,6 +143,11 @@ end
     args = arguments.(*, Derivative.(axes.(S.args,1)) .* S.args)
     all(length.(args) .== 2) || error("Not implemented")
     interlacebasis(S, map(first, args)...) * BlockBroadcastArray{promote_type(eltype(D),eltype(S))}(Diagonal, unitblocks.(last.(args))...)
+end
+
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractInterlaceBasis}, B::AbstractInterlaceBasis)
+    axes(Ac,2) == axes(B,1) || throw(DimensionMismatch())
+    BlockBroadcastArray{promote_type(eltype(Ac),eltype(B))}(Diagonal, unitblocks.(adjoint.(parent(Ac).args) .* B.args)...)
 end
 
 struct PiecewiseFactorization{T,FF,Ax} <: Factorization{T}

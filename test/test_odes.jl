@@ -44,28 +44,52 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
     end
 
     @testset "∞-FEM" begin
-        S = Jacobi(true,true)
-        w = JacobiWeight(true,true)
-        D = Derivative(axes(w,1))
-        WS = w.*S
-        L = D* WS
-        Δ = L'L
-        P = Legendre()
+        @testset "w .* P(true,true)" begin
+            S = Jacobi(true,true)
+            w = JacobiWeight(true,true)
+            D = Derivative(axes(w,1))
+            WS = w.*S
+            L = D* WS
+            Δ = L'L
+            P = Legendre()
 
-        f = P * Vcat(randn(10), Zeros(∞))
-        (P\WS)'*(P'P)*(P\WS)
-        B = BroadcastArray(+, Δ, (P\WS)'*(P'P)*(P\WS))
-        @test colsupport(B,1) == 1:3
+            f = P * Vcat(randn(10), Zeros(∞))
+            (P\WS)'*(P'P)*(P\WS)
+            B = BroadcastArray(+, Δ, (P\WS)'*(P'P)*(P\WS))
+            @test colsupport(B,1) == 1:3
 
-        @test axes(B.args[2].args[1]) == (oneto(∞),oneto(∞))
-        @test axes(B.args[2]) == (oneto(∞),oneto(∞))
-        @test axes(B) == (oneto(∞),oneto(∞))
+            @test axes(B.args[2].args[1]) == (oneto(∞),oneto(∞))
+            @test axes(B.args[2]) == (oneto(∞),oneto(∞))
+            @test axes(B) == (oneto(∞),oneto(∞))
 
-        @test BandedMatrix(view(B,1:10,13:20)) == zeros(10,8)
+            @test BandedMatrix(view(B,1:10,13:20)) == zeros(10,8)
 
-        F = qr(B);
-        b = Vcat(randn(10), Zeros(∞))
-        @test B*(F \ b) ≈ b
+            F = qr(B);
+            b = Vcat(randn(10), Zeros(∞))
+            @test B*(F \ b) ≈ b
+        end
+
+        @testset "simple" begin
+            W = Weighted(Jacobi(1,1))
+            P = Legendre()
+            x = axes(W,1)
+            D = Derivative(x)
+            Δ = -((D*W)'*(D*W)) 
+            u = W * (Δ \ (W'*exp.(x)))
+            let x = 0.1
+                @test u[x] ≈ (-1 + 2exp(1 + x) + x - exp(2)*(1 + x))/(2ℯ)
+            end
+
+            M = W'W
+            u = W * ((Δ+10M) \ (W'*exp.(x)))
+            let x = 0.1
+                @test u[x] ≈ (csc(2sqrt(10))*sin(sqrt(10)*(-1 + x)) + ℯ*(exp(x) - ℯ*csc(2sqrt(10))*sin(sqrt(10)*(1 + x))))/(11ℯ)
+            end
+
+            V = W'*(x.*W)
+            u = W * ((Δ+10V) \ (W'*exp.(x)))
+            @test u[0.1] ≈ -1.6914064963142479 # mathematica
+        end
     end
 
     @testset "Collocation" begin

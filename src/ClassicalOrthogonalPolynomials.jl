@@ -186,6 +186,12 @@ singularities(r::Base.RefValue) = r[] # pass through
 orthogonalityweight(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) =
     orthogonalityweight(parent(P))[parentindices(P)[1]]
 
+function massmatrix(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}})
+    Q = parent(P)
+    kr,jr = parentindices(P)
+    massmatrix(Q)/kr.A
+end
+
 _weighted(w, P) = w .* P
 weighted(P::AbstractQuasiMatrix) = _weighted(orthogonalityweight(P), P)
 

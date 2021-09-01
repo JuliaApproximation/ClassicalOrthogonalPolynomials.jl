@@ -1,12 +1,30 @@
-using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, Test
+using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, Test
 import ClassicalOrthogonalPolynomials: PiecewiseInterlace
 
 @testset "Piecewise" begin
+    @testset "expansion" begin
+        T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
+        T = PiecewiseInterlace(T1, T2)
+        @test T[-0.1,1:2:10] ≈ T1[-0.1,1:5]
+        @test T[0.1,2:2:10] ≈ T2[0.1,1:5]
+        @test T[0.0,1:2:10] ≈ T1[0.0,1:5]
+        @test T[0.0,2:2:10] ≈ T2[0.0,1:5]
+
+        x = axes(T,1)
+        u = T / T \ exp.(x)
+        @test u[-0.1] ≈ exp(-0.1)
+        @test u[0.1] ≈ exp(0.1)
+        @test u[0.] ≈ 2
+    end
+
     @testset "two-interval ODE" begin
         T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
         U1,U2 = chebyshevu(-1..0), chebyshevu(0..1)
         T = PiecewiseInterlace(T1, T2)
         U = PiecewiseInterlace(U1, U2)
+        
+        @test copy(T) == T
+
         D = U \ (Derivative(axes(T,1))*T)
         C = U \ T
 
@@ -23,23 +41,21 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
         @test F \ exp.(x) ≈ (T \ exp.(x))[Block.(1:N)] ≈ u
     end
 
-    @testset "two-interval Weighted Derivative" begin
-        T1,T2 = chebyshevt(-2..(-1)), chebyshevt(0..1)
-        U1,U2 = chebyshevu(-2..(-1)), chebyshevu(0..1)
-        W = PiecewiseInterlace(Weighted(T1), Weighted(T2))
-        U = PiecewiseInterlace(U1, U2)
-        x = axes(W,1)
-        D = Derivative(x)
-        @test_broken U\D*W isa BlockBroadcastArray
-    end
-
     @testset "two-interval p-FEM" begin
-        W1,W2 = Weighted(jacobi(1,1,-1..0)), Weighted(jacobi(1,1,0..1))
-        P1,P2 = legendre(-1..0), legendre(0..1)
+        P1,P2 = jacobi(1,1,-1..0), jacobi(1,1,0..1)
+        W1,W2 = Weighted(P1), Weighted(P2)
+        
         W = PiecewiseInterlace(W1, W2)
-        P = PiecewiseInterlace(P1, P2)
+        
         x = axes(W,1)
         D = Derivative(x)
-        P\D*W
+        Δ = -((D*W)'*(D*W))
+
+        W'exp.(x)
+        
+
+        M = W'W
+
+        # W'*exp.(x)
     end
 end

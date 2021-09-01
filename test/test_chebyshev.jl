@@ -169,7 +169,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             x = axes(WT,1)
             D = Derivative(x)
             @test_broken D*WT # not implemented
-            @test(D*WU)[0.1,1:2] ≈ -1/sqrt(1-0.1^2) * [0.1, 4*0.1^2-2]
+            @test (D*WU)[0.1,1:2] ≈ -1/sqrt(1-0.1^2) * [0.1, 4*0.1^2-2]
         end
 
         @testset "mapped" begin

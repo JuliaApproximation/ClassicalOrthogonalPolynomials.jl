@@ -215,6 +215,19 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = 
     convert(WeightedOrthogonalPolynomial, parent(Ac))' * convert(WeightedOrthogonalPolynomial, wB)
 
 
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted}, B::AbstractQuasiVector)
+    P = (Ac').P
+    massmatrix(P) * (P\B)
+end
+
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:SubQuasiArray}}, B::Weighted{<:Any,<:SubQuasiArray})
+    P = (Ac').P
+    Q = B.P
+    V = view(Weighted(parent(P)), parentindices(P)...)
+    W = view(Weighted(parent(Q)), parentindices(Q)...)
+    V'W
+end
+
 # Derivative overloads, see ContinuumArrays.jl/src/bases.jl
 
 
