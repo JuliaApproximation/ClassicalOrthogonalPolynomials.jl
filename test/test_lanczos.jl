@@ -18,7 +18,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
 
         @test A[1:10] isa Vector{Float64}
         @test B[1:10] isa Vector{Float64}
-        @test C[1:10] isa Vector{Float64}
+        # @test C[1:10] isa Vector{Float64}
 
         @test Q[0.1,1:10] ≈ Q̃[0.1,1:10]
 
