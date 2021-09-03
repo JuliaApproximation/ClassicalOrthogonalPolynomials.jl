@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, ArrayLayouts, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, ArrayLayouts, LazyBandedMatrices, Test
 import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated,
         orthogonalityweight, Weighted, gennormalizedpower, *, dot, PowerLawMatrix, PowKernelPoint, LogKernelPoint,
         MemoryLayout, PaddedLayout
@@ -241,46 +241,18 @@ end
             u = (I + H) \ [1; zeros(∞)]
             @test u[3] ≈ -0.011220808241213699 #Emperical
 
-            @testset "faster Hilbert derivation" begin
-                U = ChebyshevU()
-                W = Weighted(U)
-                t = axes(U,1)
-                x = Inclusion(2..3)
-                T = chebyshevt(2..3)
-                H = T \ inv.(x .- t') * W;
 
+            @testset "properties" begin
+                U  = chebyshevu(T)
                 X = jacobimatrix(U)
                 Z = jacobimatrix(T)
 
-                (Z*I - X)
                 @test Z * H[:,1] - H[:,2]/2 ≈ [sum(W[:,1]); zeros(∞)]
                 @test norm(-H[:,1]/2 + Z * H[:,2] - H[:,3]/2) ≤ 1E-12
-
-                import ClassicalOrthogonalPolynomials: sqrtx2, Clenshaw
                 
-
-                U = chebyshevu(T)
                 L = U \ ((x.^2 .- 1) .* Derivative(x) * T - x .* T)
-                c = T \ sqrtx2.(x)
-                @test [T[begin,:]'; L] \ [sqrtx2(2); zeros(∞)] ≈ c
-
-                c = T \ (x .- sqrtx2.(x))
-                a = T*c
-                
-                M = Clenshaw(a, T)
-            
-
-                import LazyArrays: PaddedArray, paddeddata
-
-                @time  * c;
-
-                
-                # multiply through by 2
-                data[1,1] = 2sum(W[:,1])
-                F = factorize(2Z)
-                # Do adaptive Gaussian elimination
-                ArrayLayouts.ldiv!(view(data,:,2), F, view(data,:,1))
-                @time Z \ [1; zeros(∞)]
+                c = T \ sqrt.(x.^2 .- 1)
+                @test [T[begin,:]'; L] \ [sqrt(2^2-1); zeros(∞)] ≈ c
             end
         end
 
@@ -314,6 +286,7 @@ end
         H = T \ inv.(x .- x') * W;
 
         @test maximum(BlockArrays.blockcolsupport(H,Block(5))) ≤ Block(50)
+        @test blockbandwidths(H) == (25,26)
 
         c = W \ broadcast(x -> exp(x)* (0 ≤ x ≤ 2 ? sqrt(2-x)*sqrt(x) : sqrt(-1-x)*sqrt(x+2)), x)
         @test T[0.5,1:200]'*(H*c)[1:200] ≈ -6.064426633490422
@@ -326,18 +299,26 @@ end
             UT = U \ T
             D = U \ Derivative(x) * T
             V = x -> x^4 - 10x^2
+            Vp = x -> 4x^3 - 20x
             V_cfs = T \ V.(x)
             Vp_cfs_U = D * V_cfs
+            Vp_cfs_T = T \ Vp.(x)
 
-            N = 100
-            Vp_cfs_N = UT[Block.(1:N),Block.(1:N)] \ Vp_cfs_U[Block.(1:N)]
+            @test_broken UT \ Vp_cfs_U ≈ Vp_cfs_T
 
-            cμ = H̃[Block.(1:N), Block.(1:N)] \ Vp_cfs_N;
-            c1,c2 = cμ[Block(1)]
-            μ = W[:,Block.(1:N-1)] * cμ[Block.(2:N)]/2;
+            c = H̃ \ Vp_cfs_T
 
-            # H * μ == Vp(x) + c1 on first interval
-            # H * μ == Vp(x) + c2 on second interval
+            E1,E2 = c[Block(1)]
+            c1 = [paddeddata(c)[3:2:end]; Zeros(∞)]
+            c2 = [paddeddata(c)[4:2:end]; Zeros(∞)]
+
+            u1 = Weighted(U1) * c1
+            u2 = Weighted(U2) * c2
+            x1 = axes(u1,1)
+            x2 = axes(u2,1)
+
+            @test inv.(-1.3 .- x1') * u1 + inv.(-1.3 .- x2') * u2 + E1 ≈ Vp(-1.3)
+            @test inv.(1.3 .- x1') * u1 + inv.(1.3 .- x2') * u2 + E2 ≈ Vp(1.3)
         end
     end
 
