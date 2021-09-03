@@ -243,47 +243,21 @@ end
 
 end
 
-"""
-   HilbertVandermonde(M, data)
-
-represents the matrix with columns M^k * data[:,end].
-"""
-mutable struct HilbertVandermonde{T,MM} <: AbstractCachedMatrix{T}
-    M::MM
-    data::Matrix{T}
-    datasize::NTuple{2,Int}
-    colsupport::Vector{Int}
-end
-
-HilbertVandermonde(M, data::Matrix) = HilbertVandermonde(M, data, size(data), fill(size(data,1), size(data,2)))
-size(H::HilbertVandermonde) = (ℵ₀,ℵ₀)
-function colsupport(H::HilbertVandermonde, j)
-    resizedata!(H, H.datasize[1], maximum(j))
-    1:maximum(H.colsupport[j])
-end
-
-copy(H::HilbertVandermonde) = HilbertVandermonde(H.M, copy(H.data), H.datasize, H.colsupport)
-
-function cache_filldata!(H::HilbertVandermonde{T}, kr, jr) where T
-    n,m = H.datasize
-    isempty(jr) && return
-    resize!(H.colsupport, max(length(H.colsupport), maximum(jr)))
-
-    isempty(kr) || (H.data[(n+1):maximum(kr),1:m] .= zero(T))
-    for j in (m+1):maximum(jr)
-        u = H.M * [H.data[:,j-1]; Zeros{T}(∞)]
-        H.colsupport[j] = maximum(colsupport(u,1))
-        isempty(kr) || (H.data[kr,j] .= u[kr])
-    end
-end
-
 @simplify function *(H::Hilbert{<:Any,<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
+    tol = eps()
     x = axes(H,1)
     T̃ = chebyshevt(x)
     ψ_1 = T̃ \ inv.(x .+ sqrtx2.(x)) # same ψ_1 = x .- sqrt(x^2 - 1) but with relative accuracy as x -> ∞
-    data = convert(eltype(H),π) * Matrix(reshape(paddeddata(ψ_1),:,1))
+    M = Clenshaw(T̃ * ψ_1, T̃)
+    data = zeros(eltype(ψ_1), ∞, ∞)
     # Operator has columns π * ψ_1^k
-    T̃ * HilbertVandermonde(Clenshaw(T̃ * ψ_1, T̃), data)
+    copyto!(view(data,:,1), convert(eltype(data),π)*ψ_1)
+    for j = 2:∞
+        mul!(view(data,:,j),M,view(data,:,j-1))
+        norm(view(data,:,j)) ≤ tol && break
+    end
+    # we wrap in a Padded to avoid increasing cache size
+    T̃ * PaddedArray(chop(paddeddata(data), tol), size(data)...)
 end
 
 

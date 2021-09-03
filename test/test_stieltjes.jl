@@ -1,5 +1,7 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, Test
-import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated, orthogonalityweight, Weighted, gennormalizedpower, *, dot, PowerLawMatrix, PowKernelPoint, LogKernelPoint
+using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, ArrayLayouts, Test
+import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated,
+        orthogonalityweight, Weighted, gennormalizedpower, *, dot, PowerLawMatrix, PowKernelPoint, LogKernelPoint,
+        MemoryLayout, PaddedLayout
 import InfiniteArrays: I
 
 @testset "Associated" begin
@@ -227,10 +229,59 @@ end
             x = Inclusion(2..3)
             T = chebyshevt(2..3)
             H = T \ inv.(x .- t') * W;
+
+            @test MemoryLayout(H) isa PaddedLayout
+
             @test last(colsupport(H,1)) == 17
             @test last(colsupport(H,6)) ≤ 40
+            @test last(rowsupport(H)) ≤ 30
             @test T[2.3,1:100]'*(H * (W \ @.(sqrt(1-t^2)exp(t))))[1:100] ≈ 0.9068295340935111
             @test T[2.3,1:100]' * H[1:100,1:100] ≈ (inv.(2.3 .- t') * W)[:,1:100]
+
+            u = (I + H) \ [1; zeros(∞)]
+            @test u[3] ≈ -0.011220808241213699 #Emperical
+
+            @testset "faster Hilbert derivation" begin
+                U = ChebyshevU()
+                W = Weighted(U)
+                t = axes(U,1)
+                x = Inclusion(2..3)
+                T = chebyshevt(2..3)
+                H = T \ inv.(x .- t') * W;
+
+                X = jacobimatrix(U)
+                Z = jacobimatrix(T)
+
+                (Z*I - X)
+                @test Z * H[:,1] - H[:,2]/2 ≈ [sum(W[:,1]); zeros(∞)]
+                @test norm(-H[:,1]/2 + Z * H[:,2] - H[:,3]/2) ≤ 1E-12
+
+                import ClassicalOrthogonalPolynomials: sqrtx2, Clenshaw
+                
+
+                U = chebyshevu(T)
+                L = U \ ((x.^2 .- 1) .* Derivative(x) * T - x .* T)
+                c = T \ sqrtx2.(x)
+                @test [T[begin,:]'; L] \ [sqrtx2(2); zeros(∞)] ≈ c
+
+                c = T \ (x .- sqrtx2.(x))
+                a = T*c
+                
+                M = Clenshaw(a, T)
+            
+
+                import LazyArrays: PaddedArray, paddeddata
+
+                @time  * c;
+
+                
+                # multiply through by 2
+                data[1,1] = 2sum(W[:,1])
+                F = factorize(2Z)
+                # Do adaptive Gaussian elimination
+                ArrayLayouts.ldiv!(view(data,:,2), F, view(data,:,1))
+                @time Z \ [1; zeros(∞)]
+            end
         end
 
         @testset "mapped" begin
@@ -424,3 +475,4 @@ end
         end
     end
 end
+

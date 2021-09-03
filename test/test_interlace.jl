@@ -51,11 +51,10 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
         D = Derivative(x)
         Δ = -((D*W)'*(D*W))
 
-        W'exp.(x)
-        
-
+        @test (W'exp.(x))[1:2:10] ≈ (W1'*exp.(axes(W1,1)))[1:5]
+        @test (W'exp.(x))[2:2:10] ≈ (W2'*exp.(axes(W2,1)))[1:5]
         M = W'W
 
-        # W'*exp.(x)
+        # Δ \ (W'exp.(x))
     end
 end

@@ -12,13 +12,13 @@ import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
                 to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
-import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, colsupport, adjointlayout,
+import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
                 _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
                 AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!,
-                simplifiable
+                simplifiable, PaddedArray
 import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
-                        subdiagonaldata, diagonaldata, supdiagonaldata, mul
+                        subdiagonaldata, diagonaldata, supdiagonaldata, mul, rowsupport, colsupport
 import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1, AbstractLazyBandedLayout
 import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
@@ -76,6 +76,22 @@ function chop!(c::AbstractVector, tol::Real)
     end
     resize!(c,0)
     c
+end
+
+function chop(A::AbstractMatrix, tol)
+    for k = size(A,1):-1:1
+        if norm(view(A,k,:))>tol
+            A=A[1:k,:]
+            break
+        end
+    end
+    for j = size(A,2):-1:1
+        if norm(view(A,:,j))>tol
+            A=A[:,1:j]
+            break
+        end
+    end
+    return A
 end
 
 setaxis(c, ::OneToInf) = c
