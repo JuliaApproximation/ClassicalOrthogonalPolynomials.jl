@@ -181,3 +181,9 @@ function factorize(V::SubQuasiArray{<:Any,2,<:AbstractInterlaceBasis,<:Tuple{Inc
     J = findblock(axes(P,2),maximum(jr))
     ProjectionFactorization(factorize(P[:,Block.(OneTo(Int(J)))]), jr)
 end
+
+###
+# sum
+###
+
+_sum(P::PiecewiseInterlace, dims) = BlockBroadcastArray(hcat, unitblocks.(_sum.(P.args, dims))...)

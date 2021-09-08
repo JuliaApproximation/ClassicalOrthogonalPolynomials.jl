@@ -31,6 +31,7 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
                     _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
+import InfiniteLinearAlgebra: chop!, chop
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     inbounds_getindex, grid, plotgrid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
     AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
@@ -65,34 +66,6 @@ cardinality(::EuclideanDomain) = ℵ₁
 transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
     adaptivetransform_ldiv(convert(AbstractQuasiArray{promote_type(T,V)}, A), f)
 
-function chop!(c::AbstractVector, tol::Real)
-    @assert tol >= 0
-
-    for k=length(c):-1:1
-        if abs(c[k]) > tol
-            resize!(c,k)
-            return c
-        end
-    end
-    resize!(c,0)
-    c
-end
-
-function chop(A::AbstractMatrix, tol)
-    for k = size(A,1):-1:1
-        if norm(view(A,k,:))>tol
-            A=A[1:k,:]
-            break
-        end
-    end
-    for j = size(A,2):-1:1
-        if norm(view(A,:,j))>tol
-            A=A[:,1:j]
-            break
-        end
-    end
-    return A
-end
 
 setaxis(c, ::OneToInf) = c
 setaxis(c, ax::BlockedUnitRange) = PseudoBlockVector(c, (ax,))
