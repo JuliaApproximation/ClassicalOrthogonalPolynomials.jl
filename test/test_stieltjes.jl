@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, ArrayLayouts, LazyBandedMatrices, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, ArrayLayouts, LazyBandedMatrices, BlockArrays, Test
 import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated,
         orthogonalityweight, Weighted, gennormalizedpower, *, dot, PowerLawMatrix, PowKernelPoint, LogKernelPoint,
         MemoryLayout, PaddedLayout
@@ -294,7 +294,7 @@ end
         @testset "inversion" begin
             H̃ = BlockHcat(Eye((axes(H,1),))[:,Block(1)], H)
             @test BlockArrays.blockcolsupport(H̃,1) == Block.(1:1)
-            @test BlockArrays.blockcolsupport(H̃,2) == Block.(1:22)
+            @test last(BlockArrays.blockcolsupport(H̃,2)) ≤ Block(30)
 
             UT = U \ T
             D = U \ Derivative(x) * T
@@ -302,11 +302,11 @@ end
             Vp = x -> 4x^3 - 20x
             V_cfs = T \ V.(x)
             Vp_cfs_U = D * V_cfs
-            Vp_cfs_T = T \ Vp.(x)
+            Vp_cfs_T = T \ Vp.(x);
 
-            @test_broken UT \ Vp_cfs_U ≈ Vp_cfs_T
+            @test (UT \ Vp_cfs_U)[Block.(1:10)] ≈ Vp_cfs_T[Block.(1:10)]
 
-            c = H̃ \ Vp_cfs_T
+            @time c = H̃ \ Vp_cfs_T;
 
             E1,E2 = c[Block(1)]
             c1 = [paddeddata(c)[3:2:end]; Zeros(∞)]
