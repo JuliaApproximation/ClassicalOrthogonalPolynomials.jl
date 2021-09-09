@@ -77,6 +77,10 @@ end
 
             f = wU / wU \ @.(sqrt(2-x)sqrt(x-1)exp(x))
             @test L*f ≈ 2.2374312398976586 # MAthematica
+
+            wU = Weighted(chebyshevu(1..2))
+            f = wU / wU \ @.(sqrt(2-x)sqrt(x-1)exp(x))
+            @test L*f ≈ 2.2374312398976586 # MAthematica
         end
     end
 

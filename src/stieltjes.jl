@@ -235,21 +235,21 @@ end
 end
 
 
-@simplify function *(H::Hilbert, wP::Weighted{<:Any,<:SubQuasiArray{<:Any,2}})
+@simplify function *(H::Hilbert, wP::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
     T = promote_type(eltype(H), eltype(wP))
-    kr,jr = parentindices(wP.P)
-    P = parent(wP.P)
+    kr,jr = parentindices(wP)
+    W = parent(wP)
     x = axes(H,1)
     t = axes(H,2)
     t̃ = axes(P,1)
     if x == t
-        (inv.(t̃ .- t̃') * Weighted(P))[kr,jr]
+        (inv.(t̃ .- t̃') * W)[kr,jr]
     else
         M = affine(t,t̃)
         @assert x isa Inclusion
         a,b = first(x),last(x)
         x̃ = Inclusion((M.A * a .+ M.b)..(M.A * b .+ M.b)) # map interval to new interval
-        Q̃,M = arguments(*, inv.(x̃ .- t̃') * Weighted(P))
+        Q̃,M = arguments(*, inv.(x̃ .- t̃') * W)
         parent(Q̃)[affine(x,axes(parent(Q̃),1)),:] * M
     end
 end
@@ -277,7 +277,7 @@ end
 @simplify function *(H::Hilbert, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
     P = parent(wT)
     x = axes(P,1)
-    apply(*, inv.(x .- x'), P)[parentindices(wT)...]
+    (inv.(x .- x') * P)[parentindices(wT)...]
 end
 
 
@@ -295,11 +295,14 @@ end
 end
 
 ### generic fallback
-for Op in (:Hilbert, :StieltjesPoint, :LogKernel, :PowKernel)
-    @eval @simplify function *(H::$Op, wP::WeightedBasis{<:Any,<:Weight,<:Any})
-        w,P = wP.args
-        Q = OrthogonalPolynomial(w)
-        (H * Weighted(Q)) * (Q \ P)
+for Op in (:Hilbert, :StieltjesPoint, :LogKernelPoint, :PowKernelPoint, :LogKernel, :PowKernel)
+    @eval begin
+        @simplify function *(H::$Op, wP::WeightedBasis{<:Any,<:Weight,<:Any})
+            w,P = wP.args
+            Q = OrthogonalPolynomial(w)
+            (H * Weighted(Q)) * (Q \ P)
+        end
+        @simplify *(H::$Op, wP::Weighted{<:Any,<:SubQuasiArray{<:Any,2}}) = H * view(Weighted(parent(wP.P)), parentindices(wP.P)...)
     end
 end
 
