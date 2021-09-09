@@ -46,11 +46,13 @@ end
     end
 
     @testset "LogKernelPoint" begin
-        wU = Weighted(ChebyshevU())
-        x = axes(wU,1)
-        z = 0.1+0.2im
-        L = log.(abs.(z.-x'))
-        @test L isa LogKernelPoint{Float64,ComplexF64,ComplexF64,Float64,ChebyshevInterval{Float64}}
+        @testset "Complex point" begin
+            wU = Weighted(ChebyshevU())
+            x = axes(wU,1)
+            z = 0.1+0.2im
+            L = log.(abs.(z.-x'))
+            @test L isa LogKernelPoint{Float64,ComplexF64,ComplexF64,Float64,ChebyshevInterval{Float64}}
+        end
 
         @testset "Real point" begin
             U = ChebyshevU()
@@ -64,6 +66,17 @@ end
 
             t = 0.5+0im
             @test (log.(abs.(t .- x') )* Weighted(U))[1,1:3] ≈ [-1.4814921268505252, -1.308996938995747, 0.19634954084936207] #mathematica
+        end
+
+        @testset "mapped" begin
+            x = Inclusion(1..2)
+            wU = Weighted(ChebyshevU())[affine(x, axes(ChebyshevU(),1)),:]
+            x = axes(wU,1)
+            z = 5
+            L = log.(abs.(z .- x'))
+
+            f = wU / wU \ @.(sqrt(2-x)sqrt(x-1)exp(x))
+            @test L*f ≈ 2.2374312398976586 # MAthematica
         end
     end
 
@@ -319,6 +332,13 @@ end
 
             @test inv.(-1.3 .- x1') * u1 + inv.(-1.3 .- x2') * u2 + E1 ≈ Vp(-1.3)
             @test inv.(1.3 .- x1') * u1 + inv.(1.3 .- x2') * u2 + E2 ≈ Vp(1.3)
+        end
+
+        @testset "Stieltjes" begin
+            f = W * c
+            z = 5.0
+            @test inv.(z .- x')*f ≈ 1.317290060427562
+            @test log.(abs.(z .- x'))*f ≈ 1.317290060427562
         end
     end
 

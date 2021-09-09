@@ -91,6 +91,7 @@ end
 end
 
 
+
 @simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wP::Weighted{<:Any,<:OrthogonalPolynomial})
     P = wP.P
     w = orthogonalityweight(P)
@@ -102,54 +103,30 @@ end
 @simplify *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, P::Legendre) = H * Weighted(P)
 
 
-
 ##
-# mapped
-###
+# OffHilbert
+##
 
-@simplify function *(H::Hilbert, w::SubQuasiArray{<:Any,1})
-    T = promote_type(eltype(H), eltype(w))
-    m = parentindices(w)[1]
-    # TODO: mapping other geometries
-    @assert axes(H,1) == axes(H,2) == axes(w,1)
-    P = parent(w)
-    x = axes(P,1)
-    (inv.(x .- x') * P)[m]
-end
-
-
-@simplify function *(H::Hilbert, wP::Weighted{<:Any,<:SubQuasiArray{<:Any,2}})
-    T = promote_type(eltype(H), eltype(wP))
-    kr,jr = parentindices(wP.P)
-    P = parent(wP.P)
+@simplify function *(H::Hilbert{<:Any,<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
+    tol = eps()
     x = axes(H,1)
-    t = axes(H,2)
-    t̃ = axes(P,1)
-    if x == t
-        (inv.(t̃ .- t̃') * Weighted(P))[kr,jr]
-    else
-        M = affine(t,t̃)
-        @assert x isa Inclusion
-        a,b = first(x),last(x)
-        x̃ = Inclusion((M.A * a .+ M.b)..(M.A * b .+ M.b)) # map interval to new interval
-        Q̃,M = arguments(*, inv.(x̃ .- t̃') * Weighted(P))
-        parent(Q̃)[affine(x,axes(parent(Q̃),1)),:] * M
+    T̃ = chebyshevt(x)
+    ψ_1 = T̃ \ inv.(x .+ sqrtx2.(x)) # same ψ_1 = x .- sqrt(x^2 - 1) but with relative accuracy as x -> ∞
+    M = Clenshaw(T̃ * ψ_1, T̃)
+    data = zeros(eltype(ψ_1), ∞, ∞)
+    # Operator has columns π * ψ_1^k
+    copyto!(view(data,:,1), convert(eltype(data),π)*ψ_1)
+    for j = 2:∞
+        mul!(view(data,:,j),M,view(data,:,j-1))
+        norm(view(data,:,j)) ≤ tol && break
     end
+    # we wrap in a Padded to avoid increasing cache size
+    T̃ * PaddedArray(chop(paddeddata(data), tol), size(data)...)
 end
 
-@simplify function *(H::Hilbert, S::PiecewiseInterlace)
-    axes(H,2) == axes(S,1) || throw(DimensionMismatch())
-    @assert length(S.args) == 2
-    a,b = S.args
-    xa,xb = axes(a,1),axes(b,1)
-    Ha_a = inv.(xa .- xa') * a
-    Ha_b = inv.(xb .- xa') * a
-    Hb_a = inv.(xa .- xb') * b
-    Hb_b = inv.(xb .- xb') * b
-    c,d = Hb_a.args[1], Ha_b.args[1]
-    A,B,C,D = unitblocks(c \ Ha_a), unitblocks(c \ Hb_a), unitblocks(d \ Ha_b), unitblocks(d \ Hb_b)
-    PiecewiseInterlace(c,d)  * BlockBroadcastArray{promote_type(eltype(H),eltype(S))}(hvcat, 2, A, B, C, D)
-end
+
+
+
 
 ###
 # LogKernel
@@ -243,25 +220,39 @@ end
 
 end
 
-@simplify function *(H::Hilbert{<:Any,<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
-    tol = eps()
-    x = axes(H,1)
-    T̃ = chebyshevt(x)
-    ψ_1 = T̃ \ inv.(x .+ sqrtx2.(x)) # same ψ_1 = x .- sqrt(x^2 - 1) but with relative accuracy as x -> ∞
-    M = Clenshaw(T̃ * ψ_1, T̃)
-    data = zeros(eltype(ψ_1), ∞, ∞)
-    # Operator has columns π * ψ_1^k
-    copyto!(view(data,:,1), convert(eltype(data),π)*ψ_1)
-    for j = 2:∞
-        mul!(view(data,:,j),M,view(data,:,j-1))
-        norm(view(data,:,j)) ≤ tol && break
-    end
-    # we wrap in a Padded to avoid increasing cache size
-    T̃ * PaddedArray(chop(paddeddata(data), tol), size(data)...)
+##
+# mapped
+###
+
+@simplify function *(H::Hilbert, w::SubQuasiArray{<:Any,1})
+    T = promote_type(eltype(H), eltype(w))
+    m = parentindices(w)[1]
+    # TODO: mapping other geometries
+    @assert axes(H,1) == axes(H,2) == axes(w,1)
+    P = parent(w)
+    x = axes(P,1)
+    (inv.(x .- x') * P)[m]
 end
 
 
-
+@simplify function *(H::Hilbert, wP::Weighted{<:Any,<:SubQuasiArray{<:Any,2}})
+    T = promote_type(eltype(H), eltype(wP))
+    kr,jr = parentindices(wP.P)
+    P = parent(wP.P)
+    x = axes(H,1)
+    t = axes(H,2)
+    t̃ = axes(P,1)
+    if x == t
+        (inv.(t̃ .- t̃') * Weighted(P))[kr,jr]
+    else
+        M = affine(t,t̃)
+        @assert x isa Inclusion
+        a,b = first(x),last(x)
+        x̃ = Inclusion((M.A * a .+ M.b)..(M.A * b .+ M.b)) # map interval to new interval
+        Q̃,M = arguments(*, inv.(x̃ .- t̃') * Weighted(P))
+        parent(Q̃)[affine(x,axes(parent(Q̃),1)),:] * M
+    end
+end
 
 @simplify function *(S::StieltjesPoint, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
     P = parent(wT)
@@ -269,6 +260,18 @@ end
     z̃ = inbounds_getindex(parentindices(wT)[1], z)
     x̃ = axes(P,1)
     (inv.(z̃ .- x̃') * P)[:,parentindices(wT)[2]]
+end
+
+@simplify function *(L::LogKernelPoint, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
+    P = parent(wT)
+    z, xc = parent(L).args[1].args[1].args
+    kr, jr = parentindices(wT)
+    z̃ = inbounds_getindex(kr, z)
+    x̃ = axes(P,1)
+    c = inv(kr.A)
+    LP = log.(abs.(z̃ .- x̃')) * P
+    Σ = sum(P; dims=1)
+    transpose((c*transpose(LP) + c*log(c)*vec(Σ))[jr])
 end
 
 @simplify function *(H::Hilbert, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
@@ -298,6 +301,48 @@ for Op in (:Hilbert, :StieltjesPoint, :LogKernel, :PowKernel)
         Q = OrthogonalPolynomial(w)
         (H * Weighted(Q)) * (Q \ P)
     end
+end
+
+###
+# Interlace
+###
+
+
+@simplify function *(H::Hilbert, S::PiecewiseInterlace)
+    axes(H,2) == axes(S,1) || throw(DimensionMismatch())
+    @assert length(S.args) == 2
+    a,b = S.args
+    xa,xb = axes(a,1),axes(b,1)
+    Ha_a = inv.(xa .- xa') * a
+    Ha_b = inv.(xb .- xa') * a
+    Hb_a = inv.(xa .- xb') * b
+    Hb_b = inv.(xb .- xb') * b
+    c,d = Hb_a.args[1], Ha_b.args[1]
+    A,B,C,D = unitblocks(c \ Ha_a), unitblocks(c \ Hb_a), unitblocks(d \ Ha_b), unitblocks(d \ Hb_b)
+    PiecewiseInterlace(c,d)  * BlockBroadcastArray{promote_type(eltype(H),eltype(S))}(hvcat, 2, A, B, C, D)
+end
+
+
+@simplify function *(H::StieltjesPoint, S::PiecewiseInterlace)
+    z, xc = parent(H).args[1].args
+    axes(H,2) == axes(S,1) || throw(DimensionMismatch())
+    @assert length(S.args) == 2
+    a,b = S.args
+    xa,xb = axes(a,1),axes(b,1)
+    Sa = inv.(z .- xa') * a
+    Sb = inv.(z .- xb') * b
+    transpose(BlockBroadcastArray(vcat, unitblocks(transpose(Sa)), unitblocks(transpose(Sb))))
+end
+
+@simplify function *(L::LogKernelPoint, S::PiecewiseInterlace)
+    z, xc = parent(L).args[1].args[1].args
+    axes(L,2) == axes(S,1) || throw(DimensionMismatch())
+    @assert length(S.args) == 2
+    a,b = S.args
+    xa,xb = axes(a,1),axes(b,1)
+    Sa = log.(abs.(z .- xa')) * a
+    Sb = log.(abs.(z .- xb')) * b
+    transpose(BlockBroadcastArray(vcat, unitblocks(transpose(Sa)), unitblocks(transpose(Sb))))
 end
 
 

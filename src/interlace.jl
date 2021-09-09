@@ -187,3 +187,18 @@ end
 ###
 
 _sum(P::PiecewiseInterlace, dims) = BlockBroadcastArray(hcat, unitblocks.(_sum.(P.args, dims))...)
+
+##
+# summary
+###
+
+function summary(io::IO, w::PiecewiseInterlace)
+    print(io, "PiecewiseInterlace(")
+    args = w.args
+    summary(io, first(args))
+    for a in tail(args)
+        print(io, ", ")
+        summary(io, a)
+    end
+    print(io, ")")
+end
