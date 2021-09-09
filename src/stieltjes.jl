@@ -64,6 +64,10 @@ const Hilbert{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{ConvKernel{T,I
 const LogKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}}}
 const PowKernel{T,D1,D2,F<:Real} = BroadcastQuasiMatrix{T,typeof(^),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}},F}}
 
+# recognize structure of W = ((t .- x).^a
+const PowKernelPoint{T,V,D,F} =  BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
+
+
 @simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, w::ChebyshevTWeight)
     T = promote_type(eltype(H), eltype(w))
     zeros(T, axes(w,1))
@@ -241,7 +245,7 @@ end
     W = parent(wP)
     x = axes(H,1)
     t = axes(H,2)
-    t̃ = axes(P,1)
+    t̃ = axes(W,1)
     if x == t
         (inv.(t̃ .- t̃') * W)[kr,jr]
     else
@@ -345,8 +349,6 @@ end
 #################################################
 # ∫f(x)g(x)(t-x)^a dx evaluation where f and g given in coefficients
 #################################################
-# recognize structure of W = ((t .- x).^a
-const PowKernelPoint{T,V,D,F} =  BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
 
 ####
 # cached operator implementation
