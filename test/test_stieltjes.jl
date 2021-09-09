@@ -293,7 +293,7 @@ end
         end
     end
 
-    @testset "two-interval Hilbert" begin
+    @testset "two-interval" begin
         T1,T2 = chebyshevt((-2)..(-1)), chebyshevt(0..2)
         U1,U2 = chebyshevu((-2)..(-1)), chebyshevu(0..2)
         W = PiecewiseInterlace(Weighted(U1), Weighted(U2))

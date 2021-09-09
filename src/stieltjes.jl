@@ -274,13 +274,6 @@ end
     transpose((c*transpose(LP) + c*log(c)*vec(Σ))[jr])
 end
 
-@simplify function *(H::Hilbert, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
-    P = parent(wT)
-    x = axes(P,1)
-    (inv.(x .- x') * P)[parentindices(wT)...]
-end
-
-
 @simplify function *(L::LogKernel, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}})
     V = promote_type(eltype(L), eltype(wT))
     wP = parent(wT)
