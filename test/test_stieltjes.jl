@@ -342,7 +342,8 @@ end
             f = W * c
             z = 5.0
             @test inv.(z .- x')*f ≈ 1.317290060427562
-            @test log.(abs.(z .- x'))*f ≈ 1.317290060427562
+            @test log.(abs.(z .- x'))*f ≈ 6.523123127595374
+            @test log.(abs.((-z) .- x'))*f ≈ 8.93744698863906
         end
     end
 
