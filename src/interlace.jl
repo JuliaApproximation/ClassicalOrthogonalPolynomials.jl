@@ -188,6 +188,13 @@ end
 
 _sum(P::PiecewiseInterlace, dims) = BlockBroadcastArray(hcat, unitblocks.(_sum.(P.args, dims))...)
 
+# blockvector2vectortuple
+
+function components(f::Expansion{<:Any,<:PiecewiseInterlace})
+    P,c = arguments(*, f)
+    P.args .* blockvector2vectortuple(c)
+end
+
 ##
 # summary
 ###

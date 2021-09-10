@@ -209,7 +209,7 @@ end
     T = promote_type(eltype(L), eltype(wP))
     z, xc = parent(L).args[1].args[1].args
     if z in axes(wP,1)
-        Tn = Vcat(convert(T,π)*log(2*one(T)), convert(T,π)*ChebyshevT()[z,2:end]./oneto(∞))
+        Tn = Vcat(convert(T,π)*log(2*one(T)), convert(T,π)*ChebyshevT{T}()[z,2:end]./oneto(∞))
         return transpose((Tn[3:end]-Tn[1:end])/2)
     else
         # for U_k where k>=1

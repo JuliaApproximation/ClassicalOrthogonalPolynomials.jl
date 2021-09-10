@@ -249,7 +249,7 @@ end
 
             @test MemoryLayout(H) isa PaddedLayout
 
-            @test last(colsupport(H,1)) == 17
+            @test last(colsupport(H,1)) ≤ 20
             @test last(colsupport(H,6)) ≤ 40
             @test last(rowsupport(H)) ≤ 30
             @test T[2.3,1:100]'*(H * (W \ @.(sqrt(1-t^2)exp(t))))[1:100] ≈ 0.9068295340935111
@@ -306,6 +306,7 @@ end
         @test blockbandwidths(H) == (25,26)
 
         c = W \ broadcast(x -> exp(x)* (0 ≤ x ≤ 2 ? sqrt(2-x)*sqrt(x) : sqrt(-1-x)*sqrt(x+2)), x)
+        f = W * c
         @test T[0.5,1:200]'*(H*c)[1:200] ≈ -6.064426633490422
 
         @testset "inversion" begin
@@ -339,11 +340,14 @@ end
         end
 
         @testset "Stieltjes" begin
-            f = W * c
             z = 5.0
             @test inv.(z .- x')*f ≈ 1.317290060427562
             @test log.(abs.(z .- x'))*f ≈ 6.523123127595374
             @test log.(abs.((-z) .- x'))*f ≈ 8.93744698863906
+
+            t = 1.2
+            @test inv.(t .- x')*f ≈ -2.797995066227555
+            @test log.(abs.(t .- x'))*f ≈ -5.9907385495482821485
         end
     end
 
