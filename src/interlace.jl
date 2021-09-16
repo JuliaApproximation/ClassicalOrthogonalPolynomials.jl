@@ -209,3 +209,16 @@ function summary(io::IO, w::PiecewiseInterlace)
     end
     print(io, ")")
 end
+
+###
+# plot
+###
+
+
+function plotgrid(Pn::SubQuasiArray{T,2,<:PiecewiseInterlace,<:Tuple{Inclusion,Any}}) where T
+    kr,jr = parentindices(Pn)
+    P = parent(Pn)
+    N = findblock(axes(P,2),maximum(jr))
+    sort!(vcat(plotgrid.(getindex.(P.args, :, Ref(oneto(Int(N)))))...))
+end
+

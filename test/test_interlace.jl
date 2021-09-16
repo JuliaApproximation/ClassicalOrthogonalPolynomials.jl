@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, Test
-import ClassicalOrthogonalPolynomials: PiecewiseInterlace
+import ClassicalOrthogonalPolynomials: PiecewiseInterlace, plotgrid
 
 @testset "Piecewise" begin
     @testset "expansion" begin
@@ -22,7 +22,7 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
         U1,U2 = chebyshevu(-1..0), chebyshevu(0..1)
         T = PiecewiseInterlace(T1, T2)
         U = PiecewiseInterlace(U1, U2)
-        
+
         @test copy(T) == T
 
         D = U \ (Derivative(axes(T,1))*T)
@@ -44,9 +44,9 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
     @testset "two-interval p-FEM" begin
         P1,P2 = jacobi(1,1,-1..0), jacobi(1,1,0..1)
         W1,W2 = Weighted(P1), Weighted(P2)
-        
+
         W = PiecewiseInterlace(W1, W2)
-        
+
         x = axes(W,1)
         D = Derivative(x)
         Δ = -((D*W)'*(D*W))
@@ -56,5 +56,11 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
         M = W'W
 
         # Δ \ (W'exp.(x))
+    end
+
+    @testset "plot" begin
+        T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
+        T = PiecewiseInterlace(T1, T2)
+        @test plotgrid(T[:,1:5]) == sort([plotgrid(T1[:,1:3]); plotgrid(T2[:,1:3])])
     end
 end
