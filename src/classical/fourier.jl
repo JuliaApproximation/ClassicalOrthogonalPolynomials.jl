@@ -61,7 +61,7 @@ end
 end
 
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), c::BroadcastQuasiVector{<:Any,typeof(cos),<:Tuple{<:Inclusion{<:Any,<:FullSpace}}}, F::Fourier)
+function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), c::BroadcastQuasiVector{<:Any,typeof(cos),<:Tuple{<:Inclusion{<:Any,RealNumbers}}}, F::Fourier)
     axes(c,1) == axes(F,1) || throw(DimensionMismatch())
     T = promote_type(eltype(c), eltype(F))
     # Use LinearAlgebra.Tridiagonal for now since broadcasting support not complete for LazyBandedMatrices.Tridiagonal
@@ -71,7 +71,7 @@ function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), c::BroadcastQuasiVec
 end
 
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), s::BroadcastQuasiVector{<:Any,typeof(sin),<:Tuple{<:Inclusion{<:Any,<:FullSpace}}}, F::Fourier)
+function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), s::BroadcastQuasiVector{<:Any,typeof(sin),<:Tuple{<:Inclusion{<:Any,RealNumbers}}}, F::Fourier)
     axes(s,1) == axes(F,1) || throw(DimensionMismatch())
     T = promote_type(eltype(s), eltype(F))
     # Use LinearAlgebra.Tridiagonal for now since broadcasting support not complete for LazyBandedMatrices.Tridiagonal

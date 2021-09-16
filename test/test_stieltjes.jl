@@ -1,5 +1,7 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, Test
-import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated, orthogonalityweight, Weighted, gennormalizedpower, *, dot, PowerLawMatrix, PowKernelPoint, LogKernelPoint
+using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, ArrayLayouts, LazyBandedMatrices, BlockArrays, Test
+import ClassicalOrthogonalPolynomials: Hilbert, StieltjesPoint, ChebyshevInterval, associated, Associated,
+        orthogonalityweight, Weighted, gennormalizedpower, *, dot, PowerLawMatrix, PowKernelPoint, LogKernelPoint,
+        MemoryLayout, PaddedLayout
 import InfiniteArrays: I
 
 @testset "Associated" begin
@@ -44,11 +46,13 @@ end
     end
 
     @testset "LogKernelPoint" begin
-        wU = Weighted(ChebyshevU())
-        x = axes(wU,1)
-        z = 0.1+0.2im
-        L = log.(abs.(z.-x'))
-        @test L isa LogKernelPoint{Float64,ComplexF64,ComplexF64,Float64,ChebyshevInterval{Float64}}
+        @testset "Complex point" begin
+            wU = Weighted(ChebyshevU())
+            x = axes(wU,1)
+            z = 0.1+0.2im
+            L = log.(abs.(z.-x'))
+            @test L isa LogKernelPoint{Float64,ComplexF64,ComplexF64,Float64,ChebyshevInterval{Float64}}
+        end
 
         @testset "Real point" begin
             U = ChebyshevU()
@@ -62,6 +66,21 @@ end
 
             t = 0.5+0im
             @test (log.(abs.(t .- x') )* Weighted(U))[1,1:3] ≈ [-1.4814921268505252, -1.308996938995747, 0.19634954084936207] #mathematica
+        end
+
+        @testset "mapped" begin
+            x = Inclusion(1..2)
+            wU = Weighted(ChebyshevU())[affine(x, axes(ChebyshevU(),1)),:]
+            x = axes(wU,1)
+            z = 5
+            L = log.(abs.(z .- x'))
+
+            f = wU / wU \ @.(sqrt(2-x)sqrt(x-1)exp(x))
+            @test L*f ≈ 2.2374312398976586 # MAthematica
+
+            wU = Weighted(chebyshevu(1..2))
+            f = wU / wU \ @.(sqrt(2-x)sqrt(x-1)exp(x))
+            @test L*f ≈ 2.2374312398976586 # MAthematica
         end
     end
 
@@ -227,10 +246,31 @@ end
             x = Inclusion(2..3)
             T = chebyshevt(2..3)
             H = T \ inv.(x .- t') * W;
-            @test last(colsupport(H,1)) == 17
+
+            @test MemoryLayout(H) isa PaddedLayout
+
+            @test last(colsupport(H,1)) ≤ 20
             @test last(colsupport(H,6)) ≤ 40
+            @test last(rowsupport(H)) ≤ 30
             @test T[2.3,1:100]'*(H * (W \ @.(sqrt(1-t^2)exp(t))))[1:100] ≈ 0.9068295340935111
             @test T[2.3,1:100]' * H[1:100,1:100] ≈ (inv.(2.3 .- t') * W)[:,1:100]
+
+            u = (I + H) \ [1; zeros(∞)]
+            @test u[3] ≈ -0.011220808241213699 #Emperical
+
+
+            @testset "properties" begin
+                U  = chebyshevu(T)
+                X = jacobimatrix(U)
+                Z = jacobimatrix(T)
+
+                @test Z * H[:,1] - H[:,2]/2 ≈ [sum(W[:,1]); zeros(∞)]
+                @test norm(-H[:,1]/2 + Z * H[:,2] - H[:,3]/2) ≤ 1E-12
+                
+                L = U \ ((x.^2 .- 1) .* Derivative(x) * T - x .* T)
+                c = T \ sqrt.(x.^2 .- 1)
+                @test [T[begin,:]'; L] \ [sqrt(2^2-1); zeros(∞)] ≈ c
+            end
         end
 
         @testset "mapped" begin
@@ -250,6 +290,64 @@ end
             t = axes(W,1)
             H = T \ inv.(x .- t') * W
             @test T[0.5,1:N]'*(H * (W \ @.(sqrt(-1-t)*sqrt(t+2)*exp(t))))[1:N] ≈ 0.047390454610749054
+        end
+    end
+
+    @testset "two-interval" begin
+        T1,T2 = chebyshevt((-2)..(-1)), chebyshevt(0..2)
+        U1,U2 = chebyshevu((-2)..(-1)), chebyshevu(0..2)
+        W = PiecewiseInterlace(Weighted(U1), Weighted(U2))
+        T = PiecewiseInterlace(T1, T2)
+        U = PiecewiseInterlace(U1, U2)
+        x = axes(W,1)
+        H = T \ inv.(x .- x') * W;
+
+        @test maximum(BlockArrays.blockcolsupport(H,Block(5))) ≤ Block(50)
+        @test blockbandwidths(H) == (25,26)
+
+        c = W \ broadcast(x -> exp(x)* (0 ≤ x ≤ 2 ? sqrt(2-x)*sqrt(x) : sqrt(-1-x)*sqrt(x+2)), x)
+        f = W * c
+        @test T[0.5,1:200]'*(H*c)[1:200] ≈ -6.064426633490422
+
+        @testset "inversion" begin
+            H̃ = BlockHcat(Eye((axes(H,1),))[:,Block(1)], H)
+            @test BlockArrays.blockcolsupport(H̃,1) == Block.(1:1)
+            @test last(BlockArrays.blockcolsupport(H̃,2)) ≤ Block(30)
+
+            UT = U \ T
+            D = U \ Derivative(x) * T
+            V = x -> x^4 - 10x^2
+            Vp = x -> 4x^3 - 20x
+            V_cfs = T \ V.(x)
+            Vp_cfs_U = D * V_cfs
+            Vp_cfs_T = T \ Vp.(x);
+
+            @test (UT \ Vp_cfs_U)[Block.(1:10)] ≈ Vp_cfs_T[Block.(1:10)]
+
+            @time c = H̃ \ Vp_cfs_T;
+
+            E1,E2 = c[Block(1)]
+            c1 = [paddeddata(c)[3:2:end]; Zeros(∞)]
+            c2 = [paddeddata(c)[4:2:end]; Zeros(∞)]
+
+            u1 = Weighted(U1) * c1
+            u2 = Weighted(U2) * c2
+            x1 = axes(u1,1)
+            x2 = axes(u2,1)
+
+            @test inv.(-1.3 .- x1') * u1 + inv.(-1.3 .- x2') * u2 + E1 ≈ Vp(-1.3)
+            @test inv.(1.3 .- x1') * u1 + inv.(1.3 .- x2') * u2 + E2 ≈ Vp(1.3)
+        end
+
+        @testset "Stieltjes" begin
+            z = 5.0
+            @test inv.(z .- x')*f ≈ 1.317290060427562
+            @test log.(abs.(z .- x'))*f ≈ 6.523123127595374
+            @test log.(abs.((-z) .- x'))*f ≈ 8.93744698863906
+
+            t = 1.2
+            @test inv.(t .- x')*f ≈ -2.797995066227555
+            @test log.(abs.(t .- x'))*f ≈ -5.9907385495482821485
         end
     end
 
@@ -387,3 +485,4 @@ end
         end
     end
 end
+

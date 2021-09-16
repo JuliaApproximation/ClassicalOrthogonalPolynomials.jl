@@ -10,7 +10,7 @@ broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(*), w::AbstractJacobiWeight, v::A
 broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(sqrt), w::AbstractJacobiWeight) =
     JacobiWeight(w.a/2, w.b/2)
 
-broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(Base.literal_pow), ::Base.RefValue{typeof(^)}, w::AbstractJacobiWeight, ::Base.RefValue{Val{k}}) where k = 
+broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(Base.literal_pow), ::Base.RefValue{typeof(^)}, w::AbstractJacobiWeight, ::Base.RefValue{Val{k}}) where k =
     JacobiWeight(k * w.a, k * w.b)
 
 struct JacobiWeight{T} <: AbstractJacobiWeight{T}
@@ -136,7 +136,7 @@ Jacobi(P::Legendre{T}) where T = Jacobi(zero(T), zero(T))
 """
      jacobip(n, a, b, z)
 
-computes the `n`-th Jacobi polynomial, orthogonal with 
+computes the `n`-th Jacobi polynomial, orthogonal with
 respec to `(1-x)^a*(1+x)^b`, at `z`.
 """
 jacobip(n::Integer, a, b, z::Number) = Base.unsafe_getindex(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b), z, n+1)
@@ -237,23 +237,38 @@ end
 # Mass Matrix
 #########
 
-legendre_massmatrix(::Type{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
+# massmatrix(P) = Weighted(P)'P
+massmatrix(P::Legendre{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
 
+
+
+"""
+    legendre_massmatrix
+
+computes the massmatrix by first re-expanding in Legendre
+"""
 function legendre_massmatrix(Ac, B)
     A = parent(Ac)
     P = Legendre{eltype(B)}()
-    (P\A)'*legendre_massmatrix(eltype(P))*(P\B)
+    (P\A)'*massmatrix(P)*(P\B)
 end
 
-@simplify *(Ac::QuasiAdjoint{<:Any,<:Legendre}, B::Legendre) = legendre_massmatrix(Ac, B)
+@simplify *(Ac::QuasiAdjoint{<:Any,<:Legendre}, B::Legendre) = massmatrix(Legendre{promote_type(eltype(Ac), eltype(B))}())
 @simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractJacobi) = legendre_massmatrix(Ac,B)
+@simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::Weighted{<:Any,<:AbstractJacobi}) = legendre_massmatrix(Ac,B)
+
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractQuasiVector)
+    P = Legendre{eltype(Ac)}()
+    (Ac * P) * (P \ B)
+end
 
 # 2^{a + b + 1} {\Gamma(n+a+1) \Gamma(n+b+1) \over (2n+a+b+1) \Gamma(n+a+b+1) n!}.
-
-function jacobi_massmatrix(a, b)
+function massmatrix(P::Jacobi)
+    a,b = P.a,P.b
     n = 0:∞
     Diagonal(2^(a+b+1) .* (exp.(loggamma.(n .+ (a+1)) .+ loggamma.(n .+ (b+1)) .- loggamma.(n .+ (a+b+1)) .- loggamma.(n .+ 1)) ./ (2n .+ (a+b+1))))
 end
+
 
 
 @simplify function *(wAc::QuasiAdjoint{<:Any,<:WeightedBasis{<:Any,<:AbstractJacobiWeight}}, wB::WeightedBasis{<:Any,<:AbstractJacobiWeight})
@@ -265,7 +280,7 @@ end
     A = parent(Ac)
     w,B = arguments(wB)
     P = Jacobi(w.a, w.b)
-    (P\A)' * jacobi_massmatrix(w.a, w.b) * (P \ B)
+    (P\A)' * massmatrix(P) * (P \ B)
 end
 
 ########

@@ -65,6 +65,11 @@ import QuasiArrays: MulQuasiArray
         W = P \ (w .* P)
         @test W isa Clenshaw
         @test W * [1; 2; zeros(∞)] ≈ P \ (w .* (P[:,1:2] * [1,2]))
+
+        M = P'P
+        @test M isa Diagonal
+        @test P'x ≈ [0; 2/3; zeros(∞)]
+        @test P'exp.(x) ≈ M * (P\exp.(x))
     end
 
     @testset "test on functions" begin

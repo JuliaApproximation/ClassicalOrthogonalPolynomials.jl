@@ -12,17 +12,18 @@ import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
                 to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
-import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, colsupport, adjointlayout,
+import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
                 _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
-                AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!
+                AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!,
+                simplifiable, PaddedArray
 import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
-                        subdiagonaldata, diagonaldata, supdiagonaldata
+                        subdiagonaldata, diagonaldata, supdiagonaldata, mul, rowsupport, colsupport
 import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1, AbstractLazyBandedLayout
 import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
 import FillArrays: AbstractFill, getindex_value, SquareEye
-
+import DomainSets: components
 import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclusion, SubQuasiArray,
                     QuasiDiagonal, MulQuasiArray, MulQuasiMatrix, MulQuasiVector, QuasiMatMulMat,
                     ApplyQuasiArray, ApplyQuasiMatrix, LazyQuasiArrayApplyStyle, AbstractQuasiArrayApplyStyle,
@@ -30,6 +31,7 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
                     _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
+import InfiniteLinearAlgebra: chop!, chop
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     inbounds_getindex, grid, plotgrid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
     AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
@@ -60,22 +62,12 @@ include("interlace.jl")
 
 cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
 cardinality(::EuclideanDomain) = ℵ₁
+cardinality(::Union{DomainSets.RealNumbers,DomainSets.ComplexNumbers}) = ℵ₁
+cardinality(::Union{DomainSets.Integers,DomainSets.Rationals,DomainSets.NaturalNumbers}) = ℵ₀
 
 transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
     adaptivetransform_ldiv(convert(AbstractQuasiArray{promote_type(T,V)}, A), f)
 
-function chop!(c::AbstractVector, tol::Real)
-    @assert tol >= 0
-
-    for k=length(c):-1:1
-        if abs(c[k]) > tol
-            resize!(c,k)
-            return c
-        end
-    end
-    resize!(c,0)
-    c
-end
 
 setaxis(c, ::OneToInf) = c
 setaxis(c, ax::BlockedUnitRange) = PseudoBlockVector(c, (ax,))
@@ -184,6 +176,12 @@ singularities(r::Base.RefValue) = r[] # pass through
 
 orthogonalityweight(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) =
     orthogonalityweight(parent(P))[parentindices(P)[1]]
+
+function massmatrix(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}})
+    Q = parent(P)
+    kr,jr = parentindices(P)
+    massmatrix(Q)/kr.A
+end
 
 _weighted(w, P) = w .* P
 weighted(P::AbstractQuasiMatrix) = _weighted(orthogonalityweight(P), P)

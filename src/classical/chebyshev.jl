@@ -73,6 +73,9 @@ chebysevuweight(d::AbstractInterval{T}) where T = ChebyshevUWeight{float(T)}[aff
 ==(::Chebyshev, ::Legendre) = false
 ==(::Legendre, ::Chebyshev) = false
 
+summary(io::IO, w::ChebyshevT{Float64}) = print(io, "ChebyshevT()")
+summary(io::IO, w::ChebyshevU{Float64}) = print(io, "ChebyshevU()")
+
 OrthogonalPolynomial(w::ChebyshevWeight{kind,T}) where {kind,T} = Chebyshev{kind,T}()
 orthogonalityweight(P::Chebyshev{kind,T}) where {kind,T} = ChebyshevWeight{kind,T}()
 
@@ -157,6 +160,12 @@ end
     A = _BandedMatrix((zero(T):∞)', ℵ₀, -1,1)
     ApplyQuasiMatrix(*, ChebyshevU{T}(), A)
 end
+
+@simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
+    T = promote_type(eltype(D),eltype(W))
+    Weighted(ChebyshevT{T}()) * _BandedMatrix((-one(T):-one(T):(-∞))', ℵ₀, 1,-1)
+end
+
 
 #####
 # Conversion

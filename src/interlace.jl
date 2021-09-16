@@ -96,7 +96,7 @@ end
 
 
 abstract type AbstractInterlaceBasis{T} <: Basis{T} end
-copy(A::AbstractInterlaceBasis) = interlacebasis(A, map(copy, A.args))
+copy(A::AbstractInterlaceBasis) = interlacebasis(A, map(copy, A.args)...)
 
 """
     PiecewiseInterlace(args...)
@@ -145,6 +145,18 @@ end
     interlacebasis(S, map(first, args)...) * BlockBroadcastArray{promote_type(eltype(D),eltype(S))}(Diagonal, unitblocks.(last.(args))...)
 end
 
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractInterlaceBasis}, B::AbstractInterlaceBasis)
+    axes(Ac,2) == axes(B,1) || throw(DimensionMismatch())
+    BlockBroadcastArray{promote_type(eltype(Ac),eltype(B))}(Diagonal, unitblocks.(adjoint.(parent(Ac).args) .* B.args)...)
+end
+
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractInterlaceBasis}, B::AbstractQuasiVector)
+    axes(Ac,2) == axes(B,1) || throw(DimensionMismatch())
+    args = (Ac').args
+    cs = (adjoint.(args) .* getindex.(Ref(B), axes.(args,1)))
+    BlockBroadcastArray(vcat, unitblocks.(cs)...)
+end
+
 struct PiecewiseFactorization{T,FF,Ax} <: Factorization{T}
     factorizations::FF
     axes::Ax
@@ -169,3 +181,44 @@ function factorize(V::SubQuasiArray{<:Any,2,<:AbstractInterlaceBasis,<:Tuple{Inc
     J = findblock(axes(P,2),maximum(jr))
     ProjectionFactorization(factorize(P[:,Block.(OneTo(Int(J)))]), jr)
 end
+
+###
+# sum
+###
+
+_sum(P::PiecewiseInterlace, dims) = BlockBroadcastArray(hcat, unitblocks.(_sum.(P.args, dims))...)
+
+# blockvector2vectortuple
+
+function components(f::Expansion{<:Any,<:PiecewiseInterlace})
+    P,c = arguments(*, f)
+    P.args .* blockvector2vectortuple(c)
+end
+
+##
+# summary
+###
+
+function summary(io::IO, w::PiecewiseInterlace)
+    print(io, "PiecewiseInterlace(")
+    args = w.args
+    summary(io, first(args))
+    for a in tail(args)
+        print(io, ", ")
+        summary(io, a)
+    end
+    print(io, ")")
+end
+
+###
+# plot
+###
+
+
+function plotgrid(Pn::SubQuasiArray{T,2,<:PiecewiseInterlace,<:Tuple{Inclusion,Any}}) where T
+    kr,jr = parentindices(Pn)
+    P = parent(Pn)
+    N = findblock(axes(P,2),maximum(jr))
+    sort!(vcat(plotgrid.(getindex.(P.args, :, Ref(oneto(Int(N)))))...))
+end
+

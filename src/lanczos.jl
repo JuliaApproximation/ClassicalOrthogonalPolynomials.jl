@@ -112,7 +112,7 @@ triangulardata(R::LanczosConversion) = R
 sublayout(::LanczosConversionLayout, ::Type{<:Tuple{KR,Integer}}) where KR = 
     sublayout(PaddedLayout{UnknownLayout}(), Tuple{KR})
 
-function sub_paddeddata(::LanczosConversionLayout, S::SubArray{<:Any,1,<:AbstractMatrix})
+function sub_paddeddata(::LanczosConversionLayout, S::SubArray{<:Any,1,<:AbstractMatrix,<:Tuple{Any,Integer}})
     P = parent(S)
     (kr,j) = parentindices(S)
     resizedata!(P.data, j)
