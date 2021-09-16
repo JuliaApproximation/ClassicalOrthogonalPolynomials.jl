@@ -62,6 +62,8 @@ include("interlace.jl")
 
 cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
 cardinality(::EuclideanDomain) = ℵ₁
+cardinality(::Union{DomainSets.RealNumbers,DomainSets.ComplexNumbers}) = ℵ₁
+cardinality(::Union{DomainSets.Integers,DomainSets.Rationals,DomainSets.NaturalNumbers}) = ℵ₀
 
 transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
     adaptivetransform_ldiv(convert(AbstractQuasiArray{promote_type(T,V)}, A), f)
