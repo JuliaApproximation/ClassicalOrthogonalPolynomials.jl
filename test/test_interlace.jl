@@ -58,6 +58,29 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, plotgrid
         # Δ \ (W'exp.(x))
     end
 
+    @testset "three-interval ODE" begin
+        d = (-1..0),(0..1),(1..2)
+        T = PiecewiseInterlace(chebyshevt.(d)...)
+        U = PiecewiseInterlace(chebyshevu.(d)...)
+
+        D = U \ (Derivative(axes(T,1))*T)
+        C = U \ T
+
+        A = BlockVcat(T[-1,:]',
+                        BlockBroadcastArray(vcat,unitblocks(T.args[1][end,:]),-unitblocks(T.args[2][begin,:]),Zeros((unitblocks(axes(T.args[3],2)),)))',
+                        BlockBroadcastArray(vcat,Zeros((unitblocks(axes(T.args[1],2)),)),unitblocks(T.args[2][end,:]),-unitblocks(T.args[3][begin,:]))',
+                        D-C)
+        N = 20
+        M = BlockArray(A[Block.(1:N+2), Block.(1:N)])
+
+        u = M \ [exp(-1); zeros(size(M,1)-1)]
+        x = axes(T,1)
+
+        F = factorize(T[:,Block.(Base.OneTo(N))])
+        @test F \ exp.(x) ≈ (T \ exp.(x))[Block.(1:N)] ≈ u
+    end
+
+
     @testset "plot" begin
         T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
         T = PiecewiseInterlace(T1, T2)
