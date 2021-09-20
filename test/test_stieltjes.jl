@@ -266,7 +266,7 @@ end
 
                 @test Z * H[:,1] - H[:,2]/2 ≈ [sum(W[:,1]); zeros(∞)]
                 @test norm(-H[:,1]/2 + Z * H[:,2] - H[:,3]/2) ≤ 1E-12
-                
+
                 L = U \ ((x.^2 .- 1) .* Derivative(x) * T - x .* T)
                 c = T \ sqrt.(x.^2 .- 1)
                 @test [T[begin,:]'; L] \ [sqrt(2^2-1); zeros(∞)] ≈ c
@@ -349,6 +349,25 @@ end
             @test inv.(t .- x')*f ≈ -2.797995066227555
             @test log.(abs.(t .- x'))*f ≈ -5.9907385495482821485
         end
+    end
+
+    @testset "three-interval" begin
+        d = (-2..(-1), 0..1, 2..3)
+        T = PiecewiseInterlace(chebyshevt.(d)...)
+        U = PiecewiseInterlace(chebyshevu.(d)...)
+        W = PiecewiseInterlace(Weighted.(U.args)...)
+        x = axes(W,1)
+        H = T \ inv.(x .- x') * W
+        c = W \ broadcast(x -> exp(x) *
+            if -2 ≤ x ≤ -1
+                sqrt(x+2)sqrt(-1-x)
+            elseif 0 ≤ x ≤ 1
+                sqrt(1-x)sqrt(x)
+            else
+                sqrt(x-2)sqrt(3-x)
+            end, x)
+        f = W * c
+        @test T[0.5,1:200]'*(H*c)[1:200] ≈ -3.0366466972156143
     end
 
     #################################################

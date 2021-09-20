@@ -308,18 +308,17 @@ end
 ###
 
 
-@simplify function *(H::Hilbert, S::PiecewiseInterlace)
-    axes(H,2) == axes(S,1) || throw(DimensionMismatch())
-    @assert length(S.args) == 2
-    a,b = S.args
-    xa,xb = axes(a,1),axes(b,1)
-    Ha_a = inv.(xa .- xa') * a
-    Ha_b = inv.(xb .- xa') * a
-    Hb_a = inv.(xa .- xb') * b
-    Hb_b = inv.(xb .- xb') * b
-    c,d = Hb_a.args[1], Ha_b.args[1]
-    A,B,C,D = unitblocks(c \ Ha_a), unitblocks(c \ Hb_a), unitblocks(d \ Ha_b), unitblocks(d \ Hb_b)
-    PiecewiseInterlace(c,d)  * BlockBroadcastArray{promote_type(eltype(H),eltype(S))}(hvcat, 2, A, B, C, D)
+@simplify function *(H::Hilbert, W::PiecewiseInterlace)
+    axes(H,2) == axes(W,1) || throw(DimensionMismatch())
+    Hs = broadcast(function(a,b)
+                x,t = axes(a,1),axes(b,1)
+                H = inv.(x .- t') * b
+                H
+            end, [W.args...], permutedims([W.args...]))
+    N = length(W.args)
+    Ts = [broadcastbasis(+, broadcast(H -> H.args[1], Hs[k,:])...) for k=1:N]
+    Ms = broadcast((T,H) -> unitblocks(T\H), Ts, Hs)
+    PiecewiseInterlace(Ts...) * BlockBroadcastArray{promote_type(eltype(H),eltype(W))}(hvcat, N, permutedims(Ms)...)
 end
 
 
