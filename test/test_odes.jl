@@ -211,4 +211,17 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         M = C \ (L * T)
         @test C[0.1,:]' * (M * (T \ exp.(x))) ≈ (0.1 + cos(0.1))*exp(0.1)
     end
+
+    @testset "Neumann" begin
+        W = Weighted(Jacobi(1,1))
+        x = axes(W,1)
+        Q = [x W]
+        P = Legendre()
+        D = Derivative(x)
+        Δ = -((P\D*Q)'*(P'P)*(P\D*Q))
+
+        c = Δ \ (Q'*exp.(x))
+        u = Q * c
+        u[0.1]
+    end
 end

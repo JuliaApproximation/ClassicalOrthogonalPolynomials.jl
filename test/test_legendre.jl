@@ -139,4 +139,9 @@ import QuasiArrays: MulQuasiArray
     @testset "special syntax" begin
         @test legendrep.(0:5, 0.3) == Legendre()[0.3, 1:6]
     end
+
+    @testset "Inner products" begin
+        x = Inclusion(ChebyshevInterval())
+        @test x'exp.(x) ≈ 2/ℯ
+    end
 end
