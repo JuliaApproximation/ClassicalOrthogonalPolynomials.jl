@@ -222,6 +222,6 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
 
         c = Δ \ (Q'*exp.(x))
         u = Q * c
-        u[0.1]
+        @test u[0.1] ≈ -0.5922177802211208
     end
 end
