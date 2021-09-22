@@ -38,6 +38,7 @@ singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # 
 singularities(::AbstractJacobi{T}) where T = LegendreWeight{T}()
 singularities(::Inclusion{T,<:AbstractInterval}) where T = LegendreWeight{T}()
 singularities(d::Inclusion{T,<:Interval}) where T = LegendreWeight{T}()[affine(d,ChebyshevInterval{T}())]
+singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
 
 struct Legendre{T} <: AbstractJacobi{T} end
 Legendre() = Legendre{Float64}()
