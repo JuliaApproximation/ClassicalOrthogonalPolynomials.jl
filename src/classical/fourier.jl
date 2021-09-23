@@ -79,3 +79,8 @@ function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), s::BroadcastQuasiVec
                         Vcat([zeros(T,1,1)], Fill(Matrix(zero(T)*I,2,2),∞)),
                         Vcat([[one(T)/2 0]], Fill([0 -one(T)/2; one(T)/2 0],∞))))
 end
+
+
+# support cos.(θ) .* F
+Base.broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), c::Broadcasted{<:Any,<:Any,typeof(cos),<:Tuple{<:Inclusion{<:Any,RealNumbers}}}, F::Fourier) = materialize(c) .* F
+Base.broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), c::Broadcasted{<:Any,<:Any,typeof(sin),<:Tuple{<:Inclusion{<:Any,RealNumbers}}}, F::Fourier) = materialize(c) .* F
