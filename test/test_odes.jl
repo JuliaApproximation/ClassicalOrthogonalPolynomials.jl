@@ -218,18 +218,27 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         Q = [x W]
         P = Legendre()
         D = Derivative(x)
-        Δ = -((P\D*Q)'*(P'P)*(P\D*Q))
 
+        Δ = -((P\D*Q)'*(P'P)*(P\D*Q))
+        @test bandwidths(Δ) == (0,0)
+        c = Δ \ (Q'*exp.(x))
+        u = Q * c
+        @test u[0.1] ≈ -0.5922177802211208
+
+        Δ = -((D*Q)'*(D*Q))
+        @test bandwidths(Δ) == (0,0)
         c = Δ \ (Q'*exp.(x))
         u = Q * c
         @test u[0.1] ≈ -0.5922177802211208
 
         Q = [one(x) x W]
 
-        Δ = -((P\D*Q)'*(P'P)*(P\D*Q))
+        Δ = -((D*Q)'*(D*Q))
         M = Q'Q
+        @test isbanded(Δ)
         @test isbanded(M)
         @test bandwidths(M) == (2,2)
+        @test bandwidths(Δ) == (0,0)
         c = (Δ + M) \ (Q'exp.(x))
         u = Q * c
         @test u[0.1] ≈ 1.104838515599687
