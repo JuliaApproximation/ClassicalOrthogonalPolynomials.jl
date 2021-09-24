@@ -71,14 +71,8 @@ function ldiv(P::Legendre{V}, f::Inclusion{T}) where {T,V}
     Vcat(zero(TV), one(TV), Zeros{TV}(∞))
 end
 
-function ldiv(P::Legendre{V}, f::AbstractQuasiFill{T,1}) where {T,V}
-    TV = promote_type(T,V)
-    Vcat(convert(TV,getindex_value(f)),Zeros{TV}(∞))
-end
 
-
-ldiv(P::Legendre{V}, f::QuasiZeros{T,1}) where {T,V} = Zeros{promote_type(T,V)}(∞)
-
+ldiv(P::Legendre{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
 function ldiv(::Legendre{V}, f::AbstractQuasiVector) where V
     T = ChebyshevT{V}()
     [cheb2leg(paddeddata(T \ f)); zeros(V,∞)]

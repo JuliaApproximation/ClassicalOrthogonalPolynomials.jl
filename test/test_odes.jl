@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, 
+using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices,
         SemiseparableMatrices, LazyArrays, ArrayLayouts, Test
 
 import QuasiArrays: MulQuasiMatrix
@@ -74,7 +74,7 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
             P = Legendre()
             x = axes(W,1)
             D = Derivative(x)
-            Δ = -((D*W)'*(D*W)) 
+            Δ = -((D*W)'*(D*W))
             u = W * (Δ \ (W'*exp.(x)))
             let x = 0.1
                 @test u[x] ≈ (-1 + 2exp(1 + x) + x - exp(2)*(1 + x))/(2ℯ)
@@ -225,11 +225,13 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         @test u[0.1] ≈ -0.5922177802211208
 
         Q = [one(x) x W]
-        
+
         Δ = -((P\D*Q)'*(P'P)*(P\D*Q))
         M = Q'Q
-        c = Matrix((Δ + M)[1:100,1:100]) \ (Q'*exp.(x))[1:100]
-        u = Q * [c; zeros(∞)] 
+        @test isbanded(M)
+        @test bandwidths(M) == (2,2)
+        c = (Δ + M) \ (Q'exp.(x))
+        u = Q * c
         @test u[0.1] ≈ 1.104838515599687
     end
 end
