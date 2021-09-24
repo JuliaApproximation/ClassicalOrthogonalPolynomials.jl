@@ -242,5 +242,14 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         c = (Δ + M) \ (Q'exp.(x))
         u = Q * c
         @test u[0.1] ≈ 1.104838515599687
+
+        @testset "one-sided" begin
+            Q = [one(x)-x W]
+            Δ = -((D*Q)'*(D*Q))
+            M = Q'Q;
+            c = (Δ + M) \ (Q'exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ 1.6878004187402804
+        end
     end
 end
