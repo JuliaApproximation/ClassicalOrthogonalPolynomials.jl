@@ -196,7 +196,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
         n = 10
         Pn = Diagonal([Ones(n); Zeros(∞)])
         @test (X*Pn - Pn*X)[1:n,1:n] ≈ zeros(n,n)
-        @test Pn * Q[y,:] isa CachedVector
+        @test MemoryLayout(Pn * Q[y,:]) isa PaddedLayout
 
         # @test (x-y) * Q[x,1:n]'*Q[y,1:n] ≈ (x-y) * Q[x,:]'*Pn*Q[y,:] ≈ (x-y) * Q[x,:]'*Pn*Q[y,:]
         # Q[x,:]' * ((X*Pn - Pn*X)* Q[y,:])
