@@ -52,6 +52,9 @@ import QuasiArrays: MulQuasiArray
         θ = axes(F,1)
         c,s = cos.(θ),sin.(θ)
         @test c .* F isa MulQuasiArray
+        @test s .* F isa MulQuasiArray
+        @test cos.(θ) .* F isa MulQuasiArray
+        @test sin.(θ) .* F isa MulQuasiArray
         X,Y = F \ (c .* F),F \ (s .* F)
         N = 10
         XY = X*Y
