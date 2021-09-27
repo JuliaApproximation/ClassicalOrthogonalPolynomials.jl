@@ -8,7 +8,7 @@ import QuasiArrays: MulQuasiArray
         @test w.^2 isa LegendreWeight
         @test sqrt.(w) isa LegendreWeight
         @test w .* w isa LegendreWeight
-        @test w[0.1] ≡ 0.1
+        @test w[0.1] ≡ 1.0
     end
 
     @testset "basics" begin
