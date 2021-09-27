@@ -80,7 +80,7 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiArray{
     fr = f[r]
     maxabsfr = norm(fr,Inf)
 
-    tol = 20eps(real(T))
+    tol = 20eps(real(eltype(T)))
 
     for n = 2 .^ (4:∞)
         An = A[:,oneto(n)]
@@ -90,12 +90,12 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiArray{
             return zeros(T,∞)
         end
 
-        un = A * [cfs; Zeros{T}(∞)]
+        un = A * [cfs; Zeros{eltype(T)}(∞)]
         # we allow for transformed coefficients being a different size
         ##TODO: how to do scaling for unnormalized bases like Jacobi?
         if maximum(abs,@views(cfs[n-2:end])) < 10tol*maxabsc &&
                 all(norm.(un[r] - fr, 1) .< tol * n * maxabsfr*1000)
-            return setaxis([chop!(cfs, tol); zeros(T,∞)], axes(A,2))
+            return setaxis([chop!(cfs, tol); zeros(eltype(T),∞)], axes(A,2))
         end
     end
     error("Have not converged")

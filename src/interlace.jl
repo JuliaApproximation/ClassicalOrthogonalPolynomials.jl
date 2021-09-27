@@ -201,22 +201,38 @@ end
     BlockBroadcastArray(vcat, unitblocks.(cs)...)
 end
 
-struct PiecewiseFactorization{T,FF,Ax} <: Factorization{T}
-    factorizations::FF
-    axes::Ax
+abstract type InterlaceFactorization{T} <: Factorization{T} end
+
+for Typ in (:PiecewiseFactorization, :SetindexFactorization)
+    @eval begin
+        struct $Typ{T,FF,Ax} <: Factorization{T}
+            factorizations::FF
+            axes::Ax
+        end
+
+        $Typ{T}(fac, ax) where T = $Typ{T,typeof(fac),typeof(ax)}(fac, ax)
+    end
 end
 
-PiecewiseFactorization{T}(fac, ax) where T = PiecewiseFactorization{T,typeof(fac),typeof(ax)}(fac, ax)
-
-function \(F::PiecewiseFactorization{T}, v::AbstractQuasiVector) where {T}
+\(F::PiecewiseFactorization{T}, v::AbstractQuasiVector) where {T} =
     BlockBroadcastArray{T}(vcat, unitblocks.((\).(F.factorizations, getindex.(Ref(v), F.axes)))...)
-end
 
-function factorize(V::SubQuasiArray{T,2,<:AbstractInterlaceBasis,<:Tuple{Inclusion,BlockSlice{BlockRange1{OneTo{Int}}}}}) where T
+\(F::SetindexFactorization{T}, v::AbstractQuasiVector) where {T} =
+    BlockBroadcastArray{eltype(T)}(vcat, unitblocks.((\).(F.factorizations, broadcast((w,i) -> getindex.(w,i), Ref(v), Base.OneTo(length(F.factorizations)))))...)
+
+
+function factorize(V::SubQuasiArray{T,2,<:PiecewiseInterlace,<:Tuple{Inclusion,BlockSlice{BlockRange1{OneTo{Int}}}}}) where T
     P = parent(V)
     _,jr = parentindices(V)
     N = Int(last(jr.block))
     PiecewiseFactorization{T}(factorize.(view.(P.args, :, Ref(Base.OneTo(N)))), axes.(P.args,1))
+end
+
+function factorize(V::SubQuasiArray{T,2,<:SetindexInterlace,<:Tuple{Inclusion,BlockSlice{BlockRange1{OneTo{Int}}}}}) where T
+    P = parent(V)
+    _,jr = parentindices(V)
+    N = Int(last(jr.block))
+    SetindexFactorization{T}(factorize.(view.(P.args, :, Ref(Base.OneTo(N)))), axes.(P.args,1))
 end
 
 function factorize(V::SubQuasiArray{<:Any,2,<:AbstractInterlaceBasis,<:Tuple{Inclusion,AbstractVector{Int}}})
@@ -224,8 +240,7 @@ function factorize(V::SubQuasiArray{<:Any,2,<:AbstractInterlaceBasis,<:Tuple{Inc
     _,jr = parentindices(V)
     J = findblock(axes(P,2),maximum(jr))
     ProjectionFactorization(factorize(P[:,Block.(OneTo(Int(J)))]), jr)
-end
-
+end    
 ###
 # sum
 ###
