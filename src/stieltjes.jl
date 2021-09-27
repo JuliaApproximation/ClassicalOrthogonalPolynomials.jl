@@ -344,7 +344,7 @@ mutable struct PowerLawMatrix{T, PP<:Normalized{<:Any,<:Legendre{<:Any}}} <: Abs
     data::Matrix{T}
     datasize::Tuple{Int,Int}
     function PowerLawMatrix{T, PP}(P::PP, a::T, t::T) where {T, PP<:AbstractQuasiMatrix}
-        new{T, PP}(P,a,t, gennormalizedpower(a,t,50),(50,50))
+        new{T, PP}(P,a,t, gennormalizedpower(a,t,200),(200,200))
     end
 end
 PowerLawMatrix(P::AbstractQuasiMatrix, a::T, t::T) where T = PowerLawMatrix{T,typeof(P)}(P,a,t)
@@ -392,18 +392,29 @@ end
 ####
 # operator generation
 ####
-
-# evaluates ∫(t-x)^a Pn(x)P_m(x) dx for the case m=0, i.e. first row of operator, via backwards recursion
-function powerleg_backwardsfirstrow(a::T, t::T, ℓ::Int) where T <: Real
-    ℓ = ℓ+200
-    coeff = zeros(BigFloat,ℓ)
-    coeff[end-1] =  one(BigFloat)
-    for m = reverse(1:ℓ-2)
-        coeff[m] = (coeff[m+2]-t/((a+m+2)/(2*m+1))*normconst_Pnadd1(m,t)*coeff[m+1])/(((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*normconst_Pnsub1(m,t))
+# evaluates ∫(t-x)^a Pn(x)P_m(x) dx for the case m=0, i.e. first row of operator via forward recursion
+function powerleg_forwardfirstrow(a::T, t::T, ℓ::Int) where T <: Real
+    coeff = zeros(T,ℓ)
+    coeff[1] = PLnorminitial00(t,a)
+    coeff[2] = T.(sqrt(3*one(T))*PLnorminitial01(t,a))
+    @inbounds for m = 1:ℓ-2
+        coeff[m+2] = (a-m+1)/(a+m+2)*normconst_Pnsub1(m,t)*coeff[m]+((2*m+1)*t/(a+m+2)*normconst_Pnadd1(m,t)*coeff[m+1])
     end
-    coeff = PLnorminitial00(t,a)/coeff[1].*coeff
-    return T.(coeff[1:ℓ-200])
+    return coeff
 end
+
+# evaluates ∫(t-x)^a Pn(x)P_m(x) dx for the case m=0, i.e. first row of operator via backwards recursion
+# function powerleg_backwardsfirstrow(a::T, t::T, ℓ::Int) where T <: Real
+#     ℓ = ℓ+10000
+#     coeff = zeros(BigFloat,ℓ)
+#     coeff[end-1] =  one(BigFloat)
+#     @inbounds for m = reverse(1:ℓ-2)
+#         coeff[m] = (coeff[m+2]-t/((a+m+2)/(2*m+1))*normconst_Pnadd1(m,t)*coeff[m+1])/(((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*normconst_Pnsub1(m,t))
+#     end
+#     coeff = PLnorminitial00(t,a)/coeff[1].*coeff
+#     return T.(coeff[1:ℓ-10000])
+# end
+
 # modify recurrence coefficients to work for normalized Legendre
 normconst_Pnadd1(m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m+one(T))
 normconst_Pnsub1(m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m-one(T))
@@ -411,6 +422,9 @@ normconst_Pmnmix(n::Int, m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))*
 # useful explicit initial case
 function PLnorminitial00(t::Real, a::Real)
     return ((t+1)^(a+1)-(t-1)^(a+1))/(2*(a+1))
+end
+function PLnorminitial01(t::Real, a::Real)
+    return ((t+1)^(a+1)*(-a+t-1)-(a+t+1)*(t-1)^(a+1))/(2*(a+1)*(a+2))
 end
 
 # compute r-th coefficient of product expansion of order p and order q normalized Legendre polynomials
@@ -447,8 +461,8 @@ function gennormalizedpower(a::T, t::T, ℓ::Int) where T <: Real
     # initialization
     ℓ = ℓ+3
     coeff = zeros(T,ℓ,ℓ)
-    # construct first row via stable backwards recurrence
-    first = powerleg_backwardsfirstrow(a,t,2*ℓ+1)
+    # construct first row via forward recurrence
+    first = powerleg_forwardfirstrow(a,t,2*ℓ+1)
     coeff[1,:] = first[1:ℓ]
     # contruct second row via normalized product Legendre decomposition
     @inbounds for q = 1:ℓ-1
@@ -486,8 +500,8 @@ function fillcoeffmatrix!(K::PowerLawMatrix, inds::AbstractUnitRange)
     # the remaining cases can be constructed iteratively
     a = K.a; t = K.t; T = eltype(promote(a,t));
     ℓ = maximum(inds)
-    # fill in first row via stable backwards recurrence
-    first = powerleg_backwardsfirstrow(a,t,2*ℓ+1)
+    # fill in first row via forward recurrence
+    first = powerleg_forwardfirstrow(a,t,2*ℓ+1)
     K.data[1,inds] = first[inds]
     # fill in second row via normalized product Legendre decomposition
     @inbounds for q = minimum(inds):ℓ-1
