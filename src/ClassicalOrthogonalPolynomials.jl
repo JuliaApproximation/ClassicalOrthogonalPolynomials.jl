@@ -28,7 +28,8 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
                     QuasiDiagonal, MulQuasiArray, MulQuasiMatrix, MulQuasiVector, QuasiMatMulMat,
                     ApplyQuasiArray, ApplyQuasiMatrix, LazyQuasiArrayApplyStyle, AbstractQuasiArrayApplyStyle,
                     LazyQuasiArray, LazyQuasiVector, LazyQuasiMatrix, LazyLayout, LazyQuasiArrayStyle,
-                    _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector
+                    _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector,
+                    AbstractQuasiFill, _dot
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop
@@ -351,6 +352,21 @@ function \(wA::WeightedOrthogonalPolynomial, wB::WeightedOrthogonalPolynomial)
     A \ ((A * (wA \ w_B)) .* B)
 end
 
+## special expansion routines for constants and x
+function _op_ldiv(P::AbstractQuasiMatrix{V}, f::AbstractQuasiFill{T,1}) where {T,V}
+    TV = promote_type(T,V)
+    Vcat(getindex_value(f)/_p0(P),Zeros{TV}(∞))
+end
+
+_op_ldiv(::AbstractQuasiMatrix{V}, ::QuasiZeros{T,1}) where {T,V} = Zeros{promote_type(T,V)}(∞)
+
+function _op_ldiv(P::AbstractQuasiMatrix{V}, f::Inclusion{T}) where {T,V}
+    axes(P,1) == f || throw(DimensionMismatch())
+    A,B,_ = recurrencecoefficients(P)
+    TV = promote_type(T,V)
+    c = inv(convert(TV,A[1]*_p0(P)))
+    Vcat(-B[1]c, c, Zeros{TV}(∞))
+end
 
 include("classical/hermite.jl")
 include("classical/jacobi.jl")

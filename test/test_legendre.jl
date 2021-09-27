@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, LazyArrays, QuasiArrays, BandedMatrices, ForwardDiff, Test
+using ClassicalOrthogonalPolynomials, LazyArrays, QuasiArrays, BandedMatrices, ContinuumArrays, ForwardDiff, Test
 import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw
 import QuasiArrays: MulQuasiArray
 
@@ -8,6 +8,7 @@ import QuasiArrays: MulQuasiArray
         @test w.^2 isa LegendreWeight
         @test sqrt.(w) isa LegendreWeight
         @test w .* w isa LegendreWeight
+        @test w[0.1] ≡ 1.0
     end
 
     @testset "basics" begin
@@ -101,10 +102,11 @@ import QuasiArrays: MulQuasiArray
     end
 
     @testset "sum" begin
-        P = Legendre()
+        P = legendre()
         x = axes(P,1)
         w = P * (P \ exp.(x))
         @test sum(w) ≈ ℯ - inv(ℯ)
+        @test sum(P[:,5]) == 0
     end
 
     @testset "Mapped" begin
@@ -138,5 +140,14 @@ import QuasiArrays: MulQuasiArray
 
     @testset "special syntax" begin
         @test legendrep.(0:5, 0.3) == Legendre()[0.3, 1:6]
+    end
+
+    @testset "Inner products" begin
+        x = Inclusion(ChebyshevInterval())
+        @test x'exp.(x) ≈ 2/ℯ
+    end
+
+    @testset "Heaviside and Legendre" begin
+        @test Legendre() \ HeavisideSpline([-1,1]) == Vcat(1,Zeros(∞,1))
     end
 end

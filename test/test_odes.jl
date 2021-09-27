@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, 
+using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices,
         SemiseparableMatrices, LazyArrays, ArrayLayouts, Test
 
 import QuasiArrays: MulQuasiMatrix
@@ -74,7 +74,7 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
             P = Legendre()
             x = axes(W,1)
             D = Derivative(x)
-            Δ = -((D*W)'*(D*W)) 
+            Δ = -((D*W)'*(D*W))
             u = W * (Δ \ (W'*exp.(x)))
             let x = 0.1
                 @test u[x] ≈ (-1 + 2exp(1 + x) + x - exp(2)*(1 + x))/(2ℯ)
@@ -210,5 +210,49 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         L = x .* D + cos.(x) .* D^2
         M = C \ (L * T)
         @test C[0.1,:]' * (M * (T \ exp.(x))) ≈ (0.1 + cos(0.1))*exp(0.1)
+    end
+
+    @testset "Neumann" begin
+        W = Weighted(Jacobi(1,1))
+        x = axes(W,1)
+        P = Legendre()
+        D = Derivative(x)
+
+        @testset "[x W]" begin
+            Q = [x W]
+            Δ = -((P\D*Q)'*(P'P)*(P\D*Q))
+            @test bandwidths(Δ) == (0,0)
+            c = Δ \ (Q'*exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ -0.5922177802211208
+
+            Δ = -((D*Q)'*(D*Q))
+            @test bandwidths(Δ) == (0,0)
+            c = Δ \ (Q'*exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ -0.5922177802211208
+        end
+
+        @testset "natural" begin
+            Q = [one(x) x W]
+            Δ = -((D*Q)'*(D*Q))
+            M = Q'Q
+            @test isbanded(Δ)
+            @test isbanded(M)
+            @test bandwidths(M) == (2,2)
+            @test bandwidths(Δ) == (0,0)
+            c = (Δ + M) \ (Q'exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ 1.104838515599687
+        end
+
+        @testset "one-sided" begin
+            Q = [one(x)-x W]
+            Δ = -((D*Q)'*(D*Q))
+            M = Q'Q;
+            c = (Δ + M) \ (Q'exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ 1.6878004187402804
+        end
     end
 end

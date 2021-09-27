@@ -33,49 +33,16 @@ summary(io::IO, w::JacobiWeight) = print(io, "(1-x)^$(w.a) * (1+x)^$(w.b) on -1.
 
 sum(P::JacobiWeight) = jacobimoment(P.a, P.b)
 
-struct LegendreWeight{T} <: AbstractJacobiWeight{T} end
-LegendreWeight() = LegendreWeight{Float64}()
-legendreweight(d::AbstractInterval{T}) where T = LegendreWeight{float(T)}()[affine(d,ChebyshevInterval{T}())]
-
-function getindex(w::LegendreWeight{T}, x::Number) where T
-    x ∈ axes(w,1) || throw(BoundsError())
-    one(T)
-end
-
-getproperty(w::LegendreWeight{T}, ::Symbol) where T = zero(T)
-
-sum(::LegendreWeight{T}) where T = 2one(T)
-
-_weighted(::LegendreWeight, P) = P
-_weighted(::SubQuasiArray{<:Any,1,<:LegendreWeight}, P) = P
-
-broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(*), ::LegendreWeight{T}, ::LegendreWeight{V}) where {T,V} =
-    LegendreWeight{promote_type(T,V)}()
-
-broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(sqrt), w::LegendreWeight{T}) where T = w
-
-broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(Base.literal_pow), ::Base.RefValue{typeof(^)}, w::LegendreWeight, ::Base.RefValue{Val{k}}) where k = w
 
 # support auto-basis determination
 
 singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
-singularitiesbroadcast(_, L::LegendreWeight) = L # Assume we stay smooth
-singularitiesbroadcast(::typeof(exp), L::LegendreWeight) = L
-singularitiesbroadcast(::typeof(Base.literal_pow), ::typeof(^), L::LegendreWeight, ::Val) = L
 
 
 for op in (:+, :*)
     @eval singularitiesbroadcast(::typeof($op), A, B, C, D...) = singularitiesbroadcast(*, singularitiesbroadcast(*, A, B), C, D...)
 end
-for op in (:+, :-, :*)
-    @eval begin
-        singularitiesbroadcast(::typeof($op), A::LegendreWeight, B::LegendreWeight) = LegendreWeight{promote_type(eltype(A), eltype(B))}()
-        singularitiesbroadcast(::typeof($op), L::LegendreWeight, ::NoSingularities) = L
-        singularitiesbroadcast(::typeof($op), ::NoSingularities, L::LegendreWeight) = L
-    end
-end
-singularitiesbroadcast(::typeof(^), L::LegendreWeight, ::NoSingularities) = L
-singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # can't find roots
+
 
 _parent(::NoSingularities) = NoSingularities()
 _parent(a) = parent(a)
@@ -87,38 +54,13 @@ singularitiesbroadcast(F, V::Union{NoSingularities,SubQuasiArray}...) = singular
 singularitiesbroadcast(::typeof(*), V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(*, map(_parent,V)...)[_parentindices(V...)...]
 
 
+abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
+
+include("legendre.jl")
+
 singularitiesbroadcast(::typeof(*), ::LegendreWeight, b::AbstractJacobiWeight) = b
 singularitiesbroadcast(::typeof(*), a::AbstractJacobiWeight, ::LegendreWeight) = a
 
-abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
-
-singularities(::AbstractJacobi{T}) where T = LegendreWeight{T}()
-singularities(::Inclusion{T,<:AbstractInterval}) where T = LegendreWeight{T}()
-singularities(d::Inclusion{T,<:Interval}) where T = LegendreWeight{T}()[affine(d,ChebyshevInterval{T}())]
-
-struct Legendre{T} <: AbstractJacobi{T} end
-Legendre() = Legendre{Float64}()
-
-legendre() = Legendre()
-legendre(d::AbstractInterval{T}) where T = Legendre{float(T)}()[affine(d,ChebyshevInterval{T}()), :]
-
-"""
-     legendrep(n, z)
-
-computes the `n`-th Legendre polynomial at `z`.
-"""
-legendrep(n::Integer, z::Number) = Base.unsafe_getindex(Legendre{typeof(z)}(), z, n+1)
-
-
-==(::Legendre, ::Legendre) = true
-
-OrthogonalPolynomial(w::LegendreWeight{T}) where {T} = Legendre{T}()
-orthogonalityweight(::Legendre{T}) where T = LegendreWeight{T}()
-
-function qr(P::Legendre)
-    Q = Normalized(P)
-    QuasiQR(Q, Diagonal(Q.scaling))
-end
 
 struct Jacobi{T} <: AbstractJacobi{T}
     a::T
@@ -221,12 +163,8 @@ function plotgrid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,Any}}
     ChebyshevGrid{2,T}(40maximum(jr))
 end
 
-
-function ldiv(::Legendre{V}, f::AbstractQuasiVector) where V
-    T = ChebyshevT{V}()
-    [cheb2leg(paddeddata(T \ f)); zeros(V,∞)]
-end
-
+ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
+ldiv(P::Jacobi{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
 function ldiv(P::Jacobi{V}, f::AbstractQuasiVector) where V
     T = ChebyshevT{V}()
     [cheb2jac(paddeddata(T \ f), P.a, P.b); zeros(V,∞)]
@@ -237,23 +175,7 @@ end
 # Mass Matrix
 #########
 
-# massmatrix(P) = Weighted(P)'P
-massmatrix(P::Legendre{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
 
-
-
-"""
-    legendre_massmatrix
-
-computes the massmatrix by first re-expanding in Legendre
-"""
-function legendre_massmatrix(Ac, B)
-    A = parent(Ac)
-    P = Legendre{eltype(B)}()
-    (P\A)'*massmatrix(P)*(P\B)
-end
-
-@simplify *(Ac::QuasiAdjoint{<:Any,<:Legendre}, B::Legendre) = massmatrix(Legendre{promote_type(eltype(Ac), eltype(B))}())
 @simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractJacobi) = legendre_massmatrix(Ac,B)
 @simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::Weighted{<:Any,<:AbstractJacobi}) = legendre_massmatrix(Ac,B)
 
@@ -287,14 +209,6 @@ end
 # Jacobi Matrix
 ########
 
-jacobimatrix(::Legendre{T}) where T =  Tridiagonal((one(T):∞)./(1:2:∞), Zeros{T}(∞), (one(T):∞)./(3:2:∞))
-
-# These return vectors A[k], B[k], C[k] are from DLMF. Cause of MikaelSlevinsky we need an extra entry in C ... for now.
-function recurrencecoefficients(::Legendre{T}) where T
-    n = zero(T):∞
-    ((2n .+ 1) ./ (n .+ 1), Zeros{T}(∞), n ./ (n .+ 1))
-end
-
 function jacobimatrix(J::Jacobi)
     b,a = J.b,J.a
     n = 0:∞
@@ -316,19 +230,6 @@ function recurrencecoefficients(P::Jacobi)
     (A,B,C)
 end
 
-# explicit special case for normalized Legendre
-# todo: do we want these explicit constructors for normalized Legendre?
-# function jacobimatrix(::Normalized{<:Any,<:Legendre{T}}) where T
-#     b = (one(T):∞) ./sqrt.(4 .*(one(T):∞).^2 .-1)
-#     Symmetric(_BandedMatrix(Vcat(zeros(∞)', (b)'), ∞, 1, 0), :L)
-# end
-# function recurrencecoefficients(::Normalized{<:Any,<:Legendre{T}}) where T
-#     n = zero(T):∞
-#     nn = one(T):∞
-#     ((2n .+ 1) ./ (n .+ 1) ./ sqrt.(1 .-2 ./(3 .+2n)), Zeros{T}(∞), Vcat(zero(T),nn ./ (nn .+ 1) ./ sqrt.(1 .-4 ./(3 .+2nn))))
-# end
-
-@simplify *(X::Identity, P::Legendre) = ApplyQuasiMatrix(*, P, P\(X*P))
 
 
 
@@ -519,25 +420,11 @@ end
 end
 
 
-###
-# Splines
-###
-
-function \(A::Legendre, B::HeavisideSpline)
-    @assert B.points == -1:2:1
-    Vcat(1, Zeros(∞,1))
-end
 
 ###
 # sum
 ###
 
-function _sum(P::Legendre{T}, dims) where T
-    @assert dims == 1
-    Hcat(convert(T, 2), Zeros{T}(1,∞))
-end
-
-_sum(p::SubQuasiArray{T,1,Legendre{T},<:Tuple{Inclusion,Int}}, ::Colon) where T = parentindices(p)[2] == 1 ? convert(T, 2) : zero(T)
 _sum(P::AbstractJacobi{T}, dims) where T = 2 * (Legendre{T}() \ P)[1:1,:]
 
 

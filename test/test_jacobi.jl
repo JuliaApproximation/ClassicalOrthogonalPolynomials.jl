@@ -186,6 +186,14 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             u = P * (P \ exp.(x))
             @test u[0.1] ≈ exp(0.1)
         end
+
+        @testset "special cases" begin
+            P = Jacobi(0.1,0.2)
+            x = axes(P,1)
+            @test P \ zero(x) isa Zeros
+            @test P \ one(x) == [1; Zeros(∞)]
+            @test P \ x ≈ P \ broadcast(x -> x, x)
+        end
     end
 
     @testset "trivial weight" begin
