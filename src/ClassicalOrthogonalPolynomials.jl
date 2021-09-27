@@ -8,7 +8,7 @@ using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, Bloc
     LazyBandedMatrices, HypergeometricFunctions
 
 import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /, \, +, -,
-                IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy,
+                IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy, setindex,
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
                 to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted

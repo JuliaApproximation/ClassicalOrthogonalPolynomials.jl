@@ -1,5 +1,5 @@
-using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, Test
-import ClassicalOrthogonalPolynomials: PiecewiseInterlace, plotgrid
+using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, StaticArrays, Test
+import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid
 
 @testset "Piecewise" begin
     @testset "expansion" begin
@@ -85,5 +85,20 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, plotgrid
         T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
         T = PiecewiseInterlace(T1, T2)
         @test plotgrid(T[:,1:5]) == sort([plotgrid(T1[:,1:3]); plotgrid(T2[:,1:3])])
+    end
+
+    @testset "SetindexInterlace" begin
+        T = ChebyshevT(); U = ChebyshevU();
+        V = SetindexInterlace(SVector(0.0,0.0), T, U)
+        @test V[0.1,1:2:6] == vcat.(T[0.1,1:3],0)
+        @test V[0.1,2:2:6] == vcat.(0,U[0.1,1:3])
+
+        C² = Ultraspherical(2)
+        C³ = Ultraspherical(3)
+        M = SetindexInterlace(zero(SMatrix{2,2,Float64}), T, U, C², C³)
+        @test M[0.1,1:4:12] == hvcat.(2, T[0.1,1:3], 0, 0, 0)
+        @test M[0.1,2:4:12] == hvcat.(2, 0, 0, U[0.1,1:3], 0)
+        @test M[0.1,3:4:12] == hvcat.(2, 0, C²[0.1,1:3], 0, 0)
+        @test M[0.1,4:4:12] == hvcat.(2, 0, 0, 0, C³[0.1,1:3])
     end
 end

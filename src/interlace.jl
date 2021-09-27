@@ -121,6 +121,36 @@ axes(A::PiecewiseInterlace) = (union(axes.(A.args,1)...), LazyBandedMatrices._bl
 
 ==(A::PiecewiseInterlace, B::PiecewiseInterlace) = all(A.args .== B.args)
 
+"""
+    SetindexInterlace(z, args...)
+
+is an analogue of `Basis` for vector that replaces the `i`th index of `z`,
+takes the union of the first axis,
+and the second axis is a blocked interlace of args.
+
+"""
+struct SetindexInterlace{T, Args} <: AbstractInterlaceBasis{T}
+    z::T
+    args::Args
+end
+
+SetindexInterlace{T}(z, args...) where T = SetindexInterlace{T,typeof(args)}(z, args)
+SetindexInterlace(z::T, args...) where T = SetindexInterlace{T}(z, args...)
+SetindexInterlace{T}(z, args::AbstractVector) where T = SetindexInterlace{T,typeof(args)}(z, args)
+SetindexInterlace(z::T, args::AbstractVector) where T = SetindexInterlace{T}(args)
+
+interlacebasis(S::SetindexInterlace, args...) = SetindexInterlace(S.z, args...)
+
+
+axes(A::SetindexInterlace) = (union(axes.(A.args,1)...), LazyBandedMatrices._block_vcat_axes(unitblocks.(axes.(A.args,2))...))
+
+==(A::SetindexInterlace, B::SetindexInterlace) = A.z == B.z && all(A.args .== B.args)
+
+
+
+###
+# getindex
+###
 
 function QuasiArrays._getindex(::Type{IND}, A::PiecewiseInterlace{T}, (x,j)::IND) where {IND,T}
     Jj = findblockindex(axes(A,2), j)
@@ -130,6 +160,20 @@ function QuasiArrays._getindex(::Type{IND}, A::PiecewiseInterlace{T}, (x,j)::IND
     x in axes(A.args[i],1) && return A.args[i][x, J]
     zero(T)
 end
+
+function QuasiArrays._getindex(::Type{IND}, A::SetindexInterlace{T}, (x,j)::IND) where {IND,T}
+    Jj = findblockindex(axes(A,2), j)
+    @boundscheck x in axes(A,1) || throw(BoundsError(A, (x,j)))
+    J = Int(block(Jj))
+    i = blockindex(Jj)
+    x in axes(A.args[i],1) && return setindex(A.z, A.args[i][x, J], i)
+    A.z
+end
+
+
+###
+# Operators
+###
 
 function \(A::AbstractInterlaceBasis, B::AbstractInterlaceBasis)
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
