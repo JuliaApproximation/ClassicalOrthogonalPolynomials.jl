@@ -215,33 +215,36 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
     @testset "Neumann" begin
         W = Weighted(Jacobi(1,1))
         x = axes(W,1)
-        Q = [x W]
         P = Legendre()
         D = Derivative(x)
 
-        Δ = -((P\D*Q)'*(P'P)*(P\D*Q))
-        @test bandwidths(Δ) == (0,0)
-        c = Δ \ (Q'*exp.(x))
-        u = Q * c
-        @test u[0.1] ≈ -0.5922177802211208
+        @testset "[x W]" begin
+            Q = [x W]
+            Δ = -((P\D*Q)'*(P'P)*(P\D*Q))
+            @test bandwidths(Δ) == (0,0)
+            c = Δ \ (Q'*exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ -0.5922177802211208
 
-        Δ = -((D*Q)'*(D*Q))
-        @test bandwidths(Δ) == (0,0)
-        c = Δ \ (Q'*exp.(x))
-        u = Q * c
-        @test u[0.1] ≈ -0.5922177802211208
+            Δ = -((D*Q)'*(D*Q))
+            @test bandwidths(Δ) == (0,0)
+            c = Δ \ (Q'*exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ -0.5922177802211208
+        end
 
-        Q = [one(x) x W]
-
-        Δ = -((D*Q)'*(D*Q))
-        M = Q'Q
-        @test isbanded(Δ)
-        @test isbanded(M)
-        @test bandwidths(M) == (2,2)
-        @test bandwidths(Δ) == (0,0)
-        c = (Δ + M) \ (Q'exp.(x))
-        u = Q * c
-        @test u[0.1] ≈ 1.104838515599687
+        @testset "natural" begin
+            Q = [one(x) x W]
+            Δ = -((D*Q)'*(D*Q))
+            M = Q'Q
+            @test isbanded(Δ)
+            @test isbanded(M)
+            @test bandwidths(M) == (2,2)
+            @test bandwidths(Δ) == (0,0)
+            c = (Δ + M) \ (Q'exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ 1.104838515599687
+        end
 
         @testset "one-sided" begin
             Q = [one(x)-x W]
