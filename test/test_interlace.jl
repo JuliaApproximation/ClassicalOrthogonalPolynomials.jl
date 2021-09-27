@@ -97,7 +97,7 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
         M = SetindexInterlace(zero(SMatrix{2,2,Float64}), T, U, C², C³)
         x = axes(T,1)
 
-        @test axes(V,1) == axes(T,1)
+        @test axes(V,1) == x
 
         @teset "evaluation" begin
             @test V[0.1,1:2:6] == vcat.(T[0.1,1:3],0)
@@ -120,6 +120,14 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             F = broadcast(x -> SMatrix{2,2}(1,x,exp(x),cos(x)),x)
             U = M / M \ F
             @test U[0.1] ≈ F[0.1]
+        end
+
+        @testset "Operators" begin
+            W = SetindexInterlace(SVector(0.0,0.0), U, C²)
+            R = W \ V
+            @test (W * R * (V \ broadcast(x -> SVector(exp(x),cos(x-1)),x)))[0.1] ≈ [exp(0.1),cos(0.1-1)]
+            D = W\Derivative(x)*V
+            @test (W * D * (V \ broadcast(x -> SVector(exp(x),cos(x-1)),x)))[0.1] ≈ [exp(0.1),-sin(0.1-1)]
         end
     end
 end

@@ -177,7 +177,7 @@ end
 
 function \(A::AbstractInterlaceBasis, B::AbstractInterlaceBasis)
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
-    T = promote_type(eltype(A),eltype(B))
+    T = promote_type(eltype(eltype(A)),eltype(eltype(B)))
     A == B && return Eye{T}((axes(A,2),))
     BlockBroadcastArray{T}(Diagonal, unitblocks.((\).(A.args, B.args))...)
 end
@@ -186,12 +186,12 @@ end
     axes(D,2) == axes(S,1) || throw(DimensionMismatch())
     args = arguments.(*, Derivative.(axes.(S.args,1)) .* S.args)
     all(length.(args) .== 2) || error("Not implemented")
-    interlacebasis(S, map(first, args)...) * BlockBroadcastArray{promote_type(eltype(D),eltype(S))}(Diagonal, unitblocks.(last.(args))...)
+    interlacebasis(S, map(first, args)...) * BlockBroadcastArray{promote_type(eltype(D),eltype(eltype(S)))}(Diagonal, unitblocks.(last.(args))...)
 end
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractInterlaceBasis}, B::AbstractInterlaceBasis)
     axes(Ac,2) == axes(B,1) || throw(DimensionMismatch())
-    BlockBroadcastArray{promote_type(eltype(Ac),eltype(B))}(Diagonal, unitblocks.(adjoint.(parent(Ac).args) .* B.args)...)
+    BlockBroadcastArray{eltype(promote_type(eltype(Ac),eltype(B)))}(Diagonal, unitblocks.(adjoint.(parent(Ac).args) .* B.args)...)
 end
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractInterlaceBasis}, B::AbstractQuasiVector)
