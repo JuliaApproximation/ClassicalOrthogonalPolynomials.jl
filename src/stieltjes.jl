@@ -344,7 +344,7 @@ mutable struct PowerLawMatrix{T, PP<:Normalized{<:Any,<:Legendre{<:Any}}} <: Abs
     data::Matrix{T}
     datasize::Tuple{Int,Int}
     function PowerLawMatrix{T, PP}(P::PP, a::T, t::T) where {T, PP<:AbstractQuasiMatrix}
-        new{T, PP}(P,a,t, gennormalizedpower(a,t,200),(200,200))
+        new{T, PP}(P,a,t, gennormalizedpower(a,t,5),(5,5))
     end
 end
 PowerLawMatrix(P::AbstractQuasiMatrix, a::T, t::T) where T = PowerLawMatrix{T,typeof(P)}(P,a,t)
@@ -396,24 +396,12 @@ end
 function powerleg_forwardfirstrow(a::T, t::T, ℓ::Int) where T <: Real
     coeff = zeros(T,ℓ)
     coeff[1] = PLnorminitial00(t,a)
-    coeff[2] = T.(sqrt(3*one(T))*PLnorminitial01(t,a))
+    coeff[2] = sqrt(3*one(T))*PLnorminitial01(t,a)
     @inbounds for m = 1:ℓ-2
         coeff[m+2] = (a-m+1)/(a+m+2)*normconst_Pnsub1(m,t)*coeff[m]+((2*m+1)*t/(a+m+2)*normconst_Pnadd1(m,t)*coeff[m+1])
     end
     return coeff
 end
-
-# evaluates ∫(t-x)^a Pn(x)P_m(x) dx for the case m=0, i.e. first row of operator via backwards recursion
-# function powerleg_backwardsfirstrow(a::T, t::T, ℓ::Int) where T <: Real
-#     ℓ = ℓ+10000
-#     coeff = zeros(BigFloat,ℓ)
-#     coeff[end-1] =  one(BigFloat)
-#     @inbounds for m = reverse(1:ℓ-2)
-#         coeff[m] = (coeff[m+2]-t/((a+m+2)/(2*m+1))*normconst_Pnadd1(m,t)*coeff[m+1])/(((a-m+1)/(2*m+1))/((a+m+2)/(2*m+1))*normconst_Pnsub1(m,t))
-#     end
-#     coeff = PLnorminitial00(t,a)/coeff[1].*coeff
-#     return T.(coeff[1:ℓ-10000])
-# end
 
 # modify recurrence coefficients to work for normalized Legendre
 normconst_Pnadd1(m::Int, settype::T) where T<:Real = sqrt(2*m+3*one(T))/sqrt(2*m+one(T))
@@ -428,28 +416,28 @@ function PLnorminitial01(t::Real, a::Real)
 end
 
 # compute r-th coefficient of product expansion of order p and order q normalized Legendre polynomials
-productseriescfs(p::T, q::T, r::T) where T = sqrt((2*p+1)*(2*q+1)/((2*(p+q-2*r)+1)))*(2*(p+q-2*r)+1)/(2*(p+q-r)+1)*exp(loggamma(r+one(T)/2)+loggamma(p-r+one(T)/2)+loggamma(q-r+one(T)/2)-loggamma(q-r+one(T))-loggamma(p-r+one(T))-loggamma(r+one(T))-loggamma(q+p-r+one(T)/2)+loggamma(q+p-r+one(T)))/π
+productseriescfs(p::Int, q::Int, r::Int, settype::T) where T = sqrt((2*p+one(T))*(2*q+one(T))/((2*(p+q-2*r)+one(T))))*(2*(p+q-2*r)+one(T))/(2*(p+q-r)+one(T))*exp(loggamma(r+one(T)/2)+loggamma(p-r+one(T)/2)+loggamma(q-r+one(T)/2)-loggamma(q-r+one(T))-loggamma(p-r+one(T))-loggamma(r+one(T))-loggamma(q+p-r+one(T)/2)+loggamma(q+p-r+one(T)))/π
 
-# # this generates the entire operator via normalized product Legendre decomposition
-# # this is very stable but scales rather poorly with high orders, so we only use it for testing
+# this generates the entire operator via normalized product Legendre decomposition
+# this is very stable but scales rather poorly with high orders, so we only use it for testing
 # function productoperator(a::T, t::T, ℓ::Int) where T
 #     op::Matrix{T} = zeros(T,ℓ,ℓ)
 #     # first row where n arbitrary and m==0
-#     first = powerleg_backwardsfirstrow(a,t,2*ℓ+1)
+#     first = powerleg_forwardfirstrow(a,t,2*ℓ+1)
 #     op[1,:] = first[1:ℓ]
 #     # generate remaining rows
-#     for p = 1:ℓ-1
-#         for q = p:ℓ-1
+#     @inbounds for p = 1:ℓ-1
+#         @inbounds for q = p:ℓ-1
 #             productcfs = zeros(T,2*ℓ+1)
-#             for i = 0:min(p,q)
-#                 productcfs[1+q+p-2*i] = productseriescfs(p,q,i)
+#             @inbounds Threads.@threads for i = 0:min(p,q)
+#                 productcfs[1+q+p-2*i] = productseriescfs(p,q,i,t)
 #             end
 #             op[p+1,q+1] = dot(first,productcfs)
 #         end
 #     end
 #     # matrix is symmetric
-#     for m = 1:ℓ
-#         for n = m+1:ℓ
+#     @inbounds for m = 1:ℓ
+#         @inbounds for n = m+1:ℓ
 #             op[n,m] = op[m,n]
 #         end
 #     end
@@ -464,29 +452,32 @@ function gennormalizedpower(a::T, t::T, ℓ::Int) where T <: Real
     # construct first row via forward recurrence
     first = powerleg_forwardfirstrow(a,t,2*ℓ+1)
     coeff[1,:] = first[1:ℓ]
-    # contruct second row via normalized product Legendre decomposition
+    # contruct the diagonal and superdiagonal via normalized product Legendre decomposition
     @inbounds for q = 1:ℓ-1
         productcfs = zeros(T,2*ℓ+1)
-        productcfs[q+2] = productseriescfs(1,q,0)
-        productcfs[q] = productseriescfs(1,q,1)
-        coeff[2,q+1] = dot(first,productcfs)
-    end
-    # contruct the diagonal via normalized product Legendre decomposition
-    @inbounds for q = 2:ℓ-1
-        productcfs = zeros(T,2*ℓ+1)
-        @inbounds for i = 0:q
-            productcfs[1+2*q-2*i] = productseriescfs(q,q,i)
+        @inbounds Threads.@threads for i = 0:q
+            productcfs[1+2*q-2*i] = productseriescfs(q,q,i,t)
         end
         coeff[q+1,q+1] = dot(first,productcfs)
     end
+    @inbounds for q = 1:ℓ-1
+        productcfs = zeros(T,2*ℓ+1)
+        @inbounds Threads.@threads for i = 0:q-1
+            productcfs[2*q-2*i] = productseriescfs(q-1,q,i,t)
+        end
+        coeff[q,q+1] = dot(first,productcfs)
+    end
     #the remaining cases can be constructed iteratively by means of a T-shaped recurrence
-    @inbounds for m = 2:ℓ-2
+    @inbounds for m = 3:ℓ-2 #for m = 2:ℓ-2
         # build remaining row elements
-        @inbounds for j = 1:m-2
-            coeff[j+2,m+1] = (t/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pnadd1(j,t)*coeff[j+1,m+1]+((a+1)*m/(m*(m+1)-j*(j+1)))/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pmnmix(m,j,t)*coeff[j+1,m]-(j*(a+m-j+1)/((2*j+1)*(m-j)))*1/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pnsub1(j,t)*coeff[j,m+1])
+        @inbounds for j = reverse(2:m-1)
+            coeff[j,m+1] = 
+            (t/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pnadd1(j,t)*coeff[j+1,m+1]
+            +((a+1)*m/(m*(m+1)-j*(j+1)))/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pmnmix(m,j,t)*coeff[j+1,m]
+            -coeff[j+2,m+1])/((j*(a+m-j+1)/((2*j+1)*(m-j)))*1/((j+1)*(a+m+j+2)/((2*j+1)*(m+j+1)))*normconst_Pnsub1(j,t))
         end
     end
-    #matrix is symmetric
+    # matrix is symmetric
     @inbounds for m = 1:ℓ
         @inbounds for n = m+1:ℓ
             coeff[n,m] = coeff[m,n]
@@ -503,26 +494,28 @@ function fillcoeffmatrix!(K::PowerLawMatrix, inds::AbstractUnitRange)
     # fill in first row via forward recurrence
     first = powerleg_forwardfirstrow(a,t,2*ℓ+1)
     K.data[1,inds] = first[inds]
-    # fill in second row via normalized product Legendre decomposition
+    # fill in the diagonal and superdiagonal via normalized product Legendre decomposition
     @inbounds for q = minimum(inds):ℓ-1
         productcfs = zeros(T,2*ℓ+1)
-        productcfs[q+2] = productseriescfs(1,q,0)
-        productcfs[q] = productseriescfs(1,q,1)
-        K.data[2,q+1] = dot(first,productcfs)
-    end
-    # fill in the diagonal via normalized product Legendre decomposition
-    @inbounds for q = minimum(inds):ℓ-1
-        productcfs = zeros(T,2*ℓ+1)
-        @inbounds for i = 0:q
-            productcfs[1+2*q-2*i] = productseriescfs(q,q,i)
+        @inbounds Threads.@threads for i = 0:q
+            productcfs[1+2*q-2*i] = productseriescfs(q,q,i,t)
         end
         K.data[q+1,q+1] = dot(first,productcfs)
     end
+    @inbounds for q = minimum(inds):ℓ-1
+        productcfs = zeros(T,2*ℓ+1)
+        @inbounds Threads.@threads for i = 0:q-1
+            productcfs[2*q-2*i] = productseriescfs(q-1,q,i,t)
+        end
+        K.data[q,q+1] = dot(first,productcfs)
+    end
+    # build remaining elements
     @inbounds for m in inds
-        m = m-2
-        # build remaining row elements
-        @inbounds for j = 1:m-1
-            K.data[j+2,m+2] = (t/((j+1)*(a+m+j+3)/((2*j+1)*(m+j+2)))*normconst_Pnadd1(j,t)*K.data[j+1,m+2]+((a+1)*(m+1)/((m+1)*(m+2)-j*(j+1)))/((j+1)*(a+m+j+3)/((2*j+1)*(m+j+2)))*normconst_Pmnmix(m+1,j,t)*K.data[j+1,m+1]-(j*(a+m-j+2)/((2*j+1)*(m+1-j)))*1/((j+1)*(a+m+j+3)/((2*j+1)*(m+j+2)))*normconst_Pnsub1(j,t)*K.data[j,m+2])
+        @inbounds for j = reverse(2:m-2)
+            K.data[j,m] = 
+            (t/((j+1)*(a+m+j+1)/((2*j+1)*(m+j)))*normconst_Pnadd1(j,t)*K.data[j+1,m]
+            +((a+1)*(m-1)/((m-1)*m-j*(j+1)))/((j+1)*(a+m+j+1)/((2*j+1)*(m+j)))*normconst_Pmnmix(m-1,j,t)*K.data[j+1,m-1]
+            -K.data[j+2,m])/((j*(a+m-j)/((2*j+1)*(m-1-j)))*1/((j+1)*(a+m+j+1)/((2*j+1)*(m+j)))*normconst_Pnsub1(j,t))
         end
     end
     # matrix is symmetric
