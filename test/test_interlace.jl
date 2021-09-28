@@ -1,12 +1,30 @@
-using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, Test
-import ClassicalOrthogonalPolynomials: PiecewiseInterlace
+using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, Test
+import ClassicalOrthogonalPolynomials: PiecewiseInterlace, plotgrid
 
 @testset "Piecewise" begin
+    @testset "expansion" begin
+        T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
+        T = PiecewiseInterlace(T1, T2)
+        @test T[-0.1,1:2:10] ≈ T1[-0.1,1:5]
+        @test T[0.1,2:2:10] ≈ T2[0.1,1:5]
+        @test T[0.0,1:2:10] ≈ T1[0.0,1:5]
+        @test T[0.0,2:2:10] ≈ T2[0.0,1:5]
+
+        x = axes(T,1)
+        u = T / T \ exp.(x)
+        @test u[-0.1] ≈ exp(-0.1)
+        @test u[0.1] ≈ exp(0.1)
+        @test u[0.] ≈ 2
+    end
+
     @testset "two-interval ODE" begin
-        T1,T2 = chebyshevt((-1)..0), chebyshevt(0..1)
-        U1,U2 = chebyshevu((-1)..0), chebyshevu(0..1)
+        T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
+        U1,U2 = chebyshevu(-1..0), chebyshevu(0..1)
         T = PiecewiseInterlace(T1, T2)
         U = PiecewiseInterlace(U1, U2)
+
+        @test copy(T) == T
+
         D = U \ (Derivative(axes(T,1))*T)
         C = U \ T
 
@@ -23,50 +41,49 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace
         @test F \ exp.(x) ≈ (T \ exp.(x))[Block.(1:N)] ≈ u
     end
 
-    @testset "two-interval Weighted Derivative" begin
-        T1,T2 = chebyshevt((-2)..(-1)), chebyshevt(0..1)
-        U1,U2 = chebyshevu((-2)..(-1)), chebyshevu(0..1)
-        W = PiecewiseInterlace(Weighted(T1), Weighted(T2))
-        U = PiecewiseInterlace(U1, U2)
+    @testset "two-interval p-FEM" begin
+        P1,P2 = jacobi(1,1,-1..0), jacobi(1,1,0..1)
+        W1,W2 = Weighted(P1), Weighted(P2)
+
+        W = PiecewiseInterlace(W1, W2)
+
         x = axes(W,1)
         D = Derivative(x)
-        @test_broken U\D*W isa BlockBroadcastArray
+        Δ = -((D*W)'*(D*W))
+
+        @test (W'exp.(x))[1:2:10] ≈ (W1'*exp.(axes(W1,1)))[1:5]
+        @test (W'exp.(x))[2:2:10] ≈ (W2'*exp.(axes(W2,1)))[1:5]
+        M = W'W
+
+        # Δ \ (W'exp.(x))
     end
 
-    @testset "two-interval Hilbert" begin
-        T1,T2 = chebyshevt((-2)..(-1)), chebyshevt(0..2)
-        U1,U2 = chebyshevu((-2)..(-1)), chebyshevu(0..2)
-        W = PiecewiseInterlace(Weighted(U1), Weighted(U2))
+    @testset "three-interval ODE" begin
+        d = (-1..0),(0..1),(1..2)
+        T = PiecewiseInterlace(chebyshevt.(d)...)
+        U = PiecewiseInterlace(chebyshevu.(d)...)
+
+        D = U \ (Derivative(axes(T,1))*T)
+        C = U \ T
+
+        A = BlockVcat(T[-1,:]',
+                        BlockBroadcastArray(vcat,unitblocks(T.args[1][end,:]),-unitblocks(T.args[2][begin,:]),Zeros((unitblocks(axes(T.args[3],2)),)))',
+                        BlockBroadcastArray(vcat,Zeros((unitblocks(axes(T.args[1],2)),)),unitblocks(T.args[2][end,:]),-unitblocks(T.args[3][begin,:]))',
+                        D-C)
+        N = 20
+        M = BlockArray(A[Block.(1:N+2), Block.(1:N)])
+
+        u = M \ [exp(-1); zeros(size(M,1)-1)]
+        x = axes(T,1)
+
+        F = factorize(T[:,Block.(Base.OneTo(N))])
+        @test F \ exp.(x) ≈ (T \ exp.(x))[Block.(1:N)] ≈ u
+    end
+
+
+    @testset "plot" begin
+        T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
         T = PiecewiseInterlace(T1, T2)
-        U = PiecewiseInterlace(U1, U2)
-        x = axes(W,1)
-        H = T \ inv.(x .- x') * W;
-
-        @test maximum(BlockArrays.blockcolsupport(H,Block(5))) ≤ Block(50)
-
-        c = W \ broadcast(x -> exp(x)* (0 ≤ x ≤ 2 ? sqrt(2-x)*sqrt(x) : sqrt(-1-x)*sqrt(x+2)), x)
-        @test T[0.5,1:200]'*(H*c)[1:200] ≈ -6.064426633490422
-
-        @testset "inversion" begin
-            H̃ = BlockHcat(Eye((axes(H,1),))[:,Block(1)], H)
-            @test BlockArrays.blockcolsupport(H̃,1) == Block.(1:1)
-            @test BlockArrays.blockcolsupport(H̃,2) == Block.(1:22)
-
-            UT = U \ T
-            D = U \ Derivative(x) * T
-            V = x -> x^4 - 10x^2
-            V_cfs = T \ V.(x)
-            Vp_cfs_U = D * V_cfs
-
-            N = 100
-            Vp_cfs_N = UT[Block.(1:N),Block.(1:N)] \ Vp_cfs_U[Block.(1:N)]
-
-            cμ = H̃[Block.(1:N), Block.(1:N)] \ Vp_cfs_N;
-            c1,c2 = cμ[Block(1)]
-            μ = W[:,Block.(1:N-1)] * cμ[Block.(2:N)]/2;
-
-            # H * μ == Vp(x) + c1 on first interval
-            # H * μ == Vp(x) + c2 on second interval
-        end
+        @test plotgrid(T[:,1:5]) == sort([plotgrid(T1[:,1:3]); plotgrid(T2[:,1:3])])
     end
 end

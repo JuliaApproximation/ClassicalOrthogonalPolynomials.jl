@@ -133,7 +133,9 @@ Base.@propagate_inbounds function _clenshaw_next!(n, A::AbstractVector, ::Zeros,
 end
 
 Base.@propagate_inbounds function _clenshaw_next!(n, A::AbstractVector, B::AbstractVector, C::AbstractVector, x::AbstractMatrix, c, bn1::AbstractMatrix{T}, bn2::AbstractMatrix{T}) where T
-    bn2 .= B[n] .* bn1 .- C[n+1] .* bn2
+    # bn2 .= B[n] .* bn1 .- C[n+1] .* bn2
+    lmul!(-C[n+1], bn2)
+    BLAS.axpy!(B[n], bn1, bn2)
     muladd!(A[n], x, bn1, one(T), bn2)
     view(bn2,band(0)) .+= c[n]
     bn2
@@ -166,7 +168,8 @@ Base.@propagate_inbounds function _clenshaw_first!(A, ::Zeros, C, X, c, bn1, bn2
 end
 
 Base.@propagate_inbounds function _clenshaw_first!(A, B, C, X, c, bn1, bn2) 
-    bn2 .= B[1] .* bn1 .- C[2] .* bn2
+    lmul!(-C[2], bn2)
+    BLAS.axpy!(B[1], bn1, bn2)
     muladd!(A[1], X, bn1, one(eltype(bn2)), bn2)
     view(bn2,band(0)) .+= c[1]
     bn2
@@ -283,17 +286,17 @@ function _BandedMatrix(::ClenshawLayout, V::SubArray{<:Any,2})
     M = parent(V)
     kr,jr = parentindices(V)
     b = bandwidth(M,1)
-    jkr=max(1,min(jr[1],kr[1])-b÷2):max(jr[end],kr[end])+b÷2
+    jkr=max(1,min(first(jr),first(kr))-b÷2):max(last(jr),last(kr))+b÷2
     # relationship between jkr and kr, jr
-    kr2,jr2 = kr.-jkr[1].+1,jr.-jkr[1].+1
+    kr2,jr2 = kr.-first(jkr).+1,jr.-first(jkr).+1
     lmul!(M.p0, clenshaw(M.c, M.A, M.B, M.C, M.X[jkr, jkr])[kr2,jr2])
 end
 
 function getindex(M::Clenshaw{T}, kr::AbstractUnitRange, j::Integer) where T
     b = bandwidth(M,1)
-    jkr=max(1,min(j,kr[1])-b÷2):max(j,kr[end])+b÷2
+    jkr=max(1,min(j,first(kr))-b÷2):max(j,last(kr))+b÷2
     # relationship between jkr and kr, jr
-    kr2,j2 = kr.-jkr[1].+1,j-jkr[1]+1
+    kr2,j2 = kr.-first(jkr).+1,j-first(jkr)+1
     f = [Zeros{T}(j2-1); one(T); Zeros{T}(length(jkr)-j2)]
     lmul!(M.p0, clenshaw(M.c, M.A, M.B, M.C, M.X[jkr, jkr], f)[kr2])
 end
@@ -322,9 +325,17 @@ function materialize!(M::MatMulVecAdd{<:ClenshawLayout,<:PaddedLayout,<:PaddedLa
     y
 end
 
+# TODO: generalise this to be trait based
 function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::Expansion{<:Any,<:OrthogonalPolynomial}, P::OrthogonalPolynomial)
     axes(a,1) == axes(P,1) || throw(DimensionMismatch())
     P * Clenshaw(a, P)
+end
+
+function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::Expansion{<:Any,<:SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Slice}}}, V::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Any}})
+    axes(a,1) == axes(V,1) || throw(DimensionMismatch())
+    kr,jr = parentindices(V)
+    P = view(parent(V),kr,:)
+    P * Clenshaw(a, P)[:,jr]
 end
 
 function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::Expansion{<:Any,<:WeightedOrthogonalPolynomial}, P::OrthogonalPolynomial)

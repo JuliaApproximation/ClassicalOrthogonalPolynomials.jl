@@ -64,6 +64,10 @@ const Hilbert{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{ConvKernel{T,I
 const LogKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}}}
 const PowKernel{T,D1,D2,F<:Real} = BroadcastQuasiMatrix{T,typeof(^),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}},F}}
 
+# recognize structure of W = ((t .- x).^a
+const PowKernelPoint{T,V,D,F} =  BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
+
+
 @simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, w::ChebyshevTWeight)
     T = promote_type(eltype(H), eltype(w))
     zeros(T, axes(w,1))
@@ -91,6 +95,7 @@ end
 end
 
 
+
 @simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wP::Weighted{<:Any,<:OrthogonalPolynomial})
     P = wP.P
     w = orthogonalityweight(P)
@@ -102,54 +107,30 @@ end
 @simplify *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, P::Legendre) = H * Weighted(P)
 
 
-
 ##
-# mapped
-###
+# OffHilbert
+##
 
-@simplify function *(H::Hilbert, w::SubQuasiArray{<:Any,1})
-    T = promote_type(eltype(H), eltype(w))
-    m = parentindices(w)[1]
-    # TODO: mapping other geometries
-    @assert axes(H,1) == axes(H,2) == axes(w,1)
-    P = parent(w)
-    x = axes(P,1)
-    (inv.(x .- x') * P)[m]
-end
-
-
-@simplify function *(H::Hilbert, wP::Weighted{<:Any,<:SubQuasiArray{<:Any,2}})
-    T = promote_type(eltype(H), eltype(wP))
-    kr,jr = parentindices(wP.P)
-    P = parent(wP.P)
+@simplify function *(H::Hilbert{<:Any,<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
+    tol = eps()
     x = axes(H,1)
-    t = axes(H,2)
-    t̃ = axes(P,1)
-    if x == t
-        (inv.(t̃ .- t̃') * Weighted(P))[kr,jr]
-    else
-        M = affine(t,t̃)
-        @assert x isa Inclusion
-        a,b = first(x),last(x)
-        x̃ = Inclusion((M.A * a .+ M.b)..(M.A * b .+ M.b)) # map interval to new interval
-        Q̃,M = arguments(*, inv.(x̃ .- t̃') * Weighted(P))
-        parent(Q̃)[affine(x,axes(parent(Q̃),1)),:] * M
+    T̃ = chebyshevt(x)
+    ψ_1 = T̃ \ inv.(x .+ sqrtx2.(x)) # same ψ_1 = x .- sqrt(x^2 - 1) but with relative accuracy as x -> ∞
+    M = Clenshaw(T̃ * ψ_1, T̃)
+    data = zeros(eltype(ψ_1), ∞, ∞)
+    # Operator has columns π * ψ_1^k
+    copyto!(view(data,:,1), convert(eltype(data),π)*ψ_1)
+    for j = 2:∞
+        mul!(view(data,:,j),M,view(data,:,j-1))
+        norm(view(data,:,j)) ≤ tol && break
     end
+    # we wrap in a Padded to avoid increasing cache size
+    T̃ * PaddedArray(chop(paddeddata(data), tol), size(data)...)
 end
 
-@simplify function *(H::Hilbert, S::PiecewiseInterlace)
-    axes(H,2) == axes(S,1) || throw(DimensionMismatch())
-    @assert length(S.args) == 2
-    a,b = S.args
-    xa,xb = axes(a,1),axes(b,1)
-    Ha_a = inv.(xa .- xa') * a
-    Ha_b = inv.(xb .- xa') * a
-    Hb_a = inv.(xa .- xb') * b
-    Hb_b = inv.(xb .- xb') * b
-    c,d = Hb_a.args[1], Ha_b.args[1]
-    A,B,C,D = unitblocks(c \ Ha_a), unitblocks(c \ Hb_a), unitblocks(d \ Ha_b), unitblocks(d \ Hb_b)
-    PiecewiseInterlace(c,d)  * BlockBroadcastArray{promote_type(eltype(H),eltype(S))}(hvcat, 2, A, B, C, D)
-end
+
+
+
 
 ###
 # LogKernel
@@ -228,7 +209,7 @@ end
     T = promote_type(eltype(L), eltype(wP))
     z, xc = parent(L).args[1].args[1].args
     if z in axes(wP,1)
-        Tn = Vcat(convert(T,π)*log(2*one(T)), convert(T,π)*ChebyshevT()[z,2:end]./oneto(∞))
+        Tn = Vcat(convert(T,π)*log(2*one(T)), convert(T,π)*ChebyshevT{T}()[z,2:end]./oneto(∞))
         return transpose((Tn[3:end]-Tn[1:end])/2)
     else
         # for U_k where k>=1
@@ -243,51 +224,39 @@ end
 
 end
 
-"""
-   HilbertVandermonde(M, data)
+##
+# mapped
+###
 
-represents the matrix with columns M^k * data[:,end].
-"""
-mutable struct HilbertVandermonde{T,MM} <: AbstractCachedMatrix{T}
-    M::MM
-    data::Matrix{T}
-    datasize::NTuple{2,Int}
-    colsupport::Vector{Int}
+@simplify function *(H::Hilbert, w::SubQuasiArray{<:Any,1})
+    T = promote_type(eltype(H), eltype(w))
+    m = parentindices(w)[1]
+    # TODO: mapping other geometries
+    @assert axes(H,1) == axes(H,2) == axes(w,1)
+    P = parent(w)
+    x = axes(P,1)
+    (inv.(x .- x') * P)[m]
 end
 
-HilbertVandermonde(M, data::Matrix) = HilbertVandermonde(M, data, size(data), fill(size(data,1), size(data,2)))
-size(H::HilbertVandermonde) = (ℵ₀,ℵ₀)
-function colsupport(H::HilbertVandermonde, j)
-    resizedata!(H, H.datasize[1], maximum(j))
-    1:maximum(H.colsupport[j])
-end
 
-copy(H::HilbertVandermonde) = HilbertVandermonde(H.M, copy(H.data), H.datasize, H.colsupport)
-
-function cache_filldata!(H::HilbertVandermonde{T}, kr, jr) where T
-    n,m = H.datasize
-    isempty(jr) && return
-    resize!(H.colsupport, max(length(H.colsupport), maximum(jr)))
-
-    isempty(kr) || (H.data[(n+1):maximum(kr),1:m] .= zero(T))
-    for j in (m+1):maximum(jr)
-        u = H.M * [H.data[:,j-1]; Zeros{T}(∞)]
-        H.colsupport[j] = maximum(colsupport(u,1))
-        isempty(kr) || (H.data[kr,j] .= u[kr])
+@simplify function *(H::Hilbert, wP::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
+    T = promote_type(eltype(H), eltype(wP))
+    kr,jr = parentindices(wP)
+    W = parent(wP)
+    x = axes(H,1)
+    t = axes(H,2)
+    t̃ = axes(W,1)
+    if x == t
+        (inv.(t̃ .- t̃') * W)[kr,jr]
+    else
+        M = affine(t,t̃)
+        @assert x isa Inclusion
+        a,b = first(x),last(x)
+        x̃ = Inclusion((M.A * a .+ M.b)..(M.A * b .+ M.b)) # map interval to new interval
+        Q̃,M = arguments(*, inv.(x̃ .- t̃') * W)
+        parent(Q̃)[affine(x,axes(parent(Q̃),1)),:] * M
     end
 end
-
-@simplify function *(H::Hilbert{<:Any,<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
-    x = axes(H,1)
-    T̃ = chebyshevt(x)
-    ψ_1 = T̃ \ inv.(x .+ sqrtx2.(x)) # same ψ_1 = x .- sqrt(x^2 - 1) but with relative accuracy as x -> ∞
-    data = convert(eltype(H),π) * Matrix(reshape(paddeddata(ψ_1),:,1))
-    # Operator has columns π * ψ_1^k
-    T̃ * HilbertVandermonde(Clenshaw(T̃ * ψ_1, T̃), data)
-end
-
-
-
 
 @simplify function *(S::StieltjesPoint, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
     P = parent(wT)
@@ -297,12 +266,17 @@ end
     (inv.(z̃ .- x̃') * P)[:,parentindices(wT)[2]]
 end
 
-@simplify function *(H::Hilbert, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
+@simplify function *(L::LogKernelPoint, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
     P = parent(wT)
-    x = axes(P,1)
-    apply(*, inv.(x .- x'), P)[parentindices(wT)...]
+    z, xc = parent(L).args[1].args[1].args
+    kr, jr = parentindices(wT)
+    z̃ = inbounds_getindex(kr, z)
+    x̃ = axes(P,1)
+    c = inv(kr.A)
+    LP = log.(abs.(z̃ .- x̃')) * P
+    Σ = sum(P; dims=1)
+    transpose((c*transpose(LP) + c*log(c)*vec(Σ))[jr])
 end
-
 
 @simplify function *(L::LogKernel, wT::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}})
     V = promote_type(eltype(L), eltype(wT))
@@ -318,20 +292,62 @@ end
 end
 
 ### generic fallback
-for Op in (:Hilbert, :StieltjesPoint, :LogKernel, :PowKernel)
-    @eval @simplify function *(H::$Op, wP::WeightedBasis{<:Any,<:Weight,<:Any})
-        w,P = wP.args
-        Q = OrthogonalPolynomial(w)
-        (H * Weighted(Q)) * (Q \ P)
+for Op in (:Hilbert, :StieltjesPoint, :LogKernelPoint, :PowKernelPoint, :LogKernel, :PowKernel)
+    @eval begin
+        @simplify function *(H::$Op, wP::WeightedBasis{<:Any,<:Weight,<:Any})
+            w,P = wP.args
+            Q = OrthogonalPolynomial(w)
+            (H * Weighted(Q)) * (Q \ P)
+        end
+        @simplify *(H::$Op, wP::Weighted{<:Any,<:SubQuasiArray{<:Any,2}}) = H * view(Weighted(parent(wP.P)), parentindices(wP.P)...)
     end
+end
+
+###
+# Interlace
+###
+
+
+@simplify function *(H::Hilbert, W::PiecewiseInterlace)
+    axes(H,2) == axes(W,1) || throw(DimensionMismatch())
+    Hs = broadcast(function(a,b)
+                x,t = axes(a,1),axes(b,1)
+                H = inv.(x .- t') * b
+                H
+            end, [W.args...], permutedims([W.args...]))
+    N = length(W.args)
+    Ts = [broadcastbasis(+, broadcast(H -> H.args[1], Hs[k,:])...) for k=1:N]
+    Ms = broadcast((T,H) -> unitblocks(T\H), Ts, Hs)
+    PiecewiseInterlace(Ts...) * BlockBroadcastArray{promote_type(eltype(H),eltype(W))}(hvcat, N, permutedims(Ms)...)
+end
+
+
+@simplify function *(H::StieltjesPoint, S::PiecewiseInterlace)
+    z, xc = parent(H).args[1].args
+    axes(H,2) == axes(S,1) || throw(DimensionMismatch())
+    @assert length(S.args) == 2
+    a,b = S.args
+    xa,xb = axes(a,1),axes(b,1)
+    Sa = inv.(z .- xa') * a
+    Sb = inv.(z .- xb') * b
+    transpose(BlockBroadcastArray(vcat, unitblocks(transpose(Sa)), unitblocks(transpose(Sb))))
+end
+
+@simplify function *(L::LogKernelPoint, S::PiecewiseInterlace)
+    z, xc = parent(L).args[1].args[1].args
+    axes(L,2) == axes(S,1) || throw(DimensionMismatch())
+    @assert length(S.args) == 2
+    a,b = S.args
+    xa,xb = axes(a,1),axes(b,1)
+    Sa = log.(abs.(z .- xa')) * a
+    Sb = log.(abs.(z .- xb')) * b
+    transpose(BlockBroadcastArray(vcat, unitblocks(transpose(Sa)), unitblocks(transpose(Sb))))
 end
 
 
 #################################################
 # ∫f(x)g(x)(t-x)^a dx evaluation where f and g given in coefficients
 #################################################
-# recognize structure of W = ((t .- x).^a
-const PowKernelPoint{T,V,D,F} =  BroadcastQuasiVector{T, typeof(^), Tuple{ContinuumArrays.AffineQuasiVector{T, V, Inclusion{V, D}, T}, F}}
 
 ####
 # cached operator implementation
