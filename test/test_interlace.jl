@@ -81,7 +81,6 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             @test F \ exp.(x) ≈ (T \ exp.(x))[Block.(1:N)] ≈ u
         end
 
-
         @testset "plot" begin
             T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
             T = PiecewiseInterlace(T1, T2)
@@ -120,6 +119,9 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             F = broadcast(x -> SMatrix{2,2}(1,x,exp(x),cos(x)),x)
             U = M / M \ F
             @test U[0.1] ≈ F[0.1]
+
+            u = V / V \ SVector.(exp.(x), cos.(x))
+            @test u[0.1] ≈ [exp(0.1),cos(0.1)]
         end
 
         @testset "Operators" begin
@@ -128,6 +130,15 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             @test (W * R * (V \ broadcast(x -> SVector(exp(x),cos(x-1)),x)))[0.1] ≈ [exp(0.1),cos(0.1-1)]
             D = W\Derivative(x)*V
             @test (W * D * (V \ broadcast(x -> SVector(exp(x),cos(x-1)),x)))[0.1] ≈ [exp(0.1),-sin(0.1-1)]
+        end
+
+        @testset "Fourier" begin
+            F = Fourier()
+            V = SetindexInterlace{SVector{2,Float64}}(F, F)
+            θ = axes(V,1)
+            f = broadcast(θ -> SVector(sin.(θ),cos.(θ)),θ)
+            u = V / V \ f
+            @test u[0.1] ≈ [sin(0.1),cos(0.1)]
         end
     end
 end

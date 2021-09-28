@@ -97,6 +97,7 @@ end
 
 abstract type AbstractInterlaceBasis{T} <: Basis{T} end
 copy(A::AbstractInterlaceBasis) = interlacebasis(A, map(copy, A.args)...)
+checkpoints(A::AbstractInterlaceBasis) = vcat(map(checkpoints,A.args)...)
 
 """
     PiecewiseInterlace(args...)
@@ -134,9 +135,11 @@ struct SetindexInterlace{T, Args} <: AbstractInterlaceBasis{T}
     args::Args
 end
 
-SetindexInterlace{T}(z, args...) where T = SetindexInterlace{T,typeof(args)}(z, args)
-SetindexInterlace(z::T, args...) where T = SetindexInterlace{T}(z, args...)
-SetindexInterlace{T}(z, args::AbstractVector) where T = SetindexInterlace{T,typeof(args)}(z, args)
+SetindexInterlace{T}(z::T, args::AbstractQuasiMatrix...) where T = SetindexInterlace{T,typeof(args)}(z, args)
+SetindexInterlace{T}(args::AbstractQuasiMatrix...) where T = SetindexInterlace{T}(zero(T), args...)
+SetindexInterlace(z::T, args::AbstractQuasiMatrix...) where T = SetindexInterlace{T}(z, args...)
+SetindexInterlace(::Type{T}, args::AbstractQuasiMatrix...) where T = SetindexInterlace(zero(T), args...)
+SetindexInterlace{T}(z::T, args::AbstractVector) where T = SetindexInterlace{T,typeof(args)}(z, args)
 SetindexInterlace(z::T, args::AbstractVector) where T = SetindexInterlace{T}(args)
 
 interlacebasis(S::SetindexInterlace, args...) = SetindexInterlace(S.z, args...)
