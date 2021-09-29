@@ -140,7 +140,7 @@ SetindexInterlace{T}(args::AbstractQuasiMatrix...) where T = SetindexInterlace{T
 SetindexInterlace(z::T, args::AbstractQuasiMatrix...) where T = SetindexInterlace{T}(z, args...)
 SetindexInterlace(::Type{T}, args::AbstractQuasiMatrix...) where T = SetindexInterlace(zero(T), args...)
 SetindexInterlace{T}(z::T, args::AbstractVector) where T = SetindexInterlace{T,typeof(args)}(z, args)
-SetindexInterlace(z::T, args::AbstractVector) where T = SetindexInterlace{T}(args)
+SetindexInterlace(z::T, args::AbstractVector) where T = SetindexInterlace{T}(z, args)
 
 interlacebasis(S::SetindexInterlace, args...) = SetindexInterlace(S.z, args...)
 

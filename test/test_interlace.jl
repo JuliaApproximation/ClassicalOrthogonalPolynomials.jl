@@ -89,49 +89,50 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
     end
 
     @testset "SetindexInterlace" begin
-        T = ChebyshevT(); U = ChebyshevU();
-        V = SetindexInterlace(SVector(0.0,0.0), T, U)
-        C² = Ultraspherical(2)
-        C³ = Ultraspherical(3)
-        M = SetindexInterlace(zero(SMatrix{2,2,Float64}), T, U, C², C³)
-        x = axes(T,1)
+        @testset "Chebyshev" begin
+            T = ChebyshevT(); U = ChebyshevU();
+            V = SetindexInterlace(SVector(0.0,0.0), T, U)
+            C² = Ultraspherical(2)
+            C³ = Ultraspherical(3)
+            M = SetindexInterlace(zero(SMatrix{2,2,Float64}), T, U, C², C³)
+            x = axes(T,1)
 
-        @test axes(V,1) == x
+            @test axes(V,1) == x
 
-        @teset "evaluation" begin
-            @test V[0.1,1:2:6] == vcat.(T[0.1,1:3],0)
-            @test V[0.1,2:2:6] == vcat.(0,U[0.1,1:3])
-            @test M[0.1,1:4:12] == hvcat.(2, T[0.1,1:3], 0, 0, 0)
-            @test M[0.1,2:4:12] == hvcat.(2, 0, 0, U[0.1,1:3], 0)
-            @test M[0.1,3:4:12] == hvcat.(2, 0, C²[0.1,1:3], 0, 0)
-            @test M[0.1,4:4:12] == hvcat.(2, 0, 0, 0, C³[0.1,1:3])
+            @teset "evaluation" begin
+                @test V[0.1,1:2:6] == vcat.(T[0.1,1:3],0)
+                @test V[0.1,2:2:6] == vcat.(0,U[0.1,1:3])
+                @test M[0.1,1:4:12] == hvcat.(2, T[0.1,1:3], 0, 0, 0)
+                @test M[0.1,2:4:12] == hvcat.(2, 0, 0, U[0.1,1:3], 0)
+                @test M[0.1,3:4:12] == hvcat.(2, 0, C²[0.1,1:3], 0, 0)
+                @test M[0.1,4:4:12] == hvcat.(2, 0, 0, 0, C³[0.1,1:3])
+            end
+        
+            @testset "expansion" begin
+                f = broadcast(x -> SVector(1,x),x)
+                c = V[:,Block.(Base.OneTo(5))] \ f
+                @test c[1] ≈ 1
+                @test V[:,1:5] \ f ≈ [1; 0; 0; 0.5; 0]
+                c = V \ f
+                u = V * c
+                @test u[0.1] ≈ f[0.1]
+
+                F = broadcast(x -> SMatrix{2,2}(1,x,exp(x),cos(x)),x)
+                U = M / M \ F
+                @test U[0.1] ≈ F[0.1]
+
+                u = V / V \ SVector.(exp.(x), cos.(x))
+                @test u[0.1] ≈ [exp(0.1),cos(0.1)]
+            end
+
+            @testset "Operators" begin
+                W = SetindexInterlace(SVector(0.0,0.0), U, C²)
+                R = W \ V
+                @test (W * R * (V \ broadcast(x -> SVector(exp(x),cos(x-1)),x)))[0.1] ≈ [exp(0.1),cos(0.1-1)]
+                D = W\Derivative(x)*V
+                @test (W * D * (V \ broadcast(x -> SVector(exp(x),cos(x-1)),x)))[0.1] ≈ [exp(0.1),-sin(0.1-1)]
+            end
         end
-       
-        @testset "expansion" begin
-            f = broadcast(x -> SVector(1,x),x)
-            c = V[:,Block.(Base.OneTo(5))] \ f
-            @test c[1] ≈ 1
-            @test V[:,1:5] \ f ≈ [1; 0; 0; 0.5; 0]
-            c = V \ f
-            u = V * c
-            @test u[0.1] ≈ f[0.1]
-
-            F = broadcast(x -> SMatrix{2,2}(1,x,exp(x),cos(x)),x)
-            U = M / M \ F
-            @test U[0.1] ≈ F[0.1]
-
-            u = V / V \ SVector.(exp.(x), cos.(x))
-            @test u[0.1] ≈ [exp(0.1),cos(0.1)]
-        end
-
-        @testset "Operators" begin
-            W = SetindexInterlace(SVector(0.0,0.0), U, C²)
-            R = W \ V
-            @test (W * R * (V \ broadcast(x -> SVector(exp(x),cos(x-1)),x)))[0.1] ≈ [exp(0.1),cos(0.1-1)]
-            D = W\Derivative(x)*V
-            @test (W * D * (V \ broadcast(x -> SVector(exp(x),cos(x-1)),x)))[0.1] ≈ [exp(0.1),-sin(0.1-1)]
-        end
-
         @testset "Fourier" begin
             F = Fourier()
             V = SetindexInterlace{SVector{2,Float64}}(F, F)
@@ -140,5 +141,23 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             u = V / V \ f
             @test u[0.1] ≈ [sin(0.1),cos(0.1)]
         end
+        @testset "Fill" begin
+            N = 10
+            T = ChebyshevT()
+            V = SetindexInterlace(zeros(N), Fill(T,N))
+            x = axes(V,1)
+            @time V \ broadcast(x -> cos.((1:10) .* x), x)
+
+            f = broadcast(x -> cos.((1:10) .* x), x)
+            F = factorize(T[:,Base.OneTo(100)]);
+            @time v = f[F.grid];
+            data = Matrix{eltype(F)}(undef, length(F.grid), N)
+            @time for k = axes(data,1)
+                copyto!(view(data,k,:), f[F.grid[k]])
+            end
+            F.plan * data
+
+        end
     end
 end
+
