@@ -104,6 +104,17 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             w = @inferred(U\v)
             @test U[0.1,:]'w ≈ v[0.1]
         end
+
+        @testset "multiple" begin
+            T = Chebyshev()
+            x = axes(T,1)
+            T_n = T[:,Base.OneTo(150)]
+            @test @inferred(T_n\ [exp.(x) cos.(x)]) ≈ [T_n\exp.(x) T_n\cos.(x)]
+            @test @inferred(T \ [exp.(x) cos.(x)]) ≈ [T_n\ [exp.(x) cos.(x)]; Zeros(∞,2)]
+            @time U = T / T \ cos.(x .* (0:1000)');
+            @test U[0.1,:] ≈ cos.(0.1 * (0:1000))
+            @test U[[0.1,0.2],:] ≈ [cos.(0.1 * (0:1000)'); cos.(0.2 * (0:1000)')]
+        end
     end
 
     @testset "Mapped Chebyshev" begin

@@ -36,7 +36,7 @@ import InfiniteLinearAlgebra: chop!, chop
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     inbounds_getindex, grid, plotgrid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
     AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
-    checkpoints, weight, unweightedbasis, MappedBasisLayouts, __sum, invmap
+    checkpoints, weight, unweightedbasis, MappedBasisLayouts, __sum, invmap, plan_ldiv
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints
 
@@ -70,32 +70,63 @@ transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any
     adaptivetransform_ldiv(convert(AbstractQuasiArray{promote_type(T,V)}, A), f)
 
 
-setaxis(c, ::OneToInf) = c
-setaxis(c, ax::BlockedUnitRange) = PseudoBlockVector(c, (ax,))
+setaxis(c, ::OneToInf, bx...) = c
+setaxis(c, ax::BlockedUnitRange, bx...) = PseudoBlockVector(c, (ax, bx...))
 
-function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiArray{V}) where {U,V}
-    T = promote_type(U,V)
+function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}) where {U,V}
+    T = promote_type(eltype(U),eltype(V))
 
     r = checkpoints(A)
     fr = f[r]
     maxabsfr = norm(fr,Inf)
 
-    tol = 20eps(real(eltype(T)))
+    tol = 20eps(real(T))
+    Z = Zeros{T}(∞)
 
     for n = 2 .^ (4:∞)
         An = A[:,oneto(n)]
         cfs = An \ f
         maxabsc = maximum(abs, cfs)
         if maxabsc == 0 && maxabsfr == 0
-            return zeros(T,∞)
+            return [similar(cfs,0); Z]
         end
 
-        un = A * [cfs; Zeros{eltype(T)}(∞)]
+        un = A * [cfs; Z]
         # we allow for transformed coefficients being a different size
         ##TODO: how to do scaling for unnormalized bases like Jacobi?
         if maximum(abs,@views(cfs[n-2:end])) < 10tol*maxabsc &&
                 all(norm.(un[r] - fr, 1) .< tol * n * maxabsfr*1000)
-            return setaxis([chop!(cfs, tol); zeros(eltype(T),∞)], axes(A,2))
+            return setaxis([chop!(cfs, tol); Z], axes(A,2))
+        end
+    end
+    error("Have not converged")
+end
+
+function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiMatrix{V}) where {U,V}
+    T = promote_type(eltype(U),eltype(V))
+
+    m = size(f,2)
+    r = checkpoints(A)
+    fr = f[r,:]
+    maxabsfr = norm(fr,Inf)
+
+    tol = 20eps(real(T))
+    Z = Zeros{T}(∞,m)
+
+    for n = 2 .^ (4:∞)
+        An = A[:,oneto(n)]
+        cfs = An \ f
+        maxabsc = maximum(abs, cfs)
+        if maxabsc == 0 && maxabsfr == 0
+            return [similar(cfs,0,size(cfs,2)); Z]
+        end
+
+        un = A * [cfs; Z]
+        # we allow for transformed coefficients being a different size
+        ##TODO: how to do scaling for unnormalized bases like Jacobi?
+        if maximum(abs,@views(cfs[n-2:end,:])) < 10tol*maxabsc &&
+                all(norm.(un[r,:] - fr, 1) .< tol * n * maxabsfr*1000)
+            return setaxis([chop(cfs, tol); Z], axes(A,2), axes(f,2))
         end
     end
     error("Have not converged")

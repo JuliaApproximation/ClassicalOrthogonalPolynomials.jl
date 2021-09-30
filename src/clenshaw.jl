@@ -105,6 +105,20 @@ Base.@propagate_inbounds function getindex(f::Expansion{<:Any,<:OrthogonalPolyno
     unsafe_getindex(f, x)
 end
 
+const ExpansionMatrix{T,P<:AbstractQuasiMatrix,M<:AbstractMatrix} = ApplyQuasiMatrix{T,typeof(*),<:Tuple{P,M}}
+
+function unsafe_getindex(f::ExpansionMatrix{<:Any,<:OrthogonalPolynomial}, x::Union{Number,AbstractVector{<:Number}}, jr::Union{Colon,AbstractVector{Int}})
+    P,c = arguments(f)
+    _p0(P)*clenshaw(view(paddeddata(c),:,jr), recurrencecoefficients(P)..., x)
+end
+
+
+Base.@propagate_inbounds function getindex(f::ExpansionMatrix{<:Any,<:OrthogonalPolynomial}, x::Union{Number,AbstractVector{<:Number}}, jr::Union{Colon,AbstractVector{Int}})
+    @inbounds checkbounds(f, x, jr)
+    unsafe_getindex(f, x, jr)
+end
+
+
 getindex(f::Expansion{T,<:OrthogonalPolynomial}, x::AbstractVector{<:Number}) where T = 
     copyto!(Vector{T}(undef, length(x)), view(f, x))
 

@@ -99,7 +99,7 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
 
             @test axes(V,1) == x
 
-            @teset "evaluation" begin
+            @testset "evaluation" begin
                 @test V[0.1,1:2:6] == vcat.(T[0.1,1:3],0)
                 @test V[0.1,2:2:6] == vcat.(0,U[0.1,1:3])
                 @test M[0.1,1:4:12] == hvcat.(2, T[0.1,1:3], 0, 0, 0)
@@ -142,21 +142,35 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             @test u[0.1] ≈ [sin(0.1),cos(0.1)]
         end
         @testset "Fill" begin
-            N = 10
+            d = 10
             T = ChebyshevT()
-            V = SetindexInterlace(zeros(N), Fill(T,N))
+            V = SetindexInterlace(zeros(d), Fill(T,d))
             x = axes(V,1)
             @time V \ broadcast(x -> cos.((1:10) .* x), x)
 
             f = broadcast(x -> cos.((1:10) .* x), x)
-            F = factorize(T[:,Base.OneTo(100)]);
+
+            N = 10
+            import FillArrays: getindex_value
+            V_N = V[:,Block.(Base.oneto(N))]
+
+            N = Int(parentindices(V_N)[2].block[end])
+            P = getindex_value(parent(V_N).args)
+
+            factorize(P[:,Base.OneTo(N)]; ncols=d)
+            
+            
+            Matrix{eltype(V_N)}(undef,
+
             @time v = f[F.grid];
-            data = Matrix{eltype(F)}(undef, length(F.grid), N)
+            data = Matrix{eltype(f)}(undef, length(F.grid), d)
             @time for k = axes(data,1)
                 copyto!(view(data,k,:), f[F.grid[k]])
             end
             F.plan * data
 
+            n = 20
+            factorize(T[:,Base.OneTo(n)]
         end
     end
 end
