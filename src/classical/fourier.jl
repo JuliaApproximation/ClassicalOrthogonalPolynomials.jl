@@ -34,19 +34,49 @@ size(F::ShuffledRFFT, _) = size(F.plan,1)
 size(F::ShuffledRFFT) = (size(F.plan,1),size(F.plan,1))
 
 ShuffledRFFT{T}(p::Plan) where {T,Plan} = ShuffledRFFT{T,Plan}(p)
-ShuffledRFFT{T}(n::Int) where T = ShuffledRFFT{T}(FFTW.plan_r2r!(Array{T}(undef, n), FFTW.R2HC))
+ShuffledRFFT{T}(n, d...) where T = ShuffledRFFT{T}(FFTW.plan_r2r(Array{T}(undef, n), FFTW.R2HC, d...))
 
-
-function *(F::ShuffledRFFT{T}, b::AbstractVector) where T
-    n = size(F,1)
-    c = lmul!(convert(T,2)/n, F.plan * convert(Array, b))
-    c[1] /= 2
-    iseven(n) && (c[n÷2+1] /= 2)
-    negateeven!(reverseeven!(interlace!(c,1)))
+function _shuffledrfft_postscale!(_, ret::AbstractVector{T}) where T
+    n = length(ret)
+    lmul!(convert(T,2)/n, ret)
+    ret[1] /= 2
+    iseven(n) && (ret[n÷2+1] /= 2)
+    negateeven!(reverseeven!(interlace!(ret,1)))
 end
+
+function _shuffledrfft_postscale!(d::Number, ret::AbstractMatrix{T}) where T
+    if isone(d)
+        n = size(ret,1)
+        lmul!(convert(T,2)/n, ret)
+        ldiv!(2, view(ret,1,:))
+        iseven(n) && ldiv!(2, view(ret,n÷2+1,:))
+        for j in axes(ret,2)
+            negateeven!(reverseeven!(interlace!(view(ret,:,j),1)))
+        end
+    else
+        n = size(ret,2)
+        lmul!(convert(T,2)/n, ret)
+        ldiv!(2, view(ret,:,1))
+        iseven(n) && ldiv!(2, view(ret,:,n÷2+1))
+        for k in axes(ret,1)
+            negateeven!(reverseeven!(interlace!(view(ret,k,:),1)))
+        end
+    end
+    ret
+end
+
+
+function mul!(ret::AbstractArray{T}, F::ShuffledRFFT{T}, b::AbstractArray) where T
+    mul!(ret, F.plan, convert(Array{T}, b))
+    _shuffledrfft_postscale!(F.plan.region, ret)
+end
+
+*(F::ShuffledRFFT{T}, b::AbstractVector) where T = mul!(similar(b, T), F, b)
 
 factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:OneTo}}) where T =
     TransformFactorization(grid(L), ShuffledRFFT{T}(size(L,2)))
+factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:OneTo}}, d) where T =
+    TransformFactorization(grid(L), ShuffledRFFT{T}((size(L,2),d),1))
 
 import BlockBandedMatrices: _BlockSkylineMatrix
 
