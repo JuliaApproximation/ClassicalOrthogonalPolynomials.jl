@@ -30,9 +30,12 @@ import QuasiArrays: MulQuasiArray
         @test (F \ cos.(θ))[Block(2)] ≈ [0,1]
         u = F * (F \ exp.(cos.(θ)))
         @test u[0.1] ≈ exp(cos(0.1))
-
-        F[:,Base.OneTo(5)] \ [cos.(θ) sin.(θ)] ≈ 
-        U = F / F \ [exp.(cos.(θ))) cos.(cos.(θ)))]
+        @test F[:,Base.OneTo(5)] \ [cos.(θ) sin.(θ)] ≈ [0 0; 0 1; 1 0; 0 0; 0 0]
+        U = F / F \ [exp.(cos.(θ)) cos.(cos.(θ))]
+        @test U[0.1,:] ≈ [exp(cos(0.1)),cos(cos(0.1))]
+        @test U[[0.1,0.2],:] ≈ [exp(cos(0.1)) cos(cos(0.1)); exp(cos(0.2)) cos(cos(0.2))]
+        @test U[0.1,1] ≈ exp(cos(0.1))
+        @test U[[0.1,0.2],1] ≈ exp.(cos.([0.1,0.2]))
     end
 
     @testset "Derivative" begin

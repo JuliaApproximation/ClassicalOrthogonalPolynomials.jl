@@ -38,7 +38,7 @@ import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffin
     AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweightedbasis, MappedBasisLayouts, __sum, invmap, plan_ldiv
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
-                        _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints
+                        _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan
 
 import FastGaussQuadrature: jacobimoment
 
@@ -71,7 +71,7 @@ transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any
 
 
 setaxis(c, ::OneToInf, bx...) = c
-setaxis(c, ax::BlockedUnitRange, bx...) = PseudoBlockVector(c, (ax, bx...))
+setaxis(c, ax::BlockedUnitRange, bx...) = PseudoBlockArray(c, (ax, bx...))
 
 function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}) where {U,V}
     T = promote_type(eltype(U),eltype(V))

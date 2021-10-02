@@ -26,14 +26,14 @@ end
 Gives a shuffled version of the real FFT, with order
 1,sin(θ),cos(θ),sin(2θ)…
 """
-struct ShuffledRFFT{T,Plan} <: Factorization{T}
-    plan::Plan
+struct ShuffledRFFT{T,Pl<:Plan} <: Factorization{T}
+    plan::Pl
 end
 
 size(F::ShuffledRFFT, _) = size(F.plan,1)
 size(F::ShuffledRFFT) = (size(F.plan,1),size(F.plan,1))
 
-ShuffledRFFT{T}(p::Plan) where {T,Plan} = ShuffledRFFT{T,Plan}(p)
+ShuffledRFFT{T}(p::Pl) where {T,Pl<:Plan} = ShuffledRFFT{T,Pl}(p)
 ShuffledRFFT{T}(n, d...) where T = ShuffledRFFT{T}(FFTW.plan_r2r(Array{T}(undef, n), FFTW.R2HC, d...))
 
 function _shuffledrfft_postscale!(_, ret::AbstractVector{T}) where T
