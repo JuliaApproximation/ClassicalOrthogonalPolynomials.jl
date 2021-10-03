@@ -90,7 +90,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             v = T[:,2:end] \ (exp.(x) .- 1.26606587775201)
             @test v[1:10] ≈ (T\u)[2:11]
 
-            @test T \ zero.(x) == zeros(∞)
+            @test T \ zero.(x) ≈ Zeros(∞)
         end
         @testset "ChebyshevU" begin
             U = ChebyshevU()
