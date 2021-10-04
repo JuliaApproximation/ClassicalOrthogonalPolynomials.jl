@@ -54,6 +54,8 @@ computes the `n`-th Legendre polynomial at `z`.
 legendrep(n::Integer, z::Number) = Base.unsafe_getindex(Legendre{typeof(z)}(), z, n+1)
 
 
+summary(io::IO, ::Legendre) = print(io, "Legendre()")
+
 ==(::Legendre, ::Legendre) = true
 
 OrthogonalPolynomial(w::LegendreWeight{T}) where {T} = Legendre{T}()

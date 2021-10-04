@@ -95,39 +95,44 @@ end
 # Clenshaw
 ###
 
-function unsafe_getindex(f::Expansion{<:Any,<:OrthogonalPolynomial}, x::Number)
-    P,c = arguments(f)
+function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::Number)
+    P,c = f.A,f.B
     _p0(P)*clenshaw(paddeddata(c), recurrencecoefficients(P)..., x)
 end
 
-Base.@propagate_inbounds function getindex(f::Expansion{<:Any,<:OrthogonalPolynomial}, x::Number)
-    @inbounds checkbounds(f, x)
-    unsafe_getindex(f, x)
-end
-
-const ExpansionMatrix{T,P<:AbstractQuasiMatrix,M<:AbstractMatrix} = ApplyQuasiMatrix{T,typeof(*),<:Tuple{P,M}}
-
-function unsafe_getindex(f::ExpansionMatrix{<:Any,<:OrthogonalPolynomial}, x::Union{Number,AbstractVector{<:Number}}, jr::Union{Colon,AbstractVector{Int}})
-    P,c = arguments(f)
+function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::Number, jr)
+    P,c = f.A,f.B
     _p0(P)*clenshaw(view(paddeddata(c),:,jr), recurrencecoefficients(P)..., x)
 end
 
-
-Base.@propagate_inbounds function getindex(f::ExpansionMatrix{<:Any,<:OrthogonalPolynomial}, x::Union{Number,AbstractVector{<:Number}}, jr::Union{Colon,AbstractVector{Int}})
-    @inbounds checkbounds(f, x, jr)
-    unsafe_getindex(f, x, jr)
+Base.@propagate_inbounds function getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::Number, j...)
+    @inbounds checkbounds(ApplyQuasiArray(*,f.A,f.B), x, j...)
+    unsafe_getindex(f, x, j...)
 end
 
+# const ExpansionMatrix{T,P<:AbstractQuasiMatrix,M<:AbstractMatrix} = ApplyQuasiMatrix{T,typeof(*),<:Tuple{P,M}}
 
-getindex(f::Expansion{T,<:OrthogonalPolynomial}, x::AbstractVector{<:Number}) where T = 
-    copyto!(Vector{T}(undef, length(x)), view(f, x))
+# function unsafe_getindex(f::ExpansionMatrix{<:Any,<:OrthogonalPolynomial}, x::Union{Number,AbstractVector{<:Number}}, jr::Union{Colon,AbstractVector{Int}})
+#     P,c = arguments(f)
+#     _p0(P)*clenshaw(view(paddeddata(c),:,jr), recurrencecoefficients(P)..., x)
+# end
 
-function copyto!(dest::AbstractVector{T}, v::SubArray{<:Any,1,<:Expansion{<:Any,<:OrthogonalPolynomial}, <:Tuple{AbstractVector{<:Number}}}) where T
-    f = parent(v)
-    (x,) = parentindices(v)
-    P,c = arguments(f)
-    clenshaw!(paddeddata(c), recurrencecoefficients(P)..., x, Fill(_p0(P), length(x)), dest)
-end
+
+# Base.@propagate_inbounds function getindex(f::ExpansionMatrix{<:Any,<:OrthogonalPolynomial}, x::Union{Number,AbstractVector{<:Number}}, jr::Union{Colon,AbstractVector{Int}})
+#     @inbounds checkbounds(f, x, jr)
+#     unsafe_getindex(f, x, jr)
+# end
+
+
+# getindex(f::Expansion{T,<:OrthogonalPolynomial}, x::AbstractVector{<:Number}) where T = 
+#     copyto!(Vector{T}(undef, length(x)), view(f, x))
+
+# function copyto!(dest::AbstractVector{T}, v::SubArray{<:Any,1,<:Expansion{<:Any,<:OrthogonalPolynomial}, <:Tuple{AbstractVector{<:Number}}}) where T
+#     f = parent(v)
+#     (x,) = parentindices(v)
+#     P,c = arguments(f)
+#     clenshaw!(paddeddata(c), recurrencecoefficients(P)..., x, Fill(_p0(P), length(x)), dest)
+# end
 
 ###
 # Operator clenshaw
@@ -340,31 +345,24 @@ function materialize!(M::MatMulVecAdd{<:ClenshawLayout,<:PaddedLayout,<:PaddedLa
 end
 
 # TODO: generalise this to be trait based
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::Expansion{<:Any,<:OrthogonalPolynomial}, P::OrthogonalPolynomial)
+function layout_broadcasted(::LazyQuasiArrayStyle{2}, ::Tuple{ExpansionLayout{<:AbstractOPLayout},AbstractOPLayout}, ::typeof(*), a, P)
     axes(a,1) == axes(P,1) || throw(DimensionMismatch())
     P * Clenshaw(a, P)
 end
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::Expansion{<:Any,<:SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Slice}}}, V::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Any}})
-    axes(a,1) == axes(V,1) || throw(DimensionMismatch())
-    kr,jr = parentindices(V)
-    P = view(parent(V),kr,:)
-    P * Clenshaw(a, P)[:,jr]
-end
+# function layout_broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::Expansion{<:Any,<:SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Slice}}}, V::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Any}})
+#     axes(a,1) == axes(V,1) || throw(DimensionMismatch())
+#     kr,jr = parentindices(V)
+#     P = view(parent(V),kr,:)
+#     P * Clenshaw(a, P)[:,jr]
+# end
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::Expansion{<:Any,<:WeightedOrthogonalPolynomial}, P::OrthogonalPolynomial)
-    axes(a,1) == axes(P,1) || throw(DimensionMismatch())
-    wQ,c = arguments(a)
-    w,Q = arguments(wQ)
-    (w .* P) * Clenshaw(Q * c, P)
-end
-
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), wv::BroadcastQuasiVector{<:Any,typeof(*),<:Tuple{Weight,AffineQuasiVector}}, P::OrthogonalPolynomial)
-    w,v = arguments(wv)
-    Q = OrthogonalPolynomial(w)
-    a = (w .* Q) * (Q \ v)
-    a .* P
-end
+# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), wv::BroadcastQuasiVector{<:Any,typeof(*),<:Tuple{Weight,AffineQuasiVector}}, P::OrthogonalPolynomial)
+#     w,v = arguments(wv)
+#     Q = OrthogonalPolynomial(w)
+#     a = (w .* Q) * (Q \ v)
+#     a .* P
+# end
 
 
 ##

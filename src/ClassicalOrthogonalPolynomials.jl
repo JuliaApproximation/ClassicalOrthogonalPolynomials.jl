@@ -34,9 +34,9 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
-    inbounds_getindex, grid, plotgrid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
+    inbounds_getindex, grid, plotgrid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout,
     AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
-    checkpoints, weight, unweightedbasis, MappedBasisLayouts, __sum, invmap, plan_ldiv
+    checkpoints, weight, unweightedbasis, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan
 
@@ -133,6 +133,9 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiMatrix
 end
 
 abstract type OrthogonalPolynomial{T} <: Basis{T} end
+abstract type AbstractOPLayout <: AbstractBasisLayout end
+struct OPLayout <: AbstractOPLayout end
+MemoryLayout(::Type{<:OrthogonalPolynomial}) = OPLayout()
 
 # OPs are immutable
 copy(a::OrthogonalPolynomial) = a
@@ -194,7 +197,7 @@ singularities(::WeightLayout, w) = w
 singularities(lay::BroadcastLayout, a) = singularitiesbroadcast(call(a), map(singularities, arguments(lay, a))...)
 singularities(::WeightedBasisLayouts, a) = singularities(BroadcastLayout{typeof(*)}(), a)
 singularities(w) = singularities(MemoryLayout(w), w)
-singularities(f::Expansion) = singularities(basis(f))
+singularities(::ExpansionLayout, f) = singularities(basis(f))
 singularities(S::WeightedOrthogonalPolynomial) = singularities(S.args[1])
 
 singularities(S::SubQuasiArray) = singularities(parent(S))[parentindices(S)[1]]

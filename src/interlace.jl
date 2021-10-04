@@ -252,7 +252,7 @@ _sum(P::PiecewiseInterlace, dims) = BlockBroadcastArray(hcat, unitblocks.(_sum.(
 
 # blockvector2vectortuple
 
-function components(f::Expansion{<:Any,<:PiecewiseInterlace})
+function components(f::ApplyQuasiVector{<:Any,typeof(*),<:Tuple{PiecewiseInterlace,Any}})
     P,c = arguments(*, f)
     P.args .* blockvector2vectortuple(c)
 end

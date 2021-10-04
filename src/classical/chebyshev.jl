@@ -133,12 +133,12 @@ recurrencecoefficients(C::ChebyshevT) = (Vcat(1, Fill(2,∞)), Zeros{Int}(∞), 
 recurrencecoefficients(C::ChebyshevU) = (Fill(2,∞), Zeros{Int}(∞), Ones{Int}(∞))
 
 # special clenshaw!
-function copyto!(dest::AbstractVector{T}, v::SubArray{<:Any,1,<:Expansion{<:Any,<:ChebyshevT}, <:Tuple{AbstractVector{<:Number}}}) where T
-    f = parent(v)
-    (x,) = parentindices(v)
-    P,c = arguments(f)
-    clenshaw!(paddeddata(c), x, dest)
-end
+# function copyto!(dest::AbstractVector{T}, v::SubArray{<:Any,1,<:Expansion{<:Any,<:ChebyshevT}, <:Tuple{AbstractVector{<:Number}}}) where T
+#     f = parent(v)
+#     (x,) = parentindices(v)
+#     P,c = arguments(f)
+#     clenshaw!(paddeddata(c), x, dest)
+# end
 
 ###
 # Mass matrix
@@ -280,7 +280,7 @@ function cumsum(T::ChebyshevT{V}; dims::Integer) where V
     ApplyQuasiArray(*, T, Vcat((-1).^(0:∞)'* Σ, Σ))
 end
 
-cumsum(f::Expansion{<:Any,<:ChebyshevT}) = cumsum(f.args[1]; dims=1) * f.args[2]
+# cumsum(f::Expansion{<:Any,<:ChebyshevT}) = cumsum(f.args[1]; dims=1) * f.args[2]
 
 ####
 # algebra
