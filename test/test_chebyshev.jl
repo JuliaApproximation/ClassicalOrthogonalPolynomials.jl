@@ -147,7 +147,10 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
     @testset "weighted" begin
         T = ChebyshevT()
         w = ChebyshevTWeight()
-        @test (w .* T) ≡ Weighted(T)
+        wT = Weighted(T)
+        wU = Weighted(ChebyshevU())
+
+        @test (w .* T) ≡ wT
 
 
         x = axes(wT,1)
@@ -160,29 +163,25 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test u[0.1] ≈ exp(0.1)/sqrt(1-0.1^2)
 
         @testset "Weighted" begin
-            WT = Weighted(ChebyshevT())
-            @test WT == copy(WT)
-            @test WT \ WT == Eye(∞)
-            @test wT[0.1,1:10] ≈ WT[0.1,1:10]
-            @test WT \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ wT \ (exp.(x) ./ sqrt.(1 .- x.^2))
-            @test WT[:,1:20] \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ (WT \ (exp.(x) ./ sqrt.(1 .- x.^2)))[1:20]
-            @test WT \ (x .* WT) == T \ (x .* T)
-            @test sum(WT; dims=1)[:,1:10] ≈ [π zeros(1,9)]
-            @test sum(WT[:,1]) ≈ π
-            @test iszero(sum(WT[:,2]))
-
-            WU = Weighted(ChebyshevU())
-            @test (WT \ WU)[1:10,1:10] ≈ inv(WU \ WT)[1:10,1:10]
-            @test_skip (WU \ WT)[1,1] == 2
+            @test wT == copy(wT)
+            @test wT \ wT == Eye(∞)
+            @test wT[0.1,1:10] ≈ wT[0.1,1:10]
+            @test wT \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ wT \ (exp.(x) ./ sqrt.(1 .- x.^2))
+            @test wT[:,1:20] \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ (wT \ (exp.(x) ./ sqrt.(1 .- x.^2)))[1:20]
+            @test wT \ (x .* wT) == T \ (x .* T)
+            @test sum(wT; dims=1)[:,1:10] ≈ [π zeros(1,9)]
+            @test sum(wT[:,1]) ≈ π
+            @test iszero(sum(wT[:,2]))
+  
+            @test (wT \ wU)[1:10,1:10] ≈ inv(wU \ wT)[1:10,1:10]
+            @test_skip (wU \ WT)[1,1] == 2
         end
         
         @testset "Derivative" begin
-            WT = Weighted(ChebyshevT())
-            WU = Weighted(ChebyshevU())
-            x = axes(WT,1)
+            x = axes(wT,1)
             D = Derivative(x)
-            @test_broken D*WT # not implemented
-            @test (D*WU)[0.1,1:2] ≈ -1/sqrt(1-0.1^2) * [0.1, 4*0.1^2-2]
+            @test_broken D*wT # not implemented
+            @test (D*wU)[0.1,1:2] ≈ -1/sqrt(1-0.1^2) * [0.1, 4*0.1^2-2]
         end
 
         @testset "mapped" begin

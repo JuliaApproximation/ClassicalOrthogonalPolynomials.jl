@@ -171,6 +171,7 @@ abstract type AbstractWeighted{T} <: Basis{T} end
 getindex(Q::AbstractWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = weight(Q)[x] .* unweighted(Q)[x,jr]
 
 MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout()
+convert(::Type{WeightedBasis}, Q::AbstractWeighted) = weight(Q) .* unweighted(Q)
 
 # make act like WeightedBasisLayout
 ContinuumArrays._grid(::WeightedOPLayout, P) = ContinuumArrays._grid(WeightedBasisLayout(), P)

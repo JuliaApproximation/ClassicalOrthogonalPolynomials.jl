@@ -37,8 +37,6 @@ Ultraspherical(::ChebyshevU{T}) where T = Ultraspherical{T}(1)
 
 const WeightedUltraspherical{T} = WeightedBasis{T,<:UltrasphericalWeight,<:Ultraspherical}
 
-WeightedUltraspherical(λ) = UltrasphericalWeight(λ) .* Ultraspherical(λ)
-WeightedUltraspherical{T}(λ) where T = UltrasphericalWeight{T}(λ) .* Ultraspherical{T}(λ)
 orthogonalityweight(C::Ultraspherical) = UltrasphericalWeight(C.λ)
 
 ultrasphericalc(n::Integer, λ, z::Number) = Base.unsafe_getindex(Ultraspherical{promote_type(typeof(λ),typeof(z))}(λ), z, n+1)
@@ -53,6 +51,7 @@ ultraspherical(λ, d::AbstractInterval{T}) where T = Ultraspherical{float(promot
 ==(P::Jacobi, Q::Ultraspherical) = isone(2Q.λ) && P == Jacobi(Q)
 ==(P::Ultraspherical, Q::Legendre) = isone(2P.λ)
 ==(P::Legendre, Q::Ultraspherical) = isone(2Q.λ)
+
 
 
 ###
@@ -210,6 +209,8 @@ function \(w_A::WeightedUltraspherical, w_B::WeightedUltraspherical)
         error("not implemented for $A and $wB")
     end
 end
+
+\(w_A::Weighted{<:Any,<:Ultraspherical}, w_B::Weighted{<:Any,<:Ultraspherical}) = convert(WeightedBasis, w_A) \ convert(WeightedBasis, w_B)
 
 \(A::Legendre, wB::WeightedUltraspherical) = Ultraspherical(A) \ wB
 

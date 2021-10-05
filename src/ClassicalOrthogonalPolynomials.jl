@@ -163,6 +163,8 @@ ContinuumArrays.transform_ldiv_if_columns(L::Ldiv{MappedOPLayout,ApplyLayout{typ
 _equals(::AbstractOPLayout, ::WeightedOPLayout, _, _) = false # Weighedt-Legendre doesn't exist
 _equals(::WeightedOPLayout, ::AbstractOPLayout, _, _) = false # Weighedt-Legendre doesn't exist
 _equals(::WeightedOPLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unweighted(wQ)
+_equals(::WeightedOPLayout, ::WeightedBasisLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
+_equals(::WeightedBasisLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
 
 # OPs are immutable
 copy(a::OrthogonalPolynomial) = a

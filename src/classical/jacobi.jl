@@ -89,10 +89,6 @@ orthogonalityweight(P::Jacobi) = JacobiWeight(P.a, P.b)
 
 const WeightedJacobi{T} = WeightedBasis{T,<:JacobiWeight,<:Jacobi}
 
-WeightedJacobi(a,b) = JacobiWeight(a,b) .* Jacobi(a,b)
-WeightedJacobi{T}(a,b) where T = JacobiWeight{T}(a,b) .* Jacobi{T}(a,b)
-
-
 """
     HalfWeighted{lr}(Jacobi(a,b))
 
@@ -125,8 +121,6 @@ end
 ==(wB::HalfWeighted{:b}, A::Jacobi) = A == wB
 
 
-convert(::Type{WeightedBasis}, Q::HalfWeighted{:a,T,<:Jacobi}) where T = JacobiWeight(Q.P.a,zero(T)) .* Q.P
-convert(::Type{WeightedBasis}, Q::HalfWeighted{:b,T,<:Jacobi}) where T = JacobiWeight(zero(T),Q.P.b) .* Q.P
 function convert(::Type{WeightedBasis}, Q::HalfWeighted{lr,T,<:Normalized}) where {T,lr}
     w,_ = arguments(convert(WeightedBasis, HalfWeighted{lr}(Q.P.P)))
     w .* Q.P
@@ -307,6 +301,10 @@ function broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::WeightedJacobi)
     w .* P
 end
 
+broadcastbasis(::typeof(+), w_A::Weighted{<:Any,<:Jacobi}, w_B::Weighted{<:Any,<:Jacobi}) = broadcastbasis(+, convert(WeightedBasis,w_A), convert(WeightedBasis,w_B))
+broadcastbasis(::typeof(+), w_A::Weighted{<:Any,<:Jacobi}, w_B::WeightedJacobi) = broadcastbasis(+, convert(WeightedBasis,w_A), w_B)
+broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::Weighted{<:Any,<:Jacobi}) = broadcastbasis(+, w_A, convert(WeightedBasis,w_B))
+
 function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
     wA,A = w_A.args
     wB,B = w_B.args
@@ -327,6 +325,11 @@ function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
         error("not implemented for $A and $wB")
     end
 end
+
+\(w_A::WeightedJacobi, w_B::Weighted{<:Any,<:Jacobi}) = w_A \ convert(WeightedBasis,w_B)
+\(w_A::Weighted{<:Any,<:Jacobi}, w_B::Weighted{<:Any,<:Jacobi}) = convert(WeightedBasis,w_A) \ convert(WeightedBasis,w_B)
+\(w_A::Weighted{<:Any,<:Jacobi}, w_B::WeightedJacobi) = convert(WeightedBasis,w_A) \ w_B
+
 
 \(A::Legendre, wB::WeightedJacobi) = Jacobi(A) \ wB
 
