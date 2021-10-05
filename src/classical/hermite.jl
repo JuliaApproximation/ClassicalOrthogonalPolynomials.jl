@@ -35,7 +35,7 @@ hermiteh(n::Integer, z::Number) = Base.unsafe_getindex(Hermite{typeof(z)}(), z, 
 jacobimatrix(H::Hermite{T}) where T = Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(∞), one(T):∞)
 recurrencecoefficients(H::Hermite{T}) where T = Fill{T}(2,∞), Zeros{T}(∞), zero(T):2:∞
 
-@simplify function *(Ac::QuasiAdjoint{<:Any,<:Hermite}, B::WeightedBasis{<:Any,<:HermiteWeight,<:Hermite})  
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:Hermite}, B::Weighted{<:Any,<:Hermite})  
     T = promote_type(eltype(Ac), eltype(B))
     Diagonal(sqrt(convert(T,π)) .* convert(T,2) .^ (0:∞) .* factorial.(convert(T,0):∞))
 end

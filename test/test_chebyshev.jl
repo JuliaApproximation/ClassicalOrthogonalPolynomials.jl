@@ -147,7 +147,9 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
     @testset "weighted" begin
         T = ChebyshevT()
         w = ChebyshevTWeight()
-        wT = WeightedChebyshevT()
+        @test (w .* T) ≡ Weighted(T)
+
+
         x = axes(wT,1)
         @test (x .* wT).args[2] isa LazyBandedMatrices.Tridiagonal
 
@@ -340,7 +342,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
         @testset "weighted" begin
             T = ChebyshevT()
-            wT = WeightedChebyshevT()
+            wT = Weighted(ChebyshevT())
             a = wT * [1; 2; 3; zeros(∞)];
             @test (a .* T)[0.1,1:10] ≈ a[0.1] * T[0.1,1:10]
         end

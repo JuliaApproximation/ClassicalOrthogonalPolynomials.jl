@@ -167,7 +167,10 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalW
 
 
 abstract type AbstractWeighted{T} <: Basis{T} end
-struct WeightedOPLayout <: AbstractBasisLayout end
+
+getindex(Q::AbstractWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = weight(Q)[x] .* unweighted(Q)[x,jr]
+
+MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout()
 
 # make act like WeightedBasisLayout
 ContinuumArrays._grid(::WeightedOPLayout, P) = ContinuumArrays._grid(WeightedBasisLayout(), P)
@@ -175,28 +178,27 @@ ContinuumArrays._factorize(::WeightedOPLayout, P) = ContinuumArrays._factorize(W
 ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:AbstractAffineQuasiVector,<:AbstractVector}}) = sublayout(WeightedBasisLayout(), inds)
 ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:Inclusion,<:AbstractVector}}) = sublayout(WeightedBasisLayout(), inds)
 
-MemoryLayout(::Type{<:AbstractWeighted}) = WeightedOPLayout()
-ContinuumArrays.unweightedbasis(wP::AbstractWeighted) = wP.P
-function copy(L::Ldiv{WeightedOPLayout,WeightedOPLayout})
-    L.A.P == L.B.P && return Eye{eltype(L)}(∞)
-    convert(WeightedOrthogonalPolynomial, L.A) \ convert(WeightedOrthogonalPolynomial, L.B)
-end
+ContinuumArrays.unweighted(wP::AbstractWeighted) = wP.P
+# function copy(L::Ldiv{WeightedOPLayout,WeightedOPLayout})
+#     L.A.P == L.B.P && return Eye{eltype(L)}(∞)
+#     convert(WeightedOrthogonalPolynomial, L.A) \ convert(WeightedOrthogonalPolynomial, L.B)
+# end
 
-copy(L::Ldiv{WeightedOPLayout,<:BroadcastLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
-copy(L::Ldiv{WeightedOPLayout,<:AbstractLazyLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
-copy(L::Ldiv{WeightedOPLayout,<:AbstractBasisLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
-copy(L::Ldiv{<:AbstractLazyLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
-copy(L::Ldiv{<:AbstractBasisLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
-copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
-copy(L::Ldiv{WeightedOPLayout,<:ExpansionLayout}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
-copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
+# copy(L::Ldiv{WeightedOPLayout,<:BroadcastLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+# copy(L::Ldiv{WeightedOPLayout,<:AbstractLazyLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+# copy(L::Ldiv{WeightedOPLayout,<:AbstractBasisLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+# copy(L::Ldiv{<:AbstractLazyLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
+# copy(L::Ldiv{<:AbstractBasisLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
+# copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
+# copy(L::Ldiv{WeightedOPLayout,<:ExpansionLayout}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
+# copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
 
-function layout_broadcasted(::LazyQuasiArrayStyle{2}, ::Tuple{ExpansionLayout{WeightedOPLayout},OPLayout}, ::typeof(*), a, P)
-    axes(a,1) == axes(P,1) || throw(DimensionMismatch())
-    wQ,c = arguments(a)
-    w,Q = arguments(wQ)
-    (w .* P) * Clenshaw(Q * c, P)
-end
+# function layout_broadcasted(::ExpansionLayout{WeightedOPLayout}, ::OPLayout, ::typeof(*), a, P)
+#     axes(a,1) == axes(P,1) || throw(DimensionMismatch())
+#     wQ,c = arguments(a)
+#     w,Q = arguments(wQ)
+#     (w .* P) * Clenshaw(Q * c, P)
+# end
 
 
 """
@@ -211,12 +213,12 @@ end
 axes(Q::Weighted) = axes(Q.P)
 copy(Q::Weighted) = Q
 
-==(A::Weighted, B::Weighted) = A.P == B.P
 weight(wP::Weighted) = orthogonalityweight(wP.P)
 
-convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = weight(P) .* unweightedbasis(P)
+MemoryLayout(::Type{<:Weighted}) = WeightedOPLayout()
 
-getindex(Q::Weighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = weight(Q)[x] .* unweightedbasis(Q)[x,jr]
+# convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = weight(P) .* unweighted(P)
+
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = Q * (Q.P \ (x .* Q.P))
 
 

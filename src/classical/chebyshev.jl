@@ -25,21 +25,16 @@ Chebyshev{kind}() where kind = Chebyshev{kind,Float64}()
 AbstractQuasiArray{T}(::Chebyshev{kind}) where {T,kind} = Chebyshev{kind,T}()
 AbstractQuasiMatrix{T}(::Chebyshev{kind}) where {T,kind} = Chebyshev{kind,T}()
 
-const WeightedChebyshev{kind,T} = WeightedBasis{T,<:ChebyshevWeight{kind},<:Chebyshev{kind}}
-
-WeightedChebyshev{kind}() where kind = ChebyshevWeight{kind}() .* Chebyshev{kind}()
-WeightedChebyshev{kind,T}() where {kind,T} = ChebyshevWeight{kind,T}(λ) .* Chebyshev{kind,T}(λ)
-
 const ChebyshevTWeight = ChebyshevWeight{1}
 const ChebyshevUWeight = ChebyshevWeight{2}
 const ChebyshevT = Chebyshev{1}
 const ChebyshevU = Chebyshev{2}
-const WeightedChebyshevT = WeightedChebyshev{1}
-const WeightedChebyshevU = WeightedChebyshev{2}
 
 # conveniences...perhaps too convenient
 Chebyshev() = Chebyshev{1}()
-WeightedChebyshev() = WeightedChebyshevT()
+
+
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::ChebyshevWeight{kind,T}, ::Chebyshev{kind,V}) where {kind,T,V} = Weighted(Chebyshev{kind,promote_type(T,V)}())
 
 chebyshevt() = ChebyshevT()
 chebyshevt(d::AbstractInterval{T}) where T = ChebyshevT{float(T)}()[affine(d, ChebyshevInterval{T}()), :]
@@ -144,15 +139,11 @@ recurrencecoefficients(C::ChebyshevU) = (Fill(2,∞), Zeros{Int}(∞), Ones{Int}
 # Mass matrix
 ###
 
-@simplify function *(Tc::QuasiAdjoint{<:Any,<:ChebyshevT}, wT::WeightedChebyshevT)
-    V = promote_type(eltype(Tc), eltype(wT))
-    Diagonal([convert(V,π); Fill(convert(V,π)/2,∞)])
-end
+massmatrix(::ChebyshevT{V}) where V = Diagonal([convert(V,π); Fill(convert(V,π)/2,∞)])
+massmatrix(::ChebyshevU{V}) where V = Diagonal(Fill(convert(V,π)/2,∞))
 
-@simplify function *(Tc::QuasiAdjoint{<:Any,<:ChebyshevU}, wT::WeightedChebyshevU)
-    V = promote_type(eltype(Tc), eltype(wT))
-    Diagonal(Fill(convert(V,π)/2,∞))
-end
+@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevT}}, B::ChebyshevT) = massmatrix(ChebyshevT{promote_type(eltype(A),eltype(B))}())
+@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevU}}, B::ChebyshevU) = massmatrix(ChebyshevU{promote_type(eltype(A),eltype(B))}())
 
 ##########
 # Derivatives
@@ -184,14 +175,12 @@ function \(U::ChebyshevU, C::ChebyshevT)
                         Hcat(Ones{T}(1,1),Ones{T}(1,∞)/2)), ℵ₀, 0,2)
 end
 
-function \(w_A::WeightedChebyshevT, w_B::WeightedChebyshevU)
-    wA,A = w_A.args
-    wB,B = w_B.args
+function \(w_A::Weighted{<:Any,<:ChebyshevT}, w_B::Weighted{<:Any,<:ChebyshevU})
     T = promote_type(eltype(w_A), eltype(w_B))
     _BandedMatrix(Vcat(Fill(one(T)/2, 1, ∞), Zeros{T}(1, ∞), Fill(-one(T)/2, 1, ∞)), ℵ₀, 2, 0)
 end
 
-\(w_A::WeightedChebyshevU, w_B::WeightedChebyshevT) = inv(w_B \ w_A)
+\(w_A::Weighted{<:Any,<:ChebyshevU}, w_B::Weighted{<:Any,<:ChebyshevT}) = inv(w_B \ w_A)
 \(T::ChebyshevT, U::ChebyshevU) = inv(U \ T)
 
 ####

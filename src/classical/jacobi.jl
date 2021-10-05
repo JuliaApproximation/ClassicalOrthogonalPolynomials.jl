@@ -105,34 +105,46 @@ end
 
 HalfWeighted{lr}(P) where lr = HalfWeighted{lr,eltype(P),typeof(P)}(P)
 
+weight(wP::HalfWeighted{:a, T, <:Jacobi}) where T = JacobiWeight(wP.P.a,zero(T))
+weight(wP::HalfWeighted{:b, T, <:Jacobi}) where T = JacobiWeight(zero(T),wP.P.b)
+
 axes(Q::HalfWeighted) = axes(Q.P)
 copy(Q::HalfWeighted) = Q
 
 ==(A::HalfWeighted{lr}, B::HalfWeighted{lr}) where lr = A.P == B.P
 ==(A::HalfWeighted, B::HalfWeighted) = false
 
-convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:a,T,<:Jacobi}) where T = JacobiWeight(Q.P.a,zero(T)) .* Q.P
-convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:b,T,<:Jacobi}) where T = JacobiWeight(zero(T),Q.P.b) .* Q.P
-function convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{lr,T,<:Normalized}) where {T,lr}
-    w,_ = arguments(convert(WeightedOrthogonalPolynomial, HalfWeighted{lr}(Q.P.P)))
+function ==(A::HalfWeighted, wB::WeightedJacobi)
+    w,B = arguments(wB)
+    A == B && w == weight(A)
+end
+==(wB::WeightedJacobi, A::HalfWeighted) = A == wB
+==(A::Jacobi, wB::HalfWeighted{:a}) = A == wB.P && iszero(A.a)
+==(A::Jacobi, wB::HalfWeighted{:b}) = A == wB.P && iszero(A.b)
+
+==(wB::HalfWeighted{:b}, A::Jacobi) = A == wB
+
+
+convert(::Type{WeightedBasis}, Q::HalfWeighted{:a,T,<:Jacobi}) where T = JacobiWeight(Q.P.a,zero(T)) .* Q.P
+convert(::Type{WeightedBasis}, Q::HalfWeighted{:b,T,<:Jacobi}) where T = JacobiWeight(zero(T),Q.P.b) .* Q.P
+function convert(::Type{WeightedBasis}, Q::HalfWeighted{lr,T,<:Normalized}) where {T,lr}
+    w,_ = arguments(convert(WeightedBasis, HalfWeighted{lr}(Q.P.P)))
     w .* Q.P
 end
 
-getindex(Q::HalfWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = convert(WeightedOrthogonalPolynomial, Q)[x,jr]
+# broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::HalfWeighted) = Q * (Q.P \ (x .* Q.P))
 
-broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::HalfWeighted) = Q * (Q.P \ (x .* Q.P))
+\(w_A::HalfWeighted, w_B::HalfWeighted) = convert(WeightedBasis, w_A) \ convert(WeightedBasis, w_B)
+\(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedBasis, w_A) \ B
+\(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedBasis, w_B)
 
-\(w_A::HalfWeighted, w_B::HalfWeighted) = convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
-\(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
-\(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
-
-function _norm_expand_ldiv(A, w_B)
-    w,B = w_B.args
-    B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
-    (A \ (w .* B̃)) * D
-end
-\(A::AbstractQuasiArray, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
-\(A::WeightedOrthogonalPolynomial, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
+# function _norm_expand_ldiv(A, w_B)
+#     w,B = w_B.args
+#     B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
+#     (A \ (w .* B̃)) * D
+# end
+# \(A::AbstractQuasiArray, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
+# \(A::WeightedOrthogonalPolynomial, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
 
 axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b
