@@ -132,13 +132,13 @@ end
 \(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedBasis, w_A) \ B
 \(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedBasis, w_B)
 
-# function _norm_expand_ldiv(A, w_B)
-#     w,B = w_B.args
-#     B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
-#     (A \ (w .* B̃)) * D
-# end
-# \(A::AbstractQuasiArray, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
-# \(A::WeightedOrthogonalPolynomial, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
+# take out diagonal scaling for Weighted(::Normalized)
+function _norm_expand_ldiv(A, w_B)
+    w,B = w_B.args
+    B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
+    (A \ (w .* B̃)) * D
+end
+copy(::Ldiv{<:Any,<:WeightedBasisLayout{<:NormalizedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
 
 axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b

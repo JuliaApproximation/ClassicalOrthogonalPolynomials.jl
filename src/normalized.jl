@@ -170,14 +170,14 @@ abstract type AbstractWeighted{T} <: Basis{T} end
 
 getindex(Q::AbstractWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = weight(Q)[x] .* unweighted(Q)[x,jr]
 
-MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout()
+MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout{OPLayout}()
 convert(::Type{WeightedBasis}, Q::AbstractWeighted) = weight(Q) .* unweighted(Q)
 
 # make act like WeightedBasisLayout
 ContinuumArrays._grid(::WeightedOPLayout, P) = ContinuumArrays._grid(WeightedBasisLayout(), P)
 ContinuumArrays._factorize(::WeightedOPLayout, P) = ContinuumArrays._factorize(WeightedBasisLayout(), P)
-ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:AbstractAffineQuasiVector,<:AbstractVector}}) = sublayout(WeightedBasisLayout(), inds)
-ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:Inclusion,<:AbstractVector}}) = sublayout(WeightedBasisLayout(), inds)
+ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:AbstractAffineQuasiVector,<:AbstractVector}}) = sublayout(WeightedBasisLayout{OPLayout}(), inds)
+ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:Inclusion,<:AbstractVector}}) = sublayout(WeightedBasisLayout{OPLayout}(), inds)
 
 ContinuumArrays.unweighted(wP::AbstractWeighted) = wP.P
 # function copy(L::Ldiv{WeightedOPLayout,WeightedOPLayout})
