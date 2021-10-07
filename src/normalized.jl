@@ -130,6 +130,15 @@ copy(L::Ldiv{Lay,<:NormalizedOPLayout}) where Lay<:MappedBasisLayouts = copy(Ldi
 @inline copy(L::Ldiv{<:NormalizedOPLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{<:NormalizedOPLayout,BroadcastLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
 
+# take out diagonal scaling for Weighted(::Normalized)
+function _norm_expand_ldiv(A, w_B)
+    w,B = w_B.args
+    B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
+    (A \ (w .* B̃)) * D
+end
+copy(L::Ldiv{<:NormalizedOPLayout,<:WeightedBasisLayout{<:NormalizedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
+copy(L::Ldiv{OPLayout,<:WeightedBasisLayout{<:NormalizedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
+
 ###
 # show
 ###
@@ -137,36 +146,10 @@ show(io::IO, Q::Normalized) = print(io, "Normalized($(Q.P))")
 show(io::IO, ::MIME"text/plain", Q::Normalized) = show(io, Q)
 
 
-
-
-"""
-    OrthonormalWeighted(P)
-
-is the orthonormal with respect to L^2 basis given by
-`sqrt.(orthogonalityweight(P)) .* Normalized(P)`.
-"""
-struct OrthonormalWeighted{T, PP<:AbstractQuasiMatrix{T}} <: Basis{T}
-    P::Normalized{T, PP}
-end
-
-function OrthonormalWeighted(P)
-    Q = normalized(P)
-    OrthonormalWeighted{eltype(Q),typeof(P)}(Q)
-end
-
-axes(Q::OrthonormalWeighted) = axes(Q.P)
-copy(Q::OrthonormalWeighted) = Q
-
-==(A::OrthonormalWeighted, B::OrthonormalWeighted) = A.P == B.P
-
-function getindex(Q::OrthonormalWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector})
-    w = orthogonalityweight(Q.P)
-    sqrt.(w[x]) .* Q.P[x,jr]
-end
-broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
-
-
 abstract type AbstractWeighted{T} <: Basis{T} end
+
+
+
 
 getindex(Q::AbstractWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = weight(Q)[x] .* unweighted(Q)[x,jr]
 
@@ -176,8 +159,8 @@ convert(::Type{WeightedBasis}, Q::AbstractWeighted) = weight(Q) .* unweighted(Q)
 # make act like WeightedBasisLayout
 ContinuumArrays._grid(::WeightedOPLayout, P) = ContinuumArrays._grid(WeightedBasisLayout(), P)
 ContinuumArrays._factorize(::WeightedOPLayout, P) = ContinuumArrays._factorize(WeightedBasisLayout(), P)
-ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:AbstractAffineQuasiVector,<:AbstractVector}}) = sublayout(WeightedBasisLayout{OPLayout}(), inds)
-ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:Inclusion,<:AbstractVector}}) = sublayout(WeightedBasisLayout{OPLayout}(), inds)
+ContinuumArrays.sublayout(::WeightedOPLayout{Lay}, inds::Type{<:Tuple{<:AbstractAffineQuasiVector,<:AbstractVector}}) where Lay = sublayout(WeightedBasisLayout{Lay}(), inds)
+ContinuumArrays.sublayout(::WeightedOPLayout{Lay}, inds::Type{<:Tuple{<:Inclusion,<:AbstractVector}}) where Lay = sublayout(WeightedBasisLayout{Lay}(), inds)
 
 ContinuumArrays.unweighted(wP::AbstractWeighted) = wP.P
 # function copy(L::Ldiv{WeightedOPLayout,WeightedOPLayout})
@@ -194,12 +177,41 @@ ContinuumArrays.unweighted(wP::AbstractWeighted) = wP.P
 # copy(L::Ldiv{WeightedOPLayout,<:ExpansionLayout}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
 # copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
 
+copy(L::Ldiv{<:WeightedOPLayout{<:NormalizedOPLayout},Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
+
 # function layout_broadcasted(::ExpansionLayout{WeightedOPLayout}, ::OPLayout, ::typeof(*), a, P)
 #     axes(a,1) == axes(P,1) || throw(DimensionMismatch())
 #     wQ,c = arguments(a)
 #     w,Q = arguments(wQ)
 #     (w .* P) * Clenshaw(Q * c, P)
 # end
+
+
+"""
+    OrthonormalWeighted(P)
+
+is the orthonormal with respect to L^2 basis given by
+`sqrt.(orthogonalityweight(P)) .* Normalized(P)`.
+"""
+struct OrthonormalWeighted{T, PP<:AbstractQuasiMatrix{T}} <: AbstractWeighted{T}
+    P::Normalized{T, PP}
+end
+
+function OrthonormalWeighted(P)
+    Q = normalized(P)
+    OrthonormalWeighted{eltype(Q),typeof(P)}(Q)
+end
+
+axes(Q::OrthonormalWeighted) = axes(Q.P)
+copy(Q::OrthonormalWeighted) = Q
+
+==(A::OrthonormalWeighted, B::OrthonormalWeighted) = A.P == B.P
+
+
+weight(Q::OrthonormalWeighted) = sqrt.(orthogonalityweight(Q.P))
+
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
+
 
 
 """
@@ -216,7 +228,13 @@ copy(Q::Weighted) = Q
 
 weight(wP::Weighted) = orthogonalityweight(wP.P)
 
-MemoryLayout(::Type{<:Weighted}) = WeightedOPLayout()
+MemoryLayout(::Type{<:Weighted{<:Any,PP}}) where PP = WeightedOPLayout{typeof(MemoryLayout(PP))}()
+
+function arguments(::ApplyLayout{typeof(*)}, Q::Weighted{<:Any,<:Normalized})
+    P,D = arguments(*, Q.P)
+    Weighted(P),D
+end
+_mul_arguments(Q::Weighted{<:Any,<:Normalized}) = arguments(ApplyLayout{typeof(*)}(), Q)
 
 # convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = weight(P) .* unweighted(P)
 
@@ -224,7 +242,7 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = 
 
 
 @simplify *(Ac::QuasiAdjoint{<:Any,<:Weighted}, wB::Weighted) = 
-    convert(WeightedOrthogonalPolynomial, parent(Ac))' * convert(WeightedOrthogonalPolynomial, wB)
+    convert(WeightedBasis, parent(Ac))' * convert(WeightedBasis, wB)
 
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted}, B::AbstractQuasiVector)
@@ -251,7 +269,7 @@ function mul(A::Derivative, B::Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:Abstract
     kr,jr = parentindices(B.P)
     (Derivative(axes(P,1))*P*kr.A)[kr,jr]
 end
-mul(Ac::QuasiAdjoint{<:Any,Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}}, Bc::QuasiAdjoint{<:Any,<:Derivative}) = mul(Bc', Ac')'    
+mul(Ac::QuasiAdjoint{<:Any, Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}}, Bc::QuasiAdjoint{<:Any,<:Derivative}) = mul(Bc', Ac')'    
 
 summary(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
 

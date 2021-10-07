@@ -11,8 +11,7 @@ getproperty(w::LegendreWeight{T}, ::Symbol) where T = zero(T)
 
 sum(::LegendreWeight{T}) where T = 2one(T)
 
-_weighted(::LegendreWeight, P) = P
-_weighted(::SubQuasiArray{<:Any,1,<:LegendreWeight}, P) = P
+
 
 broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(*), ::LegendreWeight{T}, ::LegendreWeight{V}) where {T,V} =
     LegendreWeight{promote_type(T,V)}()
@@ -42,6 +41,11 @@ singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
 
 struct Legendre{T} <: AbstractJacobi{T} end
 Legendre() = Legendre{Float64}()
+
+weighted(P::Legendre) = P
+weighted(P::Normalized{<:Any,<:Legendre}) = P
+_weighted(P::SubQuasiArray{<:Any,2,<:Legendre}) = P
+_weighted(P::SubQuasiArray{<:Any,2,<:Normalized{<:Any,<:Legendre}}) = P
 
 legendre() = Legendre()
 legendre(d::AbstractInterval{T}) where T = Legendre{float(T)}()[affine(d,ChebyshevInterval{T}()), :]

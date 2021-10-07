@@ -16,7 +16,7 @@ import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjoint
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
                 _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
                 AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!,
-                simplifiable, PaddedArray
+                simplifiable, PaddedArray, converteltype
 import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
                         subdiagonaldata, diagonaldata, supdiagonaldata, mul, rowsupport, colsupport
 import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1, AbstractLazyBandedLayout
@@ -29,7 +29,7 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
                     ApplyQuasiArray, ApplyQuasiMatrix, LazyQuasiArrayApplyStyle, AbstractQuasiArrayApplyStyle,
                     LazyQuasiArray, LazyQuasiVector, LazyQuasiMatrix, LazyLayout, LazyQuasiArrayStyle,
                     _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector,
-                    AbstractQuasiFill, _dot, _equals, QuasiArrayLayout, InclusionLayout
+                    AbstractQuasiFill, _dot, _equals, QuasiArrayLayout, PolynomialLayout
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop
@@ -73,7 +73,12 @@ transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any
 setaxis(c, ::OneToInf, bx...) = c
 setaxis(c, ax::BlockedUnitRange, bx...) = PseudoBlockArray(c, (ax, bx...))
 
-function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}) where {U,V}
+pad(c::AbstractVector{T}, ax::OneTo) where T = [c; Zeros(length(ax)-length(c))]
+pad(c, ax...) = PaddedArray(c, ax)
+
+
+adaptivetransform_ldiv(A, f) = adaptivetransform_ldiv(A, f, axes(A,2))
+function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}, ax::OneToInf) where {U,V}
     T = promote_type(eltype(U),eltype(V))
 
     r = checkpoints(A)
@@ -81,28 +86,57 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector
     maxabsfr = norm(fr,Inf)
 
     tol = 20eps(real(T))
-    Z = Zeros{T}(∞)
+    ax = axes(A,2)
 
     for n = 2 .^ (4:∞)
         An = A[:,oneto(n)]
         cfs = An \ f
         maxabsc = maximum(abs, cfs)
         if maxabsc == 0 && maxabsfr == 0
-            return [similar(cfs,0); Z]
+            return pad(similar(cfs,0), ax)
         end
 
-        un = A * [cfs; Z]
+        un = A * pad(cfs, ax)
         # we allow for transformed coefficients being a different size
         ##TODO: how to do scaling for unnormalized bases like Jacobi?
         if maximum(abs,@views(cfs[n-2:end])) < 10tol*maxabsc &&
                 all(norm.(un[r] - fr, 1) .< tol * n * maxabsfr*1000)
-            return setaxis([chop!(cfs, tol); Z], axes(A,2))
+            return setaxis(pad(chop!(cfs, tol), ax), axes(A,2))
         end
     end
     error("Have not converged")
 end
 
-function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiMatrix{V}) where {U,V}
+function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}, ax::BlockedUnitRange) where {U,V}
+    T = promote_type(eltype(U),eltype(V))
+
+    r = checkpoints(A)
+    fr = f[r]
+    maxabsfr = norm(fr,Inf)
+
+    tol = 20eps(real(T))
+    ax = axes(A,2)
+
+    for n = 2 .^ (4:∞)
+        An = A[:,Block.(oneto(n))]
+        cfs = An \ f
+        maxabsc = maximum(abs, cfs)
+        if maxabsc == 0 && maxabsfr == 0
+            return pad(similar(cfs,0), ax)
+        end
+
+        un = A * pad(cfs, ax)
+        # we allow for transformed coefficients being a different size
+        ##TODO: how to do scaling for unnormalized bases like Jacobi?
+        if maximum(abs,@views(cfs[n-2:end])) < 10tol*maxabsc &&
+                all(norm.(un[r] - fr, 1) .< tol * n * maxabsfr*1000)
+            return setaxis(pad(chop!(cfs, tol), ax), axes(A,2))
+        end
+    end
+    error("Have not converged")
+end
+
+function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiMatrix{V}, ax::OneToInf) where {U,V}
     T = promote_type(eltype(U),eltype(V))
 
     m = size(f,2)
@@ -143,7 +177,7 @@ MemoryLayout(::Type{<:OrthogonalPolynomial}) = OPLayout()
 sublayout(::AbstractOPLayout, ::Type{<:Tuple{<:AbstractAffineQuasiVector,<:Slice}}) = MappedOPLayout()
 
 struct MappedOPLayout <: AbstractOPLayout end
-struct WeightedOPLayout <: AbstractWeightedBasisLayout end
+struct WeightedOPLayout{Lay<:AbstractOPLayout} <: AbstractWeightedBasisLayout end
 
 isorthogonalityweighted(::WeightedOPLayout, _) = true
 function isorthogonalityweighted(::AbstractWeightedBasisLayout, wS)
@@ -155,6 +189,7 @@ isorthogonalityweighted(wS) = isorthogonalityweighted(MemoryLayout(wS), wS)
 
 
 _equals(::MappedOPLayout, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && mapping(P) == mapping(Q)
+__sum(::MappedOPLayout, A, dims) = __sum(MappedBasisLayout(), A, dims)
 
 # demap to avoid Golub-Welsch fallback
 ContinuumArrays.transform_ldiv_if_columns(L::Ldiv{MappedOPLayout,Lay}, ax::OneTo) where Lay = ContinuumArrays.transform_ldiv_if_columns(Ldiv{MappedBasisLayout,Lay}(L.A,L.B), ax)
@@ -166,6 +201,9 @@ _equals(::AbstractWeightedBasisLayout, ::AbstractOPLayout, _, _) = false # Weigh
 _equals(::WeightedOPLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unweighted(wQ)
 _equals(::WeightedOPLayout, ::WeightedBasisLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
 _equals(::WeightedBasisLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
+_equals(::WeightedBasisLayout{<:AbstractOPLayout}, ::WeightedBasisLayout{<:AbstractOPLayout}, A, B) = A.f == B.f && all(A.args .== B.args)
+
+copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:MappedBasisLayouts = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
 
 # OPs are immutable
 copy(a::OrthogonalPolynomial) = a
@@ -220,6 +258,7 @@ gives the singularity structure of an expansion, e.g.,
 singularities(::WeightLayout, w) = w
 singularities(lay::BroadcastLayout, a) = singularitiesbroadcast(call(a), map(singularities, arguments(lay, a))...)
 singularities(::WeightedBasisLayouts, a) = singularities(BroadcastLayout{typeof(*)}(), a)
+singularities(::WeightedOPLayout, a) = singularities(weight(a))
 singularities(w) = singularities(MemoryLayout(w), w)
 singularities(::ExpansionLayout, f) = singularities(basis(f))
 
@@ -241,17 +280,18 @@ function massmatrix(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVe
     massmatrix(Q)/kr.A
 end
 
-_weighted(w, P) = w .* P
-weighted(P::AbstractQuasiMatrix) = _weighted(orthogonalityweight(P), P)
+weighted(P::AbstractQuasiMatrix) = Weighted(P)
 
 OrthogonalPolynomial(w::Weight) =error("Override for $(typeof(w))")
 
 @simplify *(B::Identity, C::OrthogonalPolynomial) = C*jacobimatrix(C)
 
-function layout_broadcasted(::Tuple{InclusionLayout,AbstractOPLayout}, ::typeof(*), x, C)
+function layout_broadcasted(::Tuple{PolynomialLayout,AbstractOPLayout}, ::typeof(*), x::Inclusion, C)
     x == axes(C,1) || throw(DimensionMismatch())
     C*jacobimatrix(C)
 end
+
+
 
 # function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::BroadcastQuasiVector, C::OrthogonalPolynomial)
 #     axes(a,1) == axes(C,1) || throw(DimensionMismatch())

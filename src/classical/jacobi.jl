@@ -104,6 +104,8 @@ HalfWeighted{lr}(P) where lr = HalfWeighted{lr,eltype(P),typeof(P)}(P)
 weight(wP::HalfWeighted{:a, T, <:Jacobi}) where T = JacobiWeight(wP.P.a,zero(T))
 weight(wP::HalfWeighted{:b, T, <:Jacobi}) where T = JacobiWeight(zero(T),wP.P.b)
 
+weight(wP::HalfWeighted{lr, T, <:Normalized}) where {lr,T} = weight(HalfWeighted{lr}(wP.P.P))
+
 axes(Q::HalfWeighted) = axes(Q.P)
 copy(Q::HalfWeighted) = Q
 
@@ -131,14 +133,6 @@ end
 \(w_A::HalfWeighted, w_B::HalfWeighted) = convert(WeightedBasis, w_A) \ convert(WeightedBasis, w_B)
 \(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedBasis, w_A) \ B
 \(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedBasis, w_B)
-
-# take out diagonal scaling for Weighted(::Normalized)
-function _norm_expand_ldiv(A, w_B)
-    w,B = w_B.args
-    B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
-    (A \ (w .* B̃)) * D
-end
-copy(::Ldiv{<:Any,<:WeightedBasisLayout{<:NormalizedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
 
 axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b
@@ -245,6 +239,7 @@ end
 
 \(A::Jacobi, B::Legendre) = A\Jacobi(B)
 \(A::Legendre, B::Jacobi) = Jacobi(A)\B
+\(A::Legendre, B::Weighted{<:Any,<:Jacobi}) = Jacobi(A)\B
 
 function \(A::Jacobi, B::Jacobi)
     T = promote_type(eltype(A), eltype(B))
@@ -329,7 +324,7 @@ end
 \(w_A::WeightedJacobi, w_B::Weighted{<:Any,<:Jacobi}) = w_A \ convert(WeightedBasis,w_B)
 \(w_A::Weighted{<:Any,<:Jacobi}, w_B::Weighted{<:Any,<:Jacobi}) = convert(WeightedBasis,w_A) \ convert(WeightedBasis,w_B)
 \(w_A::Weighted{<:Any,<:Jacobi}, w_B::WeightedJacobi) = convert(WeightedBasis,w_A) \ w_B
-
+\(A::Jacobi, w_B::Weighted{<:Any,<:Jacobi}) = A \ convert(WeightedBasis,w_B)
 
 \(A::Legendre, wB::WeightedJacobi) = Jacobi(A) \ wB
 

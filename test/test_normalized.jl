@@ -92,7 +92,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
     @testset "Chebyshev" begin
         T = ChebyshevT()
         w = ChebyshevWeight()
-        wT = WeightedChebyshevT()
+        wT = Weighted(ChebyshevT())
         Q = Normalized(T)
 
         @testset "Basic" begin

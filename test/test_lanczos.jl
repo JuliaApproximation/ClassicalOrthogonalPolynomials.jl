@@ -61,7 +61,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
 
         Q = LanczosPolynomial(  1 ./ (2 .+ x).^2);
         R = P \ Q
-        @test norm(R[1,4:10]) ≤ 1E-14
+        @test norm(R[1,4:10]) ≤ 2E-14
 
         # polys
         Q = LanczosPolynomial( 2 .+ x);
@@ -109,7 +109,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
     end
 
     @testset "Singularity" begin
-        T = Chebyshev(); wT = WeightedChebyshev()
+        T = Chebyshev(); wT = Weighted(Chebyshev())
         x = axes(T,1)
 
         w = wT * [1; zeros(∞)];
@@ -184,7 +184,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         p = LanczosPolynomial(w)
         x = axes(w,1)
         b = 2
-        wP = WeightedJacobi(α+1,β+1)
+        wP = Weighted(Jacobi(α+1,β+1))
         ϕw = wP * (Jacobi(α+1,β+1) \ (b .- x))
         pϕ = LanczosPolynomial(ϕw)
         @test (pϕ.P' * (ϕw .* pϕ.P))[1:3,1:3] ≈ [2 -0.5 0; -0.5 2 -0.5; 0 -0.5 2]
@@ -239,6 +239,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         Pϕ = Normalized(LanczosPolynomial(ϕ))
         P = Normalized(Legendre())
         Cϕ = Pϕ\P
+        @test Cϕ[1,1] ≈ 1.9327585352432264
     end
 
     @testset "3-mul-singularity" begin

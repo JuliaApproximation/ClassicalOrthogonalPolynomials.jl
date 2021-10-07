@@ -149,7 +149,15 @@ axes(A::SetindexInterlace) = (union(axes.(A.args,1)...), LazyBandedMatrices._blo
 
 ==(A::SetindexInterlace, B::SetindexInterlace) = A.z == B.z && all(A.args .== B.args)
 
+ArrayLayouts.zeroeltype(M::Mul{<:Any,<:Any,<:SetindexInterlace}) = convert(eltype(M),M.A.z)
 
+function getindex(f::Mul{BasisLayout,<:PaddedLayout,<:SetindexInterlace{<:Any,<:AbstractFill}}, x::Number)
+    P = getindex_value(f.A.args)
+    d = length(f.A.args)
+    X = reshape(paddeddata(f.B),d,:)
+    X̃ = PaddedArray(transpose(X), size(P,2),d)
+    (P * X̃)[x,:]
+end
 
 ###
 # getindex

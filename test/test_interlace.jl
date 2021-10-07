@@ -146,7 +146,14 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             T = ChebyshevT()
             V = SetindexInterlace(zeros(d), Fill(T,d))
             x = axes(V,1)
-            @time V \ broadcast(x -> cos.((1:10) .* x), x)
+            U = V / V \ broadcast(x -> cos.((1:10) .* x), x)
+
+            @time U[0.1]
+            using InfiniteArrays
+            using ArrayLayouts
+            X = reshape(U.args[2].blocks.args[1],d,:)
+            @time (T * Vcat(X', Zeros(ℵ₀,d)))[[0.1,0.2],:]
+            T * [
 
             f = broadcast(x -> cos.((1:10) .* x), x)
 

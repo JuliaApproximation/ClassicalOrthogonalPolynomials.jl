@@ -1,10 +1,10 @@
 using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatrices, LazyArrays, 
         FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays, LazyBandedMatrices, ForwardDiff
-import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto, Weighted
+import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto, Weighted, MappedOPLayout
 import LazyArrays: ApplyStyle
 import QuasiArrays: MulQuasiMatrix
 import Base: OneTo
-import ContinuumArrays: MappedWeightedBasisLayout, Map
+import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
 
 @testset "Chebyshev" begin
     @testset "ChebyshevGrid" begin
@@ -192,7 +192,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
 
             WT̃ = w[2x .- 1] .* T[2x .- 1, :]
-            @test MemoryLayout(WT̃) isa MappedWeightedBasisLayout
+            @test MemoryLayout(WT̃) isa WeightedBasisLayout{MappedOPLayout}
             v = WT̃ * (WT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
 

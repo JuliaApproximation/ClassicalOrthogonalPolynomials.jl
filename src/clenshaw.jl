@@ -357,12 +357,16 @@ end
 #     P * Clenshaw(a, P)[:,jr]
 # end
 
-# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), wv::BroadcastQuasiVector{<:Any,typeof(*),<:Tuple{Weight,AffineQuasiVector}}, P::OrthogonalPolynomial)
-#     w,v = arguments(wv)
-#     Q = OrthogonalPolynomial(w)
-#     a = (w .* Q) * (Q \ v)
-#     a .* P
-# end
+
+layout_broadcasted(::Tuple{BroadcastLayout{typeof(*)},AbstractOPLayout}, ::typeof(*), a, P) =
+    _broadcasted_layout_broadcasted_mul(map(MemoryLayout,arguments(BroadcastLayout{typeof(*)}(),a)),a,P)
+
+function _broadcasted_layout_broadcasted_mul(::Tuple{WeightLayout,PolynomialLayout}, wv, P)
+    w,v = arguments(wv)
+    Q = OrthogonalPolynomial(w)
+    a = (w .* Q) * (Q \ v)
+    a .* P
+end
 
 
 ##

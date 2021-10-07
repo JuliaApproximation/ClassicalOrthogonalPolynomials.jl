@@ -12,7 +12,6 @@ ChebyshevWeight() = ChebyshevWeight{1,Float64}()
 getproperty(w::ChebyshevWeight{1,T}, ::Symbol) where T = -one(T)/2
 getproperty(w::ChebyshevWeight{2,T}, ::Symbol) where T = one(T)/2
 
-
 """
 Chebyshev{kind,T}()
 
@@ -30,11 +29,15 @@ const ChebyshevUWeight = ChebyshevWeight{2}
 const ChebyshevT = Chebyshev{1}
 const ChebyshevU = Chebyshev{2}
 
+summary(io::IO, ::ChebyshevTWeight{Float64}) = print(io, "ChebyshevTWeight()")
+summary(io::IO, ::ChebyshevUWeight{Float64}) = print(io, "ChebyshevUWeight()")
+
 # conveniences...perhaps too convenient
 Chebyshev() = Chebyshev{1}()
 
 
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::ChebyshevWeight{kind,T}, ::Chebyshev{kind,V}) where {kind,T,V} = Weighted(Chebyshev{kind,promote_type(T,V)}())
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::ChebyshevWeight{kind,T}, ::Normalized{V,Chebyshev{kind,V}}) where {kind,T,V} = Weighted(Normalized(Chebyshev{kind,promote_type(T,V)}()))
 
 chebyshevt() = ChebyshevT()
 chebyshevt(d::AbstractInterval{T}) where T = ChebyshevT{float(T)}()[affine(d, ChebyshevInterval{T}()), :]
