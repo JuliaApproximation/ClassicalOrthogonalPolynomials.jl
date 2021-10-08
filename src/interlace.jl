@@ -97,7 +97,10 @@ end
 
 abstract type AbstractInterlaceBasis{T} <: Basis{T} end
 copy(A::AbstractInterlaceBasis) = interlacebasis(A, map(copy, A.args)...)
-checkpoints(A::AbstractInterlaceBasis) = vcat(map(checkpoints,A.args)...)
+_interlace_checkpoints(args) = union(map(checkpoints,args)...)
+_interlace_checkpoints(args::AbstractFill) = checkpoints(getindex_value(args))
+
+checkpoints(A::AbstractInterlaceBasis) = _interlace_checkpoints(A.args)
 
 """
     PiecewiseInterlace(args...)
@@ -231,6 +234,16 @@ end
 \(F::SetindexFactorization{T}, v::AbstractQuasiVector) where {T} =
     BlockBroadcastArray{eltype(T)}(vcat, unitblocks.((\).(F.factorizations, broadcast((w,i) -> getindex.(w,i), Ref(v), Base.OneTo(length(F.factorizations)))))...)
 
+# We assume matrix factorizations
+function \(F::SetindexFactorization{T,<:AbstractFill}, v::AbstractQuasiVector) where {T}
+    F̃ = getindex_value(F.factorizations)
+    data = Matrix{eltype(eltype(v))}(undef, length(F̃.grid), length(F.factorizations))
+    for (k,x) in enumerate(F̃.grid)
+        data[k,:] = v[x]
+    end
+    blockvec(Matrix(transpose(F̃ \ data))) # call Matrix to avoid ReshapedArray
+end
+
 
 function factorize(V::SubQuasiArray{T,2,<:PiecewiseInterlace,<:Tuple{Inclusion,BlockSlice{BlockRange1{OneTo{Int}}}}}) where T
     P = parent(V)
@@ -239,11 +252,15 @@ function factorize(V::SubQuasiArray{T,2,<:PiecewiseInterlace,<:Tuple{Inclusion,B
     PiecewiseFactorization{T}(factorize.(view.(P.args, :, Ref(Base.OneTo(N)))), axes.(P.args,1))
 end
 
+factorizeall(args, N) = factorize.(view.(args, :, Ref(Base.OneTo(N))))
+# Use matrix factorization if AbstractFill
+factorizeall(args::AbstractFill, N) = Fill(factorize(view(getindex_value(args),:,Base.OneTo(N)), length(args)), length(args)) # Use matrix factorization
+
 function factorize(V::SubQuasiArray{T,2,<:SetindexInterlace,<:Tuple{Inclusion,BlockSlice{BlockRange1{OneTo{Int}}}}}) where T
     P = parent(V)
     _,jr = parentindices(V)
     N = Int(last(jr.block))
-    SetindexFactorization{T}(factorize.(view.(P.args, :, Ref(Base.OneTo(N)))), axes.(P.args,1))
+    SetindexFactorization{T}(factorizeall(P.args, N), axes.(P.args,1))
 end
 
 function factorize(V::SubQuasiArray{<:Any,2,<:AbstractInterlaceBasis,<:Tuple{Inclusion,AbstractVector{Int}}})

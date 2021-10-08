@@ -27,10 +27,13 @@ import QuasiArrays: MulQuasiArray
         F = Fourier()
         θ = axes(F,1)
         @test F[:,Base.OneTo(5)] \ cos.(θ) ≈ [0,0,1,0,0]
+        @test F[:,Block.(Base.OneTo(5))] \ cos.(θ) ≈ [0,0,1,0,0,0,0,0,0]
+
         @test (F \ cos.(θ))[Block(2)] ≈ [0,1]
         u = F * (F \ exp.(cos.(θ)))
         @test u[0.1] ≈ exp(cos(0.1))
         @test F[:,Base.OneTo(5)] \ [cos.(θ) sin.(θ)] ≈ [0 0; 0 1; 1 0; 0 0; 0 0]
+        @test F[:,Block.(Base.OneTo(3))] \ [cos.(θ) sin.(θ)] ≈ [0 0; 0 1; 1 0; 0 0; 0 0]
         U = F / F \ [exp.(cos.(θ)) cos.(cos.(θ))]
         @test U[0.1,:] ≈ [exp(cos(0.1)),cos(cos(0.1))]
         @test U[[0.1,0.2],:] ≈ [exp(cos(0.1)) cos(cos(0.1)); exp(cos(0.2)) cos(cos(0.2))]

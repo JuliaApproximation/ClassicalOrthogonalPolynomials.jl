@@ -107,7 +107,7 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
                 @test M[0.1,3:4:12] == hvcat.(2, 0, C²[0.1,1:3], 0, 0)
                 @test M[0.1,4:4:12] == hvcat.(2, 0, 0, 0, C³[0.1,1:3])
             end
-        
+
             @testset "expansion" begin
                 f = broadcast(x -> SVector(1,x),x)
                 c = V[:,Block.(Base.OneTo(5))] \ f
@@ -146,39 +146,11 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             T = ChebyshevT()
             V = SetindexInterlace(zeros(d), Fill(T,d))
             x = axes(V,1)
+            V_N = V[:,Block.(Base.OneTo(50))]
+            U_N = V_N / V_N \ broadcast(x -> cos.((1:10) .* x), x)
+            @test U_N[0.1] ≈ cos.((1:10) .* 0.1)
             U = V / V \ broadcast(x -> cos.((1:10) .* x), x)
-
-            @time U[0.1]
-            using InfiniteArrays
-            using ArrayLayouts
-            X = reshape(U.args[2].blocks.args[1],d,:)
-            @time (T * Vcat(X', Zeros(ℵ₀,d)))[[0.1,0.2],:]
-            T * [
-
-            f = broadcast(x -> cos.((1:10) .* x), x)
-
-            N = 10
-            import FillArrays: getindex_value
-            V_N = V[:,Block.(Base.oneto(N))]
-
-            N = Int(parentindices(V_N)[2].block[end])
-            P = getindex_value(parent(V_N).args)
-
-            factorize(P[:,Base.OneTo(N)]; ncols=d)
-            
-            
-            Matrix{eltype(V_N)}(undef,
-
-            @time v = f[F.grid];
-            data = Matrix{eltype(f)}(undef, length(F.grid), d)
-            @time for k = axes(data,1)
-                copyto!(view(data,k,:), f[F.grid[k]])
-            end
-            F.plan * data
-
-            n = 20
-            factorize(T[:,Base.OneTo(n)]
+            @test U[0.1] ≈ cos.((1:10) .* 0.1)
         end
     end
 end
-

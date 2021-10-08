@@ -42,7 +42,7 @@ import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurr
 
 import FastGaussQuadrature: jacobimoment
 
-import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray, block, blockindex, BlockSlice
+import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray, block, blockindex, BlockSlice, blockvec
 import BandedMatrices: bandwidths
 
 export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial,
@@ -66,105 +66,7 @@ cardinality(::EuclideanDomain) = ℵ₁
 cardinality(::Union{DomainSets.RealNumbers,DomainSets.ComplexNumbers}) = ℵ₁
 cardinality(::Union{DomainSets.Integers,DomainSets.Rationals,DomainSets.NaturalNumbers}) = ℵ₀
 
-transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
-    adaptivetransform_ldiv(convert(AbstractQuasiArray{promote_type(T,V)}, A), f)
-
-
-setaxis(c, ::OneToInf, bx...) = c
-setaxis(c, ax::BlockedUnitRange, bx...) = PseudoBlockArray(c, (ax, bx...))
-
-pad(c::AbstractVector{T}, ax::OneTo) where T = [c; Zeros(length(ax)-length(c))]
-pad(c, ax...) = PaddedArray(c, ax)
-
-
-adaptivetransform_ldiv(A, f) = adaptivetransform_ldiv(A, f, axes(A,2))
-function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}, ax::OneToInf) where {U,V}
-    T = promote_type(eltype(U),eltype(V))
-
-    r = checkpoints(A)
-    fr = f[r]
-    maxabsfr = norm(fr,Inf)
-
-    tol = 20eps(real(T))
-    ax = axes(A,2)
-
-    for n = 2 .^ (4:∞)
-        An = A[:,oneto(n)]
-        cfs = An \ f
-        maxabsc = maximum(abs, cfs)
-        if maxabsc == 0 && maxabsfr == 0
-            return pad(similar(cfs,0), ax)
-        end
-
-        un = A * pad(cfs, ax)
-        # we allow for transformed coefficients being a different size
-        ##TODO: how to do scaling for unnormalized bases like Jacobi?
-        if maximum(abs,@views(cfs[n-2:end])) < 10tol*maxabsc &&
-                all(norm.(un[r] - fr, 1) .< tol * n * maxabsfr*1000)
-            return setaxis(pad(chop!(cfs, tol), ax), axes(A,2))
-        end
-    end
-    error("Have not converged")
-end
-
-function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}, ax::BlockedUnitRange) where {U,V}
-    T = promote_type(eltype(U),eltype(V))
-
-    r = checkpoints(A)
-    fr = f[r]
-    maxabsfr = norm(fr,Inf)
-
-    tol = 20eps(real(T))
-    ax = axes(A,2)
-
-    for n = 2 .^ (4:∞)
-        An = A[:,Block.(oneto(n))]
-        cfs = An \ f
-        maxabsc = maximum(abs, cfs)
-        if maxabsc == 0 && maxabsfr == 0
-            return pad(similar(cfs,0), ax)
-        end
-
-        un = A * pad(cfs, ax)
-        # we allow for transformed coefficients being a different size
-        ##TODO: how to do scaling for unnormalized bases like Jacobi?
-        if maximum(abs,@views(cfs[n-2:end])) < 10tol*maxabsc &&
-                all(norm.(un[r] - fr, 1) .< tol * n * maxabsfr*1000)
-            return setaxis(pad(chop!(cfs, tol), ax), axes(A,2))
-        end
-    end
-    error("Have not converged")
-end
-
-function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiMatrix{V}, ax::OneToInf) where {U,V}
-    T = promote_type(eltype(U),eltype(V))
-
-    m = size(f,2)
-    r = checkpoints(A)
-    fr = f[r,:]
-    maxabsfr = norm(fr,Inf)
-
-    tol = 20eps(real(T))
-    Z = Zeros{T}(∞,m)
-
-    for n = 2 .^ (4:∞)
-        An = A[:,oneto(n)]
-        cfs = An \ f
-        maxabsc = maximum(abs, cfs)
-        if maxabsc == 0 && maxabsfr == 0
-            return [similar(cfs,0,size(cfs,2)); Z]
-        end
-
-        un = A * [cfs; Z]
-        # we allow for transformed coefficients being a different size
-        ##TODO: how to do scaling for unnormalized bases like Jacobi?
-        if maximum(abs,@views(cfs[n-2:end,:])) < 10tol*maxabsc &&
-                all(norm.(un[r,:] - fr, 1) .< tol * n * maxabsfr*1000)
-            return setaxis([chop(cfs, tol); Z], axes(A,2), axes(f,2))
-        end
-    end
-    error("Have not converged")
-end
+include("adaptivetransform.jl")
 
 const WeightedBasis{T, A<:AbstractQuasiVector, B<:Basis} = BroadcastQuasiMatrix{T,typeof(*),<:Tuple{A,B}}
 abstract type OrthogonalPolynomial{T} <: Basis{T} end
@@ -189,6 +91,8 @@ isorthogonalityweighted(wS) = isorthogonalityweighted(MemoryLayout(wS), wS)
 
 
 _equals(::MappedOPLayout, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && mapping(P) == mapping(Q)
+_equals(::MappedOPLayout, ::MappedBasisLayouts, P, Q) = demap(P) == demap(Q) && mapping(P) == mapping(Q)
+_equals(::MappedBasisLayouts, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && mapping(P) == mapping(Q)
 __sum(::MappedOPLayout, A, dims) = __sum(MappedBasisLayout(), A, dims)
 
 # demap to avoid Golub-Welsch fallback

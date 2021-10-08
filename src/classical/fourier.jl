@@ -78,6 +78,9 @@ factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:OneTo}}) where T 
 factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:OneTo}}, d) where T =
     TransformFactorization(grid(L), ShuffledRFFT{T}((size(L,2),d),1))
 
+factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:BlockSlice}},d...) where T =
+    ProjectionFactorization(factorize(parent(L)[:,OneTo(size(L,2))],d...),parentindices(L)[2])
+
 import BlockBandedMatrices: _BlockSkylineMatrix
 
 @simplify function *(A::QuasiAdjoint{<:Any,<:Fourier}, B::Fourier)
