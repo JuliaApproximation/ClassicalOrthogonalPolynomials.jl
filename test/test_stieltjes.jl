@@ -23,7 +23,6 @@ import InfiniteArrays: I
     @test sum(w) == 1
 end
 
-
 @testset "Singular integrals" begin
     @testset "weights" begin
         w_T = ChebyshevTWeight()
@@ -86,7 +85,7 @@ end
 
     @testset "Stieltjes" begin
         T = Chebyshev()
-        wT = ChebyshevWeight() .* T
+        wT = Weighted(T)
         x = axes(wT,1)
         z = 0.1+0.2im
         S = inv.(z .- x')
@@ -132,8 +131,8 @@ end
     end
 
     @testset "Hilbert" begin
-        wT = ChebyshevTWeight() .* ChebyshevT()
-        wU = ChebyshevUWeight() .* ChebyshevU()
+        wT = Weighted(ChebyshevT())
+        wU = Weighted(ChebyshevU())
         x = axes(wT,1)
         H = inv.(x .- x')
         @test H isa Hilbert{Float64,ChebyshevInterval{Float64}}
@@ -183,7 +182,7 @@ end
 
     @testset "Log kernel" begin
         T = Chebyshev()
-        wT = ChebyshevWeight() .* Chebyshev()
+        wT = Weighted(Chebyshev())
         x = axes(wT,1)
         L = log.(abs.(x .- x'))
         D = T \ (L * wT)
@@ -192,12 +191,12 @@ end
         x = Inclusion(-1..1)
         T = Chebyshev()[1x, :]
         L = log.(abs.(x .- x'))
-        wT = (ChebyshevWeight() .* Chebyshev())[1x, :]
+        wT = Weighted(Chebyshev())[1x, :]
         @test (T \ (L*wT))[1:10,1:10] ≈ D[1:10,1:10]
 
         x = Inclusion(0..1)
         T = Chebyshev()[2x.-1, :]
-        wT = (ChebyshevWeight() .* Chebyshev())[2x .- 1, :]
+        wT = Weighted(Chebyshev())[2x .- 1, :]
         L = log.(abs.(x .- x'))
         u =  wT * (2 *(T \ exp.(x)))
         @test u[0.1] ≈ exp(0.1)/sqrt(0.1-0.1^2)
@@ -226,8 +225,6 @@ end
         H = inv.(x .- x')
 
         c = exp(0.5im)
-
-
         u = Weighted(U) * ((H * Weighted(U)) \ imag(c * x))
 
         ε  = eps();
@@ -302,6 +299,8 @@ end
         x = axes(W,1)
         H = T \ inv.(x .- x') * W;
 
+        @test iszero(H[1,1])
+        @test H[3,1] ≈ π
         @test maximum(BlockArrays.blockcolsupport(H,Block(5))) ≤ Block(50)
         @test blockbandwidths(H) == (25,26)
 
@@ -326,7 +325,10 @@ end
 
             @time c = H̃ \ Vp_cfs_T;
 
+            @test c[Block.(1:100)] ≈ H̃[Block.(1:100),Block.(1:100)] \ Vp_cfs_T[Block.(1:100)]
+
             E1,E2 = c[Block(1)]
+            @test [E1,E2] ≈  [12.939686758642496,-10.360345667126758]
             c1 = [paddeddata(c)[3:2:end]; Zeros(∞)]
             c2 = [paddeddata(c)[4:2:end]; Zeros(∞)]
 

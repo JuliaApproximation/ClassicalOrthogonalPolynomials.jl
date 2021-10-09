@@ -118,8 +118,8 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
                 @test u[0.1] ≈ f[0.1]
 
                 F = broadcast(x -> SMatrix{2,2}(1,x,exp(x),cos(x)),x)
-                U = M / M \ F
-                @test U[0.1] ≈ F[0.1]
+                u = M / M \ F
+                @test u[0.1] ≈ F[0.1]
 
                 u = V / V \ SVector.(exp.(x), cos.(x))
                 @test u[0.1] ≈ [exp(0.1),cos(0.1)]

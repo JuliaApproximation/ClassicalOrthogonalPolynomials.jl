@@ -350,12 +350,13 @@ function layout_broadcasted(::Tuple{ExpansionLayout{<:AbstractOPLayout},Abstract
     P * Clenshaw(a, P)
 end
 
-# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::Expansion{<:Any,<:SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Slice}}}, V::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Any}})
-#     axes(a,1) == axes(V,1) || throw(DimensionMismatch())
-#     kr,jr = parentindices(V)
-#     P = view(parent(V),kr,:)
-#     P * Clenshaw(a, P)[:,jr]
-# end
+# TODO: layout_broadcasted
+function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::ApplyQuasiVector{<:Any,typeof(*),<:Tuple{SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Slice}},Any}}, V::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Any}})
+    axes(a,1) == axes(V,1) || throw(DimensionMismatch())
+    kr,jr = parentindices(V)
+    P = view(parent(V),kr,:)
+    P * Clenshaw(a, P)[:,jr]
+end
 
 
 layout_broadcasted(::Tuple{BroadcastLayout{typeof(*)},AbstractOPLayout}, ::typeof(*), a, P) =
