@@ -272,8 +272,6 @@ function cumsum(T::ChebyshevT{V}; dims::Integer) where V
     ApplyQuasiArray(*, T, Vcat((-1).^(0:∞)'* Σ, Σ))
 end
 
-# cumsum(f::Expansion{<:Any,<:ChebyshevT}) = cumsum(f.args[1]; dims=1) * f.args[2]
-
 ####
 # algebra
 ####

@@ -34,8 +34,8 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
-    inbounds_getindex, grid, plotgrid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout,
-    AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, mapping, AbstractBasisLayout, BasisLayout,
+    inbounds_getindex, grid, plotgrid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
+    AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan
@@ -90,9 +90,9 @@ end
 isorthogonalityweighted(wS) = isorthogonalityweighted(MemoryLayout(wS), wS)
 
 
-_equals(::MappedOPLayout, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && mapping(P) == mapping(Q)
-_equals(::MappedOPLayout, ::MappedBasisLayouts, P, Q) = demap(P) == demap(Q) && mapping(P) == mapping(Q)
-_equals(::MappedBasisLayouts, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && mapping(P) == mapping(Q)
+_equals(::MappedOPLayout, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
+_equals(::MappedOPLayout, ::MappedBasisLayouts, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
+_equals(::MappedBasisLayouts, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
 
 _broadcastbasis(::typeof(+), ::MappedOPLayout, ::MappedOPLayout, P, Q) where {L,M} = _broadcastbasis(+, MappedBasisLayout(), MappedBasisLayout(), P, Q)
 _broadcastbasis(::typeof(+), ::MappedOPLayout, M::MappedBasisLayout, P, Q) where L = _broadcastbasis(+, MappedBasisLayout(), M, P, Q)
