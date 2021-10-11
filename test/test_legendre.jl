@@ -15,6 +15,7 @@ import QuasiArrays: MulQuasiArray
         P = Legendre()
         @test axes(P) == (Inclusion(ChebyshevInterval()),oneto(∞))
         @test P == P == Legendre{Float32}()
+        @test weighted(P) == P
         A,B,C = recurrencecoefficients(P)
         @test B isa Zeros
         P = Jacobi(0.0,0.0)
@@ -37,7 +38,6 @@ import QuasiArrays: MulQuasiArray
             @test B[2] ≈ X[2,2]/X[3,2]
             @test C[3] ≈ X[2,3]/X[4,3]
         end
-        @test weighted(P) == P
     end
 
     @testset "operators" begin
