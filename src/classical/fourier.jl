@@ -30,8 +30,8 @@ struct ShuffledRFFT{T,Pl<:Plan} <: Factorization{T}
     plan::Pl
 end
 
-size(F::ShuffledRFFT, _) = size(F.plan,1)
-size(F::ShuffledRFFT) = (size(F.plan,1),size(F.plan,1))
+size(F::ShuffledRFFT, k) = size(F.plan,k)
+size(F::ShuffledRFFT) = size(F.plan)
 
 ShuffledRFFT{T}(p::Pl) where {T,Pl<:Plan} = ShuffledRFFT{T,Pl}(p)
 ShuffledRFFT{T}(n, d...) where T = ShuffledRFFT{T}(FFTW.plan_r2r(Array{T}(undef, n), FFTW.R2HC, d...))
@@ -71,7 +71,7 @@ function mul!(ret::AbstractArray{T}, F::ShuffledRFFT{T}, b::AbstractArray) where
     _shuffledrfft_postscale!(F.plan.region, ret)
 end
 
-*(F::ShuffledRFFT{T}, b::AbstractVector) where T = mul!(similar(b, T), F, b)
+*(F::ShuffledRFFT{T}, b::AbstractVecOrMat) where T = mul!(similar(b, T), F, b)
 
 factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:OneTo}}) where T =
     TransformFactorization(grid(L), ShuffledRFFT{T}(size(L,2)))

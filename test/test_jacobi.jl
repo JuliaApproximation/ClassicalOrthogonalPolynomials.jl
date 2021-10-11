@@ -16,6 +16,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
     @testset "basics" begin
         @test Legendre() == Jacobi(0,0)
         @test Jacobi(0,0) == Legendre()
+        @test Jacobi(1,2) .* Legendre() == Jacobi(1,2) .* Jacobi(0,0)
     end
 
     @testset "basis" begin
@@ -198,6 +199,14 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test P \ zero(x) isa Zeros
             @test P \ one(x) == [1; Zeros(∞)]
             @test P \ x ≈ P \ broadcast(x -> x, x)
+        end
+
+        @testset "Weighted addition" begin
+            a = Weighted(Jacobi(2,2)) * [1; 2; zeros(∞)]
+            b = Weighted(Jacobi(1,1)) * [3; 4; 5; zeros(∞)]
+            c = (JacobiWeight(2,2) .* Jacobi(1,1)) * [6; zeros(∞)]
+            @test (a + b)[0.1] ≈ a[0.1] + b[0.1]
+            @test (a + c)[0.1] ≈ (c + a)[0.1] ≈ a[0.1] + c[0.1]
         end
     end
 
@@ -445,6 +454,15 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             D = Derivative(x)
             P¹ = Jacobi(1,1)
             @test (D * W)[0.1,1:10] ≈ (D * Weighted(P¹)[affine(x,axes(P¹,1)),:])[0.1,1:10]
+        end
+
+        @testset "==" begin
+            @test HalfWeighted{:a}(Jacobi(1,2)) == JacobiWeight(1,0) .* Jacobi(1,2)
+            @test JacobiWeight(1,0) .* Jacobi(1,2) == HalfWeighted{:a}(Jacobi(1,2))
+            @test HalfWeighted{:a}(Jacobi(0,2)) == Jacobi(0,2)
+            @test Jacobi(0,2) == HalfWeighted{:a}(Jacobi(0,2))
+            @test HalfWeighted{:b}(Jacobi(2,0)) == Jacobi(2,0)
+            @test Jacobi(2,0) == HalfWeighted{:b}(Jacobi(2,0))
         end
     end
 end

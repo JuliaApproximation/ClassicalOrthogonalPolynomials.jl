@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, LazyArrays, QuasiArrays, BandedMatrices, ContinuumArrays, ForwardDiff, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw, weighted
 import QuasiArrays: MulQuasiArray
 
 @testset "Legendre" begin
@@ -37,6 +37,7 @@ import QuasiArrays: MulQuasiArray
             @test B[2] ≈ X[2,2]/X[3,2]
             @test C[3] ≈ X[2,3]/X[4,3]
         end
+        @test weighted(P) == P
     end
 
     @testset "operators" begin

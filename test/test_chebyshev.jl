@@ -17,6 +17,12 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         end
     end
 
+    @testset "basics" begin
+        T = Chebyshev()
+        @test T == T[:,1:∞]
+        @test T[:,1:∞] == T
+    end
+
     @testset "Evaluation" begin
         @testset "T" begin
             T = Chebyshev()
@@ -123,6 +129,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         @test (T*(T\x))[0.1] ≈ 0.1
         @test (T* (T \ exp.(x)))[0.1] ≈ exp(0.1)
         @test chebyshevt(0..1) == chebyshevt(Inclusion(0..1)) == chebyshevt(T) == T
+        @test T \ [x exp.(x)] ≈ [T\x T\exp.(x)]
 
         Tn = Chebyshev()[2x .- 1, [1,3,4]]
         @test (axes(Tn,1) .* Tn).args[2][1:5,:] ≈ (axes(T,1) .* T).args[2][1:5,[1,3,4]]
@@ -149,6 +156,9 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         w = ChebyshevTWeight()
         wT = Weighted(T)
         wU = Weighted(ChebyshevU())
+
+        @test stringmime("text/plain",w) == "ChebyshevTWeight()"
+        @test stringmime("text/plain",ChebyshevUWeight()) == "ChebyshevUWeight()"
 
         @test (w .* T) ≡ wT
 
@@ -228,6 +238,11 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
 
         @testset "inv" begin
             @test (T \ U)[1:10,1:10] ≈ inv((U \ T)[1:10,1:10])
+        end
+
+        @testset "massmatrix" begin
+            @test (T'Weighted(T))[1:10,1:10] ≈ Diagonal([π; fill(π/2,9)])
+            @test (U'Weighted(U))[1:10,1:10] ≈ Diagonal(fill(π/2,10))
         end
     end
 

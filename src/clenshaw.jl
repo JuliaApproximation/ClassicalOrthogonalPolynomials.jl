@@ -110,29 +110,15 @@ Base.@propagate_inbounds function getindex(f::Mul{<:AbstractOPLayout,<:PaddedLay
     unsafe_getindex(f, x, j...)
 end
 
-# const ExpansionMatrix{T,P<:AbstractQuasiMatrix,M<:AbstractMatrix} = ApplyQuasiMatrix{T,typeof(*),<:Tuple{P,M}}
+getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::AbstractVector{<:Number}) where T = 
+    copyto!(Vector{T}(undef, length(x)), view(f, x))
 
-# function unsafe_getindex(f::ExpansionMatrix{<:Any,<:OrthogonalPolynomial}, x::Union{Number,AbstractVector{<:Number}}, jr::Union{Colon,AbstractVector{Int}})
-#     P,c = arguments(f)
-#     _p0(P)*clenshaw(view(paddeddata(c),:,jr), recurrencecoefficients(P)..., x)
-# end
-
-
-# Base.@propagate_inbounds function getindex(f::ExpansionMatrix{<:Any,<:OrthogonalPolynomial}, x::Union{Number,AbstractVector{<:Number}}, jr::Union{Colon,AbstractVector{Int}})
-#     @inbounds checkbounds(f, x, jr)
-#     unsafe_getindex(f, x, jr)
-# end
-
-
-# getindex(f::Expansion{T,<:OrthogonalPolynomial}, x::AbstractVector{<:Number}) where T = 
-#     copyto!(Vector{T}(undef, length(x)), view(f, x))
-
-# function copyto!(dest::AbstractVector{T}, v::SubArray{<:Any,1,<:Expansion{<:Any,<:OrthogonalPolynomial}, <:Tuple{AbstractVector{<:Number}}}) where T
-#     f = parent(v)
-#     (x,) = parentindices(v)
-#     P,c = arguments(f)
-#     clenshaw!(paddeddata(c), recurrencecoefficients(P)..., x, Fill(_p0(P), length(x)), dest)
-# end
+function copyto!(dest::AbstractVector{T}, v::SubArray{<:Any,1,<:ApplyVector{<:Any,typeof(*),<:Tuple{OrthogonalPolynomial,AbstractVector}}, <:Tuple{AbstractVector{<:Number}}}) where T
+    f = parent(v)
+    (x,) = parentindices(v)
+    P,c = arguments(f)
+    clenshaw!(paddeddata(c), recurrencecoefficients(P)..., x, Fill(_p0(P), length(x)), dest)
+end
 
 ###
 # Operator clenshaw

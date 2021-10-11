@@ -44,8 +44,6 @@ Legendre() = Legendre{Float64}()
 
 weighted(P::Legendre) = P
 weighted(P::Normalized{<:Any,<:Legendre}) = P
-_weighted(P::SubQuasiArray{<:Any,2,<:Legendre}) = P
-_weighted(P::SubQuasiArray{<:Any,2,<:Normalized{<:Any,<:Legendre}}) = P
 
 legendre() = Legendre()
 legendre(d::AbstractInterval{T}) where T = Legendre{float(T)}()[affine(d,ChebyshevInterval{T}()), :]

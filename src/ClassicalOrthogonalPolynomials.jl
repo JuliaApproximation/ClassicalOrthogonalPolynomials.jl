@@ -110,8 +110,6 @@ _equals(::WeightedOPLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unwe
 _equals(::WeightedOPLayout, ::WeightedBasisLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
 _equals(::WeightedBasisLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
 _equals(::WeightedBasisLayout{<:AbstractOPLayout}, ::WeightedBasisLayout{<:AbstractOPLayout}, A, B) = A.f == B.f && all(A.args .== B.args)
-_equals(::SubBasisLayout, ::AbstractOPLayout, A, B) = parentindices(A) == axes(B) && parent(A) == B
-_equals(::AbstractOPLayout, ::SubBasisLayout, A, B) = B == A
     
 
 copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:MappedBasisLayouts = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))

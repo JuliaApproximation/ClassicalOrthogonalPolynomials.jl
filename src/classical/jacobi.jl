@@ -114,13 +114,13 @@ copy(Q::HalfWeighted) = Q
 
 function ==(A::HalfWeighted, wB::WeightedJacobi)
     w,B = arguments(wB)
-    A == B && w == weight(A)
+    A.P == B && w == weight(A)
 end
 ==(wB::WeightedJacobi, A::HalfWeighted) = A == wB
 ==(A::Jacobi, wB::HalfWeighted{:a}) = A == wB.P && iszero(A.a)
 ==(A::Jacobi, wB::HalfWeighted{:b}) = A == wB.P && iszero(A.b)
 
-==(wB::HalfWeighted{:b}, A::Jacobi) = A == wB
+==(wB::HalfWeighted, A::Jacobi) = A == wB
 
 
 function convert(::Type{WeightedBasis}, Q::HalfWeighted{lr,T,<:Normalized}) where {T,lr}

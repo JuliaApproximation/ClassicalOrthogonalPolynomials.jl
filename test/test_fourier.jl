@@ -1,10 +1,27 @@
 using ClassicalOrthogonalPolynomials, QuasiArrays, InfiniteArrays
 using BlockBandedMatrices, BlockArrays, LazyArrays, Test, FillArrays, InfiniteLinearAlgebra, ArrayLayouts, LazyBandedMatrices
 import BlockBandedMatrices: _BlockBandedMatrix
-import ClassicalOrthogonalPolynomials: Inclusion
+import ClassicalOrthogonalPolynomials: Inclusion, ShuffledRFFT
 import QuasiArrays: MulQuasiArray
 
 @testset "Fourier" begin
+    @testset "ShuffledRFFT" begin
+        ret = randn(3,5)
+        p = ShuffledRFFT{Float64}(size(ret,1))
+        P = ShuffledRFFT{Float64}(size(ret),1)
+        @test size(p) == (3,)
+        @test size(P) == (3,5)
+        for k = 1:size(ret,2)
+            @test (P * ret)[:,k] ≈ p * ret[:,k]
+        end
+
+        p = ShuffledRFFT{Float64}(size(ret,2))
+        P = ShuffledRFFT{Float64}(size(ret),2)
+        for k = 1:size(ret,1)
+            @test (P * ret)[k,:] ≈ p * ret[k,:]
+        end
+    end
+    
     @testset "Evaluation" begin
         F = Fourier()
 
