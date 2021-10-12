@@ -29,16 +29,17 @@ respec to `exp(-x^2)`, at `z`.
 """
 hermiteh(n::Integer, z::Number) = Base.unsafe_getindex(Hermite{typeof(z)}(), z, n+1)
 
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::HermiteWeight{T}, ::Hermite{V}) where {T,V} = Weighted(Hermite{promote_type(T,V)}())
+
 # H_{n+1} = 2x H_n - 2n H_{n-1}
 # 1/2 * H_{n+1} + n H_{n-1} = x H_n 
 # x*[H_0 H_1 H_2 …] = [H_0 H_1 H_2 …] * [0    1; 1/2  0     2; 1/2   0  3; …]   
 jacobimatrix(H::Hermite{T}) where T = Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(∞), one(T):∞)
 recurrencecoefficients(H::Hermite{T}) where T = Fill{T}(2,∞), Zeros{T}(∞), zero(T):2:∞
 
-@simplify function *(Ac::QuasiAdjoint{<:Any,<:Hermite}, B::WeightedBasis{<:Any,<:HermiteWeight,<:Hermite})  
-    T = promote_type(eltype(Ac), eltype(B))
-    Diagonal(sqrt(convert(T,π)) .* convert(T,2) .^ (0:∞) .* factorial.(convert(T,0):∞))
-end
+massmatrix(::Hermite{T}) where T = Diagonal(sqrt(convert(T,π)) .* convert(T,2) .^ (0:∞) .* factorial.(convert(T,0):∞))
+
+@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:Hermite}}, B::Hermite) = massmatrix(Hermite{promote_type(eltype(A),eltype(B))}())
 
 ##########
 # Derivatives

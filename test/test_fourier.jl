@@ -1,10 +1,27 @@
 using ClassicalOrthogonalPolynomials, QuasiArrays, InfiniteArrays
 using BlockBandedMatrices, BlockArrays, LazyArrays, Test, FillArrays, InfiniteLinearAlgebra, ArrayLayouts, LazyBandedMatrices
 import BlockBandedMatrices: _BlockBandedMatrix
-import ClassicalOrthogonalPolynomials: Inclusion
+import ClassicalOrthogonalPolynomials: Inclusion, ShuffledRFFT
 import QuasiArrays: MulQuasiArray
 
 @testset "Fourier" begin
+    @testset "ShuffledRFFT" begin
+        ret = randn(3,5)
+        p = ShuffledRFFT{Float64}(size(ret,1))
+        P = ShuffledRFFT{Float64}(size(ret),1)
+        @test size(p) == (3,)
+        @test size(P) == (3,5)
+        for k = 1:size(ret,2)
+            @test (P * ret)[:,k] ≈ p * ret[:,k]
+        end
+
+        p = ShuffledRFFT{Float64}(size(ret,2))
+        P = ShuffledRFFT{Float64}(size(ret),2)
+        for k = 1:size(ret,1)
+            @test (P * ret)[k,:] ≈ p * ret[k,:]
+        end
+    end
+    
     @testset "Evaluation" begin
         F = Fourier()
 
@@ -27,9 +44,18 @@ import QuasiArrays: MulQuasiArray
         F = Fourier()
         θ = axes(F,1)
         @test F[:,Base.OneTo(5)] \ cos.(θ) ≈ [0,0,1,0,0]
+        @test F[:,Block.(Base.OneTo(5))] \ cos.(θ) ≈ [0,0,1,0,0,0,0,0,0]
+
         @test (F \ cos.(θ))[Block(2)] ≈ [0,1]
         u = F * (F \ exp.(cos.(θ)))
         @test u[0.1] ≈ exp(cos(0.1))
+        @test F[:,Base.OneTo(5)] \ [cos.(θ) sin.(θ)] ≈ [0 0; 0 1; 1 0; 0 0; 0 0]
+        @test F[:,Block.(Base.OneTo(3))] \ [cos.(θ) sin.(θ)] ≈ [0 0; 0 1; 1 0; 0 0; 0 0]
+        U = F / F \ [exp.(cos.(θ)) cos.(cos.(θ))]
+        @test U[0.1,:] ≈ [exp(cos(0.1)),cos(cos(0.1))]
+        @test U[[0.1,0.2],:] ≈ [exp(cos(0.1)) cos(cos(0.1)); exp(cos(0.2)) cos(cos(0.2))]
+        @test U[0.1,1] ≈ exp(cos(0.1))
+        @test U[[0.1,0.2],1] ≈ exp.(cos.([0.1,0.2]))
     end
 
     @testset "Derivative" begin

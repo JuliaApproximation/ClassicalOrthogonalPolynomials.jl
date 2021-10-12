@@ -25,9 +25,9 @@ Normalized(P::AbstractQuasiMatrix{T}) where T = Normalized(P, normalizationconst
 Normalized(Q::Normalized) = Q
 normalized(P) = Normalized(P)
 
-struct NormalizedBasisLayout{LAY<:AbstractBasisLayout} <: AbstractBasisLayout end
+struct NormalizedOPLayout{LAY<:AbstractBasisLayout} <: AbstractOPLayout end
 
-MemoryLayout(::Type{<:Normalized{<:Any, OPs}}) where OPs = NormalizedBasisLayout{typeof(MemoryLayout(OPs))}()
+MemoryLayout(::Type{<:Normalized{<:Any, OPs}}) where OPs = NormalizedOPLayout{typeof(MemoryLayout(OPs))}()
 
 struct QuasiQR{T, QQ, RR} <: Factorization{T}
     Q::QQ
@@ -107,28 +107,37 @@ _mul_arguments(Q::QuasiAdjoint{<:Any,<:Normalized}) = arguments(ApplyLayout{type
 # table stable identity if A.P == B.P
 @inline _normalized_ldiv(An, C, Bn) = An \ (C * Bn)
 @inline _normalized_ldiv(An, C::Eye{T}, Bn) where T = FillArrays.SquareEye{promote_type(eltype(An),T,eltype(Bn))}(ℵ₀)
-@inline copy(L::Ldiv{<:NormalizedBasisLayout,<:NormalizedBasisLayout}) = _normalized_ldiv(Diagonal(L.A.scaling), L.A.P \ L.B.P, Diagonal(L.B.scaling))
-@inline copy(L::Ldiv{Lay,<:NormalizedBasisLayout}) where Lay = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedBasisLayout,Lay}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedBasisLayout,Lay,<:Any,<:AbstractQuasiVector}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-@inline copy(L::Ldiv{Lay,<:NormalizedBasisLayout}) where Lay<:AbstractBasisLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedBasisLayout,Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-@inline copy(L::Ldiv{Lay,<:NormalizedBasisLayout}) where Lay<:AbstractLazyLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedBasisLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedBasisLayout,Lay,<:Any,<:AbstractQuasiVector}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-@inline copy(L::Ldiv{ApplyLayout{typeof(*)},<:NormalizedBasisLayout}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:NormalizedOPLayout,<:NormalizedOPLayout}) = _normalized_ldiv(Diagonal(L.A.scaling), L.A.P \ L.B.P, Diagonal(L.B.scaling))
+@inline copy(L::Ldiv{Lay,<:NormalizedOPLayout}) where Lay = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:NormalizedOPLayout,Lay}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
+@inline copy(L::Ldiv{<:NormalizedOPLayout,Lay,<:Any,<:AbstractQuasiVector}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
+@inline copy(L::Ldiv{Lay,<:NormalizedOPLayout}) where Lay<:AbstractBasisLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:NormalizedOPLayout,Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
+@inline copy(L::Ldiv{Lay,<:NormalizedOPLayout}) where Lay<:AbstractLazyLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:NormalizedOPLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
+@inline copy(L::Ldiv{<:NormalizedOPLayout,Lay,<:Any,<:AbstractQuasiVector}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
+@inline copy(L::Ldiv{ApplyLayout{typeof(*)},<:NormalizedOPLayout}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
 for Lay in (:(ApplyLayout{typeof(*)}),:(BroadcastLayout{typeof(+)}),:(BroadcastLayout{typeof(-)}))
     @eval begin
-        @inline copy(L::Ldiv{<:NormalizedBasisLayout,$Lay}) = copy(Ldiv{ApplyLayout{typeof(*)},$Lay}(L.A, L.B))
-        @inline copy(L::Ldiv{<:NormalizedBasisLayout,$Lay,<:Any,<:AbstractQuasiVector}) = copy(Ldiv{ApplyLayout{typeof(*)},$Lay}(L.A, L.B))
+        @inline copy(L::Ldiv{<:NormalizedOPLayout,$Lay}) = copy(Ldiv{ApplyLayout{typeof(*)},$Lay}(L.A, L.B))
+        @inline copy(L::Ldiv{<:NormalizedOPLayout,$Lay,<:Any,<:AbstractQuasiVector}) = copy(Ldiv{ApplyLayout{typeof(*)},$Lay}(L.A, L.B))
     end
 end
 
-copy(L::Ldiv{Lay,<:NormalizedBasisLayout}) where Lay<:MappedBasisLayouts = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{Lay,<:NormalizedOPLayout}) where Lay<:MappedBasisLayouts = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
 
 # want to use special re-expansion routines without expanding Normalized basis
-@inline copy(L::Ldiv{<:NormalizedBasisLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedBasisLayout,BroadcastLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:NormalizedOPLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:NormalizedOPLayout,BroadcastLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
+
+# take out diagonal scaling for Weighted(::Normalized)
+function _norm_expand_ldiv(A, w_B)
+    w,B = w_B.args
+    B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
+    (A \ (w .* B̃)) * D
+end
+copy(L::Ldiv{<:NormalizedOPLayout,<:WeightedBasisLayout{<:NormalizedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
+copy(L::Ldiv{OPLayout,<:WeightedBasisLayout{<:NormalizedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
 
 ###
 # show
@@ -137,6 +146,43 @@ show(io::IO, Q::Normalized) = print(io, "Normalized($(Q.P))")
 show(io::IO, ::MIME"text/plain", Q::Normalized) = show(io, Q)
 
 
+abstract type AbstractWeighted{T} <: Basis{T} end
+
+
+
+
+getindex(Q::AbstractWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = weight(Q)[x] .* unweighted(Q)[x,jr]
+
+MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout{OPLayout}()
+convert(::Type{WeightedBasis}, Q::AbstractWeighted) = weight(Q) .* unweighted(Q)
+
+# make act like WeightedBasisLayout
+ContinuumArrays.sublayout(::WeightedOPLayout{Lay}, inds::Type{<:Tuple{<:AbstractAffineQuasiVector,<:AbstractVector}}) where Lay = sublayout(WeightedBasisLayout{Lay}(), inds)
+ContinuumArrays.sublayout(::WeightedOPLayout{Lay}, inds::Type{<:Tuple{<:Inclusion,<:AbstractVector}}) where Lay = sublayout(WeightedBasisLayout{Lay}(), inds)
+
+ContinuumArrays.unweighted(wP::AbstractWeighted) = wP.P
+# function copy(L::Ldiv{WeightedOPLayout,WeightedOPLayout})
+#     L.A.P == L.B.P && return Eye{eltype(L)}(∞)
+#     convert(WeightedOrthogonalPolynomial, L.A) \ convert(WeightedOrthogonalPolynomial, L.B)
+# end
+
+# copy(L::Ldiv{WeightedOPLayout,<:BroadcastLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+# copy(L::Ldiv{WeightedOPLayout,<:AbstractLazyLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+# copy(L::Ldiv{WeightedOPLayout,<:AbstractBasisLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
+# copy(L::Ldiv{<:AbstractLazyLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
+# copy(L::Ldiv{<:AbstractBasisLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
+# copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
+# copy(L::Ldiv{WeightedOPLayout,<:ExpansionLayout}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
+# copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
+
+copy(L::Ldiv{<:WeightedOPLayout{<:NormalizedOPLayout},Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
+
+# function layout_broadcasted(::ExpansionLayout{WeightedOPLayout}, ::OPLayout, ::typeof(*), a, P)
+#     axes(a,1) == axes(P,1) || throw(DimensionMismatch())
+#     wQ,c = arguments(a)
+#     w,Q = arguments(wQ)
+#     (w .* P) * Clenshaw(Q * c, P)
+# end
 
 
 """
@@ -145,7 +191,7 @@ show(io::IO, ::MIME"text/plain", Q::Normalized) = show(io, Q)
 is the orthonormal with respect to L^2 basis given by
 `sqrt.(orthogonalityweight(P)) .* Normalized(P)`.
 """
-struct OrthonormalWeighted{T, PP<:AbstractQuasiMatrix{T}} <: Basis{T}
+struct OrthonormalWeighted{T, PP<:AbstractQuasiMatrix{T}} <: AbstractWeighted{T}
     P::Normalized{T, PP}
 end
 
@@ -159,36 +205,12 @@ copy(Q::OrthonormalWeighted) = Q
 
 ==(A::OrthonormalWeighted, B::OrthonormalWeighted) = A.P == B.P
 
-function getindex(Q::OrthonormalWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector})
-    w = orthogonalityweight(Q.P)
-    sqrt.(w[x]) .* Q.P[x,jr]
-end
+
+weight(Q::OrthonormalWeighted) = sqrt.(orthogonalityweight(Q.P))
+
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
 
 
-abstract type AbstractWeighted{T} <: Basis{T} end
-struct WeightedOPLayout <: AbstractBasisLayout end
-
-# make act like WeightedBasisLayout
-ContinuumArrays._grid(::WeightedOPLayout, P) = ContinuumArrays._grid(WeightedBasisLayout(), P)
-ContinuumArrays._factorize(::WeightedOPLayout, P) = ContinuumArrays._factorize(WeightedBasisLayout(), P)
-ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:AbstractAffineQuasiVector,<:AbstractVector}}) = sublayout(WeightedBasisLayout(), inds)
-ContinuumArrays.sublayout(::WeightedOPLayout, inds::Type{<:Tuple{<:Inclusion,<:AbstractVector}}) = sublayout(WeightedBasisLayout(), inds)
-
-MemoryLayout(::Type{<:AbstractWeighted}) = WeightedOPLayout()
-ContinuumArrays.unweightedbasis(wP::AbstractWeighted) = wP.P
-function copy(L::Ldiv{WeightedOPLayout,WeightedOPLayout})
-    L.A.P == L.B.P && return Eye{eltype(L)}(∞)
-    convert(WeightedOrthogonalPolynomial, L.A) \ convert(WeightedOrthogonalPolynomial, L.B)
-end
-
-copy(L::Ldiv{WeightedOPLayout,<:BroadcastLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
-copy(L::Ldiv{WeightedOPLayout,<:AbstractLazyLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
-copy(L::Ldiv{WeightedOPLayout,<:AbstractBasisLayout}) = convert(WeightedOrthogonalPolynomial, L.A) \ L.B
-copy(L::Ldiv{<:AbstractLazyLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
-copy(L::Ldiv{<:AbstractBasisLayout,WeightedOPLayout}) = L.A \ convert(WeightedOrthogonalPolynomial, L.B)
-copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
-copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
 
 """
     Weighted(P)
@@ -202,17 +224,23 @@ end
 axes(Q::Weighted) = axes(Q.P)
 copy(Q::Weighted) = Q
 
-==(A::Weighted, B::Weighted) = A.P == B.P
 weight(wP::Weighted) = orthogonalityweight(wP.P)
 
-convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = weight(P) .* unweightedbasis(P)
+MemoryLayout(::Type{<:Weighted{<:Any,PP}}) where PP = WeightedOPLayout{typeof(MemoryLayout(PP))}()
 
-getindex(Q::Weighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = weight(Q)[x] .* unweightedbasis(Q)[x,jr]
+function arguments(::ApplyLayout{typeof(*)}, Q::Weighted{<:Any,<:Normalized})
+    P,D = arguments(*, Q.P)
+    Weighted(P),D
+end
+_mul_arguments(Q::Weighted{<:Any,<:Normalized}) = arguments(ApplyLayout{typeof(*)}(), Q)
+
+# convert(::Type{WeightedOrthogonalPolynomial}, P::Weighted) = weight(P) .* unweighted(P)
+
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = Q * (Q.P \ (x .* Q.P))
 
 
 @simplify *(Ac::QuasiAdjoint{<:Any,<:Weighted}, wB::Weighted) = 
-    convert(WeightedOrthogonalPolynomial, parent(Ac))' * convert(WeightedOrthogonalPolynomial, wB)
+    convert(WeightedBasis, parent(Ac))' * convert(WeightedBasis, wB)
 
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted}, B::AbstractQuasiVector)
@@ -239,11 +267,11 @@ function mul(A::Derivative, B::Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:Abstract
     kr,jr = parentindices(B.P)
     (Derivative(axes(P,1))*P*kr.A)[kr,jr]
 end
-mul(Ac::QuasiAdjoint{<:Any,Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}}, Bc::QuasiAdjoint{<:Any,<:Derivative}) = mul(Bc', Ac')'    
+mul(Ac::QuasiAdjoint{<:Any, Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}}, Bc::QuasiAdjoint{<:Any,<:Derivative}) = mul(Bc', Ac')'    
 
 summary(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
 
-__sum(::NormalizedBasisLayout, A, dims) = __sum(ApplyLayout{typeof(*)}(), A, dims)
+__sum(::NormalizedOPLayout, A, dims) = __sum(ApplyLayout{typeof(*)}(), A, dims)
 function __sum(::WeightedOPLayout, A, dims)
     @assert dims == 1
     Hcat(sum(weight(A)), Zeros{eltype(A)}(1,∞))

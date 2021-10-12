@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, LazyArrays, QuasiArrays, BandedMatrices, ContinuumArrays, ForwardDiff, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw, weighted
 import QuasiArrays: MulQuasiArray
 
 @testset "Legendre" begin
@@ -15,6 +15,7 @@ import QuasiArrays: MulQuasiArray
         P = Legendre()
         @test axes(P) == (Inclusion(ChebyshevInterval()),oneto(∞))
         @test P == P == Legendre{Float32}()
+        @test weighted(P) == P
         A,B,C = recurrencecoefficients(P)
         @test B isa Zeros
         P = Jacobi(0.0,0.0)

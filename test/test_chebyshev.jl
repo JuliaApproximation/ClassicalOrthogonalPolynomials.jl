@@ -1,10 +1,10 @@
 using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatrices, LazyArrays, 
         FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays, LazyBandedMatrices, ForwardDiff
-import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto, Weighted
+import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto, Weighted, MappedOPLayout
 import LazyArrays: ApplyStyle
 import QuasiArrays: MulQuasiMatrix
 import Base: OneTo
-import ContinuumArrays: MappedWeightedBasisLayout, Map
+import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
 
 @testset "Chebyshev" begin
     @testset "ChebyshevGrid" begin
@@ -15,6 +15,12 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             end
             @test ChebyshevGrid{kind,BigFloat}(10) == chebyshevpoints(BigFloat,10, Val(kind))
         end
+    end
+
+    @testset "basics" begin
+        T = Chebyshev()
+        @test T == T[:,1:∞]
+        @test T[:,1:∞] == T
     end
 
     @testset "Evaluation" begin
@@ -90,7 +96,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             v = T[:,2:end] \ (exp.(x) .- 1.26606587775201)
             @test v[1:10] ≈ (T\u)[2:11]
 
-            @test T \ zero.(x) == zeros(∞)
+            @test T \ zero.(x) ≈ Zeros(∞)
         end
         @testset "ChebyshevU" begin
             U = ChebyshevU()
@@ -104,6 +110,17 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             w = @inferred(U\v)
             @test U[0.1,:]'w ≈ v[0.1]
         end
+
+        @testset "multiple" begin
+            T = Chebyshev()
+            x = axes(T,1)
+            T_n = T[:,Base.OneTo(150)]
+            @test @inferred(T_n\ [exp.(x) cos.(x)]) ≈ [T_n\exp.(x) T_n\cos.(x)]
+            @test @inferred(T \ [exp.(x) cos.(x)]) ≈ [T_n\ [exp.(x) cos.(x)]; Zeros(∞,2)]
+            @time U = T / T \ cos.(x .* (0:1000)');
+            @test U[0.1,:] ≈ cos.(0.1 * (0:1000))
+            @test U[[0.1,0.2],:] ≈ [cos.(0.1 * (0:1000)'); cos.(0.2 * (0:1000)')]
+        end
     end
 
     @testset "Mapped Chebyshev" begin
@@ -112,6 +129,8 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test (T*(T\x))[0.1] ≈ 0.1
         @test (T* (T \ exp.(x)))[0.1] ≈ exp(0.1)
         @test chebyshevt(0..1) == chebyshevt(Inclusion(0..1)) == chebyshevt(T) == T
+        @test (T \ [x exp.(x)])[1:20,1] ≈ (T\x)[1:20]
+        @test (T \ [x exp.(x)])[1:20,2] ≈ (T\exp.(x))[1:20]
 
         Tn = Chebyshev()[2x .- 1, [1,3,4]]
         @test (axes(Tn,1) .* Tn).args[2][1:5,:] ≈ (axes(T,1) .* T).args[2][1:5,[1,3,4]]
@@ -136,7 +155,15 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
     @testset "weighted" begin
         T = ChebyshevT()
         w = ChebyshevTWeight()
-        wT = WeightedChebyshevT()
+        wT = Weighted(T)
+        wU = Weighted(ChebyshevU())
+
+        @test stringmime("text/plain",w) == "ChebyshevTWeight()"
+        @test stringmime("text/plain",ChebyshevUWeight()) == "ChebyshevUWeight()"
+
+        @test (w .* T) ≡ wT
+
+
         x = axes(wT,1)
         @test (x .* wT).args[2] isa LazyBandedMatrices.Tridiagonal
 
@@ -147,29 +174,25 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
         @test u[0.1] ≈ exp(0.1)/sqrt(1-0.1^2)
 
         @testset "Weighted" begin
-            WT = Weighted(ChebyshevT())
-            @test WT == copy(WT)
-            @test WT \ WT == Eye(∞)
-            @test wT[0.1,1:10] ≈ WT[0.1,1:10]
-            @test WT \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ wT \ (exp.(x) ./ sqrt.(1 .- x.^2))
-            @test WT[:,1:20] \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ (WT \ (exp.(x) ./ sqrt.(1 .- x.^2)))[1:20]
-            @test WT \ (x .* WT) == T \ (x .* T)
-            @test sum(WT; dims=1)[:,1:10] ≈ [π zeros(1,9)]
-            @test sum(WT[:,1]) ≈ π
-            @test iszero(sum(WT[:,2]))
-
-            WU = Weighted(ChebyshevU())
-            @test (WT \ WU)[1:10,1:10] ≈ inv(WU \ WT)[1:10,1:10]
-            @test_skip (WU \ WT)[1,1] == 2
+            @test wT == copy(wT)
+            @test wT \ wT == Eye(∞)
+            @test wT[0.1,1:10] ≈ wT[0.1,1:10]
+            @test wT \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ wT \ (exp.(x) ./ sqrt.(1 .- x.^2))
+            @test wT[:,1:20] \ (exp.(x) ./ sqrt.(1 .- x.^2)) ≈ (wT \ (exp.(x) ./ sqrt.(1 .- x.^2)))[1:20]
+            @test wT \ (x .* wT) == T \ (x .* T)
+            @test sum(wT; dims=1)[:,1:10] ≈ [π zeros(1,9)]
+            @test sum(wT[:,1]) ≈ π
+            @test iszero(sum(wT[:,2]))
+  
+            @test (wT \ wU)[1:10,1:10] ≈ inv(wU \ wT)[1:10,1:10]
+            @test_skip (wU \ WT)[1,1] == 2
         end
         
         @testset "Derivative" begin
-            WT = Weighted(ChebyshevT())
-            WU = Weighted(ChebyshevU())
-            x = axes(WT,1)
+            x = axes(wT,1)
             D = Derivative(x)
-            @test_broken D*WT # not implemented
-            @test (D*WU)[0.1,1:2] ≈ -1/sqrt(1-0.1^2) * [0.1, 4*0.1^2-2]
+            @test_broken D*wT # not implemented
+            @test (D*wU)[0.1,1:2] ≈ -1/sqrt(1-0.1^2) * [0.1, 4*0.1^2-2]
         end
 
         @testset "mapped" begin
@@ -180,7 +203,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
 
             WT̃ = w[2x .- 1] .* T[2x .- 1, :]
-            @test MemoryLayout(WT̃) isa MappedWeightedBasisLayout
+            @test MemoryLayout(WT̃) isa WeightedBasisLayout{MappedOPLayout}
             v = WT̃ * (WT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
 
@@ -216,6 +239,11 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
         @testset "inv" begin
             @test (T \ U)[1:10,1:10] ≈ inv((U \ T)[1:10,1:10])
+        end
+
+        @testset "massmatrix" begin
+            @test (T'Weighted(T))[1:10,1:10] ≈ Diagonal([π; fill(π/2,9)])
+            @test (U'Weighted(U))[1:10,1:10] ≈ Diagonal(fill(π/2,10))
         end
     end
 
@@ -329,7 +357,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map
 
         @testset "weighted" begin
             T = ChebyshevT()
-            wT = WeightedChebyshevT()
+            wT = Weighted(ChebyshevT())
             a = wT * [1; 2; 3; zeros(∞)];
             @test (a .* T)[0.1,1:10] ≈ a[0.1] * T[0.1,1:10]
         end

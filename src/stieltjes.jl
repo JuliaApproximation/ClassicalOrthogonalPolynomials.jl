@@ -283,8 +283,7 @@ end
     wP = parent(wT)
     kr, jr = parentindices(wT)
     x = axes(wP,1)
-    w,T = arguments(ApplyLayout{typeof(*)}(), wP)
-    @assert w isa ChebyshevTWeight
+    T = wP.P
     @assert T isa ChebyshevT
     D = T \ (log.(abs.(x .- x')) * wP)
     c = inv(2*kr.A)

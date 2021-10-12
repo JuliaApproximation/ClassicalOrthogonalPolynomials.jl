@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, LinearAlgebra, Test
-import ClassicalOrthogonalPolynomials: NormalizedBasisLayout, recurrencecoefficients, Normalized, Clenshaw, weighted, grid, plotgrid
+import ClassicalOrthogonalPolynomials: NormalizedOPLayout, recurrencecoefficients, Normalized, Clenshaw, weighted, grid, plotgrid
 import LazyArrays: CachedVector, PaddedLayout
 import ContinuumArrays: MappedWeightedBasisLayout
 
@@ -9,7 +9,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
         Q = Normalized(P)
 
         @testset "Basic" begin
-            @test MemoryLayout(Q) isa NormalizedBasisLayout
+            @test MemoryLayout(Q) isa NormalizedOPLayout
             @test (Q\Q) ≡ Eye(∞)
             @test Q == Q
             @test P ≠ Q
@@ -78,7 +78,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
         end
 
         @testset "show" begin
-            @test stringmime("text/plain", Normalized(Legendre())) == "Normalized(Legendre{Float64})"
+            @test stringmime("text/plain", Normalized(Legendre())) == "Normalized(Legendre())"
         end
 
         @testset "qr" begin
@@ -92,11 +92,11 @@ import ContinuumArrays: MappedWeightedBasisLayout
     @testset "Chebyshev" begin
         T = ChebyshevT()
         w = ChebyshevWeight()
-        wT = WeightedChebyshevT()
+        wT = Weighted(ChebyshevT())
         Q = Normalized(T)
 
         @testset "Basic" begin
-            @test MemoryLayout(Q) isa NormalizedBasisLayout
+            @test MemoryLayout(Q) isa NormalizedOPLayout
             @test (Q\Q) ≡ Eye(∞)
         end
 

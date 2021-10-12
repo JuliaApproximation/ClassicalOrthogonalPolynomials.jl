@@ -97,6 +97,10 @@ end
 
 abstract type AbstractInterlaceBasis{T} <: Basis{T} end
 copy(A::AbstractInterlaceBasis) = interlacebasis(A, map(copy, A.args)...)
+_interlace_checkpoints(args) = union(map(checkpoints,args)...)
+_interlace_checkpoints(args::AbstractFill) = checkpoints(getindex_value(args))
+
+checkpoints(A::AbstractInterlaceBasis) = _interlace_checkpoints(A.args)
 
 """
     PiecewiseInterlace(args...)
@@ -121,6 +125,46 @@ axes(A::PiecewiseInterlace) = (union(axes.(A.args,1)...), LazyBandedMatrices._bl
 
 ==(A::PiecewiseInterlace, B::PiecewiseInterlace) = all(A.args .== B.args)
 
+"""
+    SetindexInterlace(z, args...)
+
+is an analogue of `Basis` for vector that replaces the `i`th index of `z`,
+takes the union of the first axis,
+and the second axis is a blocked interlace of args.
+
+"""
+struct SetindexInterlace{T, Args} <: AbstractInterlaceBasis{T}
+    z::T
+    args::Args
+end
+
+SetindexInterlace{T}(z::T, args::AbstractQuasiMatrix...) where T = SetindexInterlace{T,typeof(args)}(z, args)
+SetindexInterlace{T}(args::AbstractQuasiMatrix...) where T = SetindexInterlace{T}(zero(T), args...)
+SetindexInterlace(z::T, args::AbstractQuasiMatrix...) where T = SetindexInterlace{T}(z, args...)
+SetindexInterlace(::Type{T}, args::AbstractQuasiMatrix...) where T = SetindexInterlace(zero(T), args...)
+SetindexInterlace{T}(z::T, args::AbstractVector) where T = SetindexInterlace{T,typeof(args)}(z, args)
+SetindexInterlace(z::T, args::AbstractVector) where T = SetindexInterlace{T}(z, args)
+
+interlacebasis(S::SetindexInterlace, args...) = SetindexInterlace(S.z, args...)
+
+
+axes(A::SetindexInterlace) = (union(axes.(A.args,1)...), LazyBandedMatrices._block_vcat_axes(unitblocks.(axes.(A.args,2))...))
+
+==(A::SetindexInterlace, B::SetindexInterlace) = A.z == B.z && all(A.args .== B.args)
+
+ArrayLayouts.zeroeltype(M::Mul{<:Any,<:Any,<:SetindexInterlace}) = convert(eltype(M),M.A.z)
+
+function getindex(f::Mul{BasisLayout,<:PaddedLayout,<:SetindexInterlace{<:Any,<:AbstractFill}}, x::Number)
+    P = getindex_value(f.A.args)
+    d = length(f.A.args)
+    X = reshape(paddeddata(f.B),d,:)
+    X̃ = PaddedArray(transpose(X), size(P,2),d)
+    (P * X̃)[x,:]
+end
+
+###
+# getindex
+###
 
 function QuasiArrays._getindex(::Type{IND}, A::PiecewiseInterlace{T}, (x,j)::IND) where {IND,T}
     Jj = findblockindex(axes(A,2), j)
@@ -131,9 +175,23 @@ function QuasiArrays._getindex(::Type{IND}, A::PiecewiseInterlace{T}, (x,j)::IND
     zero(T)
 end
 
+function QuasiArrays._getindex(::Type{IND}, A::SetindexInterlace{T}, (x,j)::IND) where {IND,T}
+    Jj = findblockindex(axes(A,2), j)
+    @boundscheck x in axes(A,1) || throw(BoundsError(A, (x,j)))
+    J = Int(block(Jj))
+    i = blockindex(Jj)
+    x in axes(A.args[i],1) && return setindex(A.z, A.args[i][x, J], i)
+    A.z
+end
+
+
+###
+# Operators
+###
+
 function \(A::AbstractInterlaceBasis, B::AbstractInterlaceBasis)
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
-    T = promote_type(eltype(A),eltype(B))
+    T = promote_type(eltype(eltype(A)),eltype(eltype(B)))
     A == B && return Eye{T}((axes(A,2),))
     BlockBroadcastArray{T}(Diagonal, unitblocks.((\).(A.args, B.args))...)
 end
@@ -142,12 +200,12 @@ end
     axes(D,2) == axes(S,1) || throw(DimensionMismatch())
     args = arguments.(*, Derivative.(axes.(S.args,1)) .* S.args)
     all(length.(args) .== 2) || error("Not implemented")
-    interlacebasis(S, map(first, args)...) * BlockBroadcastArray{promote_type(eltype(D),eltype(S))}(Diagonal, unitblocks.(last.(args))...)
+    interlacebasis(S, map(first, args)...) * BlockBroadcastArray{promote_type(eltype(D),eltype(eltype(S)))}(Diagonal, unitblocks.(last.(args))...)
 end
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractInterlaceBasis}, B::AbstractInterlaceBasis)
     axes(Ac,2) == axes(B,1) || throw(DimensionMismatch())
-    BlockBroadcastArray{promote_type(eltype(Ac),eltype(B))}(Diagonal, unitblocks.(adjoint.(parent(Ac).args) .* B.args)...)
+    BlockBroadcastArray{eltype(promote_type(eltype(Ac),eltype(B)))}(Diagonal, unitblocks.(adjoint.(parent(Ac).args) .* B.args)...)
 end
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractInterlaceBasis}, B::AbstractQuasiVector)
@@ -157,22 +215,52 @@ end
     BlockBroadcastArray(vcat, unitblocks.(cs)...)
 end
 
-struct PiecewiseFactorization{T,FF,Ax} <: Factorization{T}
-    factorizations::FF
-    axes::Ax
+abstract type InterlaceFactorization{T} <: Factorization{T} end
+
+for Typ in (:PiecewiseFactorization, :SetindexFactorization)
+    @eval begin
+        struct $Typ{T,FF,Ax} <: Factorization{T}
+            factorizations::FF
+            axes::Ax
+        end
+
+        $Typ{T}(fac, ax) where T = $Typ{T,typeof(fac),typeof(ax)}(fac, ax)
+    end
 end
 
-PiecewiseFactorization{T}(fac, ax) where T = PiecewiseFactorization{T,typeof(fac),typeof(ax)}(fac, ax)
-
-function \(F::PiecewiseFactorization{T}, v::AbstractQuasiVector) where {T}
+\(F::PiecewiseFactorization{T}, v::AbstractQuasiVector) where {T} =
     BlockBroadcastArray{T}(vcat, unitblocks.((\).(F.factorizations, getindex.(Ref(v), F.axes)))...)
+
+\(F::SetindexFactorization{T}, v::AbstractQuasiVector) where {T} =
+    BlockBroadcastArray{eltype(T)}(vcat, unitblocks.((\).(F.factorizations, broadcast((w,i) -> getindex.(w,i), Ref(v), Base.OneTo(length(F.factorizations)))))...)
+
+# We assume matrix factorizations
+function \(F::SetindexFactorization{T,<:AbstractFill}, v::AbstractQuasiVector) where {T}
+    F̃ = getindex_value(F.factorizations)
+    data = Matrix{eltype(eltype(v))}(undef, length(F̃.grid), length(F.factorizations))
+    for (k,x) in enumerate(F̃.grid)
+        data[k,:] = v[x]
+    end
+    blockvec(Matrix(transpose(F̃ \ data))) # call Matrix to avoid ReshapedArray
 end
 
-function factorize(V::SubQuasiArray{T,2,<:AbstractInterlaceBasis,<:Tuple{Inclusion,BlockSlice{BlockRange1{OneTo{Int}}}}}) where T
+
+function factorize(V::SubQuasiArray{T,2,<:PiecewiseInterlace,<:Tuple{Inclusion,BlockSlice{BlockRange1{OneTo{Int}}}}}) where T
     P = parent(V)
     _,jr = parentindices(V)
     N = Int(last(jr.block))
     PiecewiseFactorization{T}(factorize.(view.(P.args, :, Ref(Base.OneTo(N)))), axes.(P.args,1))
+end
+
+factorizeall(args, N) = factorize.(view.(args, :, Ref(Base.OneTo(N))))
+# Use matrix factorization if AbstractFill
+factorizeall(args::AbstractFill, N) = Fill(factorize(view(getindex_value(args),:,Base.OneTo(N)), length(args)), length(args)) # Use matrix factorization
+
+function factorize(V::SubQuasiArray{T,2,<:SetindexInterlace,<:Tuple{Inclusion,BlockSlice{BlockRange1{OneTo{Int}}}}}) where T
+    P = parent(V)
+    _,jr = parentindices(V)
+    N = Int(last(jr.block))
+    SetindexFactorization{T}(factorizeall(P.args, N), axes.(P.args,1))
 end
 
 function factorize(V::SubQuasiArray{<:Any,2,<:AbstractInterlaceBasis,<:Tuple{Inclusion,AbstractVector{Int}}})
@@ -180,8 +268,7 @@ function factorize(V::SubQuasiArray{<:Any,2,<:AbstractInterlaceBasis,<:Tuple{Inc
     _,jr = parentindices(V)
     J = findblock(axes(P,2),maximum(jr))
     ProjectionFactorization(factorize(P[:,Block.(OneTo(Int(J)))]), jr)
-end
-
+end    
 ###
 # sum
 ###
@@ -190,7 +277,7 @@ _sum(P::PiecewiseInterlace, dims) = BlockBroadcastArray(hcat, unitblocks.(_sum.(
 
 # blockvector2vectortuple
 
-function components(f::Expansion{<:Any,<:PiecewiseInterlace})
+function components(f::ApplyQuasiVector{<:Any,typeof(*),<:Tuple{PiecewiseInterlace,Any}})
     P,c = arguments(*, f)
     P.args .* blockvector2vectortuple(c)
 end
