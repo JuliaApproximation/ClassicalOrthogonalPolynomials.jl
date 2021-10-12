@@ -468,9 +468,23 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         end
 
         @testset "Weighted(Normalized)" begin
-            @test Weighted(Normalized(Jacobi(1,1))) \ Weighted(Jacobi(1,1)) isa Diagonal
-            @test Weighted(Jacobi(1,1)) \ Weighted(Normalized(Jacobi(1,1))) isa Diagonal
-            @test Weighted(Normalized(Jacobi(1,1))) \ Weighted(Normalized(Jacobi(1,1))) isa Diagonal
+            w = JacobiWeight(1,1)
+            P = Jacobi(1,1)
+            Q = Normalized(P)
+            @test Weighted(Q) \ Weighted(P) isa Diagonal
+            @test Weighted(P) \ Weighted(Q) isa Diagonal
+            @test Weighted(Q) \ Weighted(Q) isa Diagonal
+
+            @test (w .* Q) \ (w .* P) isa Diagonal
+            @test (w .* P) \ (w .* Q) isa Diagonal
+            @test (w .* Q) \ (w .* Q) isa Diagonal
+
+            @test (w .* Q) \ Weighted(P) isa Diagonal
+            @test (w .* P) \ Weighted(Q) isa Diagonal
+            @test (w .* Q) \ Weighted(Q) isa Diagonal
+            @test Weighted(P) \ (w .* Q) isa Diagonal
+            @test Weighted(Q) \ (w .* P) isa Diagonal
+            @test Weighted(Q) \ (w .* Q) isa Diagonal
         end
     end
 end

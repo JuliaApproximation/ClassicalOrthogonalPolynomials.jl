@@ -178,6 +178,12 @@ ContinuumArrays.unweighted(wP::AbstractWeighted) = wP.P
 copy(L::Ldiv{<:WeightedOPLayout{<:NormalizedOPLayout},Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
 copy(L::Ldiv{Lay,<:WeightedOPLayout{<:NormalizedOPLayout}}) where Lay<:AbstractBasisLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
 copy(L::Ldiv{<:WeightedOPLayout{<:NormalizedOPLayout},<:WeightedOPLayout{<:NormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{<:WeightedBasisLayout{<:NormalizedOPLayout},Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
+copy(L::Ldiv{Lay,<:WeightedBasisLayout{<:NormalizedOPLayout}}) where Lay<:AbstractBasisLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{<:WeightedBasisLayout{<:NormalizedOPLayout},<:WeightedBasisLayout{<:NormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{<:WeightedOPLayout{<:NormalizedOPLayout},<:WeightedBasisLayout{<:NormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{<:WeightedBasisLayout{<:NormalizedOPLayout},<:WeightedOPLayout{<:NormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+
 
 # function layout_broadcasted(::ExpansionLayout{WeightedOPLayout}, ::OPLayout, ::typeof(*), a, P)
 #     axes(a,1) == axes(P,1) || throw(DimensionMismatch())
@@ -230,6 +236,11 @@ weight(wP::Weighted) = orthogonalityweight(wP.P)
 
 MemoryLayout(::Type{<:Weighted{<:Any,PP}}) where PP = WeightedOPLayout{typeof(MemoryLayout(PP))}()
 
+function arguments(::ApplyLayout{typeof(*)}, Q::BroadcastQuasiMatrix{<:Any,typeof(*),<:Tuple{Weight,Normalized}})
+    w,Q = Q.args
+    P,D = arguments(*,Q)
+    (w .* P),D
+end
 function arguments(::ApplyLayout{typeof(*)}, Q::Weighted{<:Any,<:Normalized})
     P,D = arguments(*, Q.P)
     Weighted(P),D
