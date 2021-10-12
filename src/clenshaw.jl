@@ -110,16 +110,6 @@ Base.@propagate_inbounds function getindex(f::Mul{<:AbstractOPLayout,<:PaddedLay
     unsafe_getindex(f, x, j...)
 end
 
-getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::AbstractVector{<:Number}) where T = 
-    copyto!(Vector{T}(undef, length(x)), view(f, x))
-
-function copyto!(dest::AbstractVector{T}, v::SubArray{<:Any,1,<:ApplyVector{<:Any,typeof(*),<:Tuple{OrthogonalPolynomial,AbstractVector}}, <:Tuple{AbstractVector{<:Number}}}) where T
-    f = parent(v)
-    (x,) = parentindices(v)
-    P,c = arguments(f)
-    clenshaw!(paddeddata(c), recurrencecoefficients(P)..., x, Fill(_p0(P), length(x)), dest)
-end
-
 ###
 # Operator clenshaw
 ###

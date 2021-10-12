@@ -409,6 +409,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         D_W = Weighted(A) \ (D * Weighted(B))
         @test (A * (D_W * (B \ exp.(x))))[0.1] ≈ (-a*(1+0.1) + b*(1-0.1) + (1-0.1^2)) *exp(0.1)
 
+        @test copy(HalfWeighted{:a}(Jacobi(a,b))) == HalfWeighted{:a}(Jacobi(a,b))
+
         D_a = HalfWeighted{:a}(Jacobi(a-1,b+1)) \ (D * HalfWeighted{:a}(B))
         D_b = HalfWeighted{:b}(Jacobi(a+1,b-1)) \ (D * HalfWeighted{:b}(B))
         @test (Jacobi(a-1,b+1) * (D_a * (B \ exp.(x))))[0.1] ≈ (-a + 1-0.1) *exp(0.1)

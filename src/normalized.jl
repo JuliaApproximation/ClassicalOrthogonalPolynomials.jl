@@ -157,8 +157,6 @@ MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout{OPLayout}()
 convert(::Type{WeightedBasis}, Q::AbstractWeighted) = weight(Q) .* unweighted(Q)
 
 # make act like WeightedBasisLayout
-ContinuumArrays._grid(::WeightedOPLayout, P) = ContinuumArrays._grid(WeightedBasisLayout(), P)
-ContinuumArrays._factorize(::WeightedOPLayout, P) = ContinuumArrays._factorize(WeightedBasisLayout(), P)
 ContinuumArrays.sublayout(::WeightedOPLayout{Lay}, inds::Type{<:Tuple{<:AbstractAffineQuasiVector,<:AbstractVector}}) where Lay = sublayout(WeightedBasisLayout{Lay}(), inds)
 ContinuumArrays.sublayout(::WeightedOPLayout{Lay}, inds::Type{<:Tuple{<:Inclusion,<:AbstractVector}}) where Lay = sublayout(WeightedBasisLayout{Lay}(), inds)
 
