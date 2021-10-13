@@ -234,8 +234,9 @@ copy(Q::Weighted) = Q
 
 weight(wP::Weighted) = orthogonalityweight(wP.P)
 
-MemoryLayout(::Type{<:Weighted{<:Any,PP}}) where PP<:AbstractOPLayout = WeightedOPLayout{typeof(MemoryLayout(PP))}()
-MemoryLayout(::Type{<:Weighted{<:Any,PP}}) where PP = WeightedBasisLayout{typeof(MemoryLayout(PP))}()
+_weightedmemorylayout(::PP) where PP<:AbstractOPLayout =  WeightedOPLayout{PP}()
+_weightedmemorylayout(::PP) where PP =  WeightedBasisLayout{PP}()
+MemoryLayout(::Type{<:Weighted{<:Any,PP}}) where PP = _weightedmemorylayout(MemoryLayout(PP))
 
 function arguments(::ApplyLayout{typeof(*)}, Q::BroadcastQuasiMatrix{<:Any,typeof(*),<:Tuple{Weight,Normalized}})
     w,Q = Q.args
