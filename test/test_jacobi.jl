@@ -471,6 +471,9 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             w = JacobiWeight(1,1)
             P = Jacobi(1,1)
             Q = Normalized(P)
+
+            @test w .* Q == w .* Q
+
             @test Weighted(Q) \ Weighted(P) isa Diagonal
             @test Weighted(P) \ Weighted(Q) isa Diagonal
             @test Weighted(Q) \ Weighted(Q) isa Diagonal

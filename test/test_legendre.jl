@@ -112,6 +112,8 @@ import QuasiArrays: MulQuasiArray
 
     @testset "Mapped" begin
         P = legendre(0..1)
+        @test weighted(P) == P
+        @test weighted(Normalized(Legendre())[parentindices(P)...]) == Normalized(Legendre())[parentindices(P)...]
         x = axes(P,1)
         X = jacobimatrix(P)
         @test X[1:10,1:10] ≈ (P \ (x .* P))[1:10,1:10]
