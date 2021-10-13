@@ -466,5 +466,28 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test HalfWeighted{:b}(Jacobi(2,0)) == Jacobi(2,0)
             @test Jacobi(2,0) == HalfWeighted{:b}(Jacobi(2,0))
         end
+
+        @testset "Weighted(Normalized)" begin
+            w = JacobiWeight(1,1)
+            P = Jacobi(1,1)
+            Q = Normalized(P)
+
+            @test w .* Q == w .* Q
+
+            @test Weighted(Q) \ Weighted(P) isa Diagonal
+            @test Weighted(P) \ Weighted(Q) isa Diagonal
+            @test Weighted(Q) \ Weighted(Q) isa Diagonal
+
+            @test (w .* Q) \ (w .* P) isa Diagonal
+            @test (w .* P) \ (w .* Q) isa Diagonal
+            @test (w .* Q) \ (w .* Q) isa Diagonal
+
+            @test (w .* Q) \ Weighted(P) isa Diagonal
+            @test (w .* P) \ Weighted(Q) isa Diagonal
+            @test (w .* Q) \ Weighted(Q) isa Diagonal
+            @test Weighted(P) \ (w .* Q) isa Diagonal
+            @test Weighted(Q) \ (w .* P) isa Diagonal
+            @test Weighted(Q) \ (w .* Q) isa Diagonal
+        end
     end
 end

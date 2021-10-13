@@ -209,6 +209,13 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
 
             WU2 = Weighted(chebyshevu(0..1))
             @test (Derivative(x) * WU2)[0.1,1:10] ≈ 2(Derivative(axes(T,1))*Weighted(ChebyshevU()))[2*0.1-1,1:10]
+
+            @testset "Derivative" begin
+                y = affine(0..1,-1..1)
+                D = Derivative(Inclusion(0..1))
+                @test isbanded(wT[y,:] \ D * wU[y,:])
+                @test isbanded((wU[y,:]' * D').args[1])
+            end
         end
     end
 

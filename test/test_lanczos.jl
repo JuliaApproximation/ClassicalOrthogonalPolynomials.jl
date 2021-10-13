@@ -90,6 +90,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         @test R \ [1; 2; 3; zeros(∞)] ≈ [1; 2; 3; zeros(∞)]
         @test (Q * (Q \ (1 .- x.^2)))[0.1] ≈ (1-0.1^2)
 
+        @test Q \ (x .* x) ≈ Q \ x.^2
+
         ũ = Normalized(P)*[1; 2; 3; zeros(∞)]
         u = Q*[1; 2; 3; zeros(∞)]
         ū = P * (P\u)
@@ -149,6 +151,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         w = @. sqrt(1-x)
         Q = LanczosPolynomial(w, P)
         @test Q[0.1,1:10] ≈ Normalized(P)[0.1,1:10]
+
+        @test (Q \ (exp.(x) .* P)) * [1; zeros(∞)] ≈ Q \ exp.(x)
 
         w = @. exp(x) * sqrt(1-x)
         Q = LanczosPolynomial(w, P)

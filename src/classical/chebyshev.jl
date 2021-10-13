@@ -255,13 +255,13 @@ end
 # sum
 ####
 
-function _sum(A::WeightedBasis{T,<:ChebyshevUWeight,<:ChebyshevU}, dims) where T
-    w, U = A.args
+function _sum(::Weighted{T,<:ChebyshevU}, dims) where T
     @assert dims == 1
     Hcat(convert(T, π)/2, Zeros{T}(1,∞))
 end
 
-function _sum(A::WeightedBasis{T,<:ChebyshevWeight,<:Chebyshev}, dims) where T
+# Same normalization for T,V,W
+function _sum(::Weighted{T,<:Chebyshev}, dims) where T
     @assert dims == 1
     Hcat(convert(T, π), Zeros{T}(1,∞))
 end
