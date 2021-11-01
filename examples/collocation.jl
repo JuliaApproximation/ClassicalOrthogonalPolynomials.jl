@@ -19,3 +19,21 @@ J = pinv(P)*X*P
 
 J - I
 Vcat(Hcat(1, Zeros(1,∞)), J)
+
+import 
+T = ChebyshevT()
+x = axes(T,1)
+n = 10
+g = cos.(range(0,π;length=n))
+D = Derivative(x)
+
+(D^2 * T)[g,1:n] / T[g,1:n]
+
+
+W = [one(x) x Weighted(Jacobi(1,1))]
+u = (-((D*W)'*(D*W)) + W'W) \ (W'*exp.(x))
+
+using Plots
+
+plot(u)
+

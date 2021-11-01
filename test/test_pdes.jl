@@ -1,5 +1,5 @@
 @testset "2D p-FEM" begin
-    W = JacobiWeight(1,1) .* Jacobi(1,1)
+    W = Weighted(Jacobi(1,1))
     x = axes(W,1)
     D = Derivative(x)
 

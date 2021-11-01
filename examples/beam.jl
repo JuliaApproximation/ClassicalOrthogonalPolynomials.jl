@@ -4,7 +4,7 @@ using ClassicalOrthogonalPolynomials, ContinuumArrays, DifferentialEquations, Pl
 # Heat
 ###
 
-S = JacobiWeight(1.0,1.0) .* Jacobi(1.0,1.0)
+S = Weighted(Jacobi(1.0,1.0))
 D = Derivative(axes(S,1))
 Δ = -((D*S)'*(D*S))
 M = S'S

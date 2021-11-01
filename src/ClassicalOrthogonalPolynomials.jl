@@ -330,5 +330,6 @@ include("classical/laguerre.jl")
 include("classical/fourier.jl")
 include("stieltjes.jl")
 
+include("piecewise.jl")
 
 end # module
