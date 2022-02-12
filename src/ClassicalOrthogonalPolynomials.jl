@@ -5,7 +5,7 @@ using IntervalSets: UnitRange
 using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, BlockArrays,
     IntervalSets, DomainSets, ArrayLayouts, SpecialFunctions,
     InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW,
-    LazyBandedMatrices, HypergeometricFunctions
+    LazyBandedMatrices, HypergeometricFunctions, GenericLinearAlgebra
 
 import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy, setindex,
@@ -110,7 +110,7 @@ _equals(::WeightedOPLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unwe
 _equals(::WeightedOPLayout, ::WeightedBasisLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
 _equals(::WeightedBasisLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
 _equals(::WeightedBasisLayout{<:AbstractOPLayout}, ::WeightedBasisLayout{<:AbstractOPLayout}, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
-    
+
 
 copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:MappedBasisLayouts = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
 
@@ -259,7 +259,11 @@ grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}}) =
     eigvals(symtridiagonalize(jacobimatrix(P)))
 
 function golubwelsch(X)
-    D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
+    if typeof(X[1,1]) == BigFloat
+        D, V = eigen(Hermitian(symtridiagonalize(X)))
+    else
+        D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
+    end
     D, V[1,:].^2
 end
 
