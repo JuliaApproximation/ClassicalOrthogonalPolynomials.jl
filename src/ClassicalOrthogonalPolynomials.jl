@@ -5,7 +5,7 @@ using IntervalSets: UnitRange
 using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, BlockArrays,
     IntervalSets, DomainSets, ArrayLayouts, SpecialFunctions,
     InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW,
-    LazyBandedMatrices, HypergeometricFunctions, GenericLinearAlgebra
+    LazyBandedMatrices, HypergeometricFunctions
 
 import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy, setindex,
@@ -259,11 +259,7 @@ grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}}) =
     eigvals(symtridiagonalize(jacobimatrix(P)))
 
 function golubwelsch(X)
-    if typeof(X[1,1]) == BigFloat
-        D, V = eigen(Hermitian(symtridiagonalize(X)))
-    else
-        D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
-    end
+    D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
     D, V[1,:].^2
 end
 
