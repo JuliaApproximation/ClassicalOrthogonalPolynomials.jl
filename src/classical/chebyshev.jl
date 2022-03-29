@@ -118,7 +118,7 @@ factorize(L::SubQuasiArray{T,2,<:ChebyshevU,<:Tuple{<:Inclusion,<:OneTo}}) where
 # Jacobi Matrix
 ########
 
-jacobimatrix(C::ChebyshevT{T}) where T = 
+jacobimatrix(C::ChebyshevT{T}) where T =
     Tridiagonal(Vcat(one(T), Fill(one(T)/2,∞)), Zeros{T}(∞), Fill(one(T)/2,∞))
 
 jacobimatrix(C::ChebyshevU{T}) where T =
@@ -126,7 +126,7 @@ jacobimatrix(C::ChebyshevU{T}) where T =
 
 
 
-# These return vectors A[k], B[k], C[k] are from DLMF. 
+# These return vectors A[k], B[k], C[k] are from DLMF.
 recurrencecoefficients(C::ChebyshevT) = (Vcat(1, Fill(2,∞)), Zeros{Int}(∞), Ones{Int}(∞))
 recurrencecoefficients(C::ChebyshevU) = (Fill(2,∞), Zeros{Int}(∞), Ones{Int}(∞))
 
@@ -226,7 +226,7 @@ function \(A::ChebyshevT, B::Legendre)
             (iseven(k) == iseven(j) && j ≥ k) || return zero(T)
             k == 1 && return Λ(convert(T,j-1)/2)^2/π
             2/π * Λ(convert(T,j-k)/2) * Λ(convert(T,k+j-2)/2)
-        end, 1:∞, (1:∞)'))
+        end, convert(AbstractVector{T},1:∞), convert(AbstractVector{T},1:∞)'))
 end
 
 \(A::AbstractJacobi, B::Chebyshev) = ApplyArray(inv,B \ A)
