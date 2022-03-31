@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, Test
-import ClassicalOrthogonalPolynomials: ContinuousPolynomial, PiecewisePolynomial
+
 
 
 using LazyArrays, LazyBandedMatrices, BlockArrays, FillArrays
@@ -7,10 +7,7 @@ T = Float64
 
 import BlockBandedMatrices: _BandedBlockBandedMatrix
 
-P = PiecewisePolynomial(Legendre(), range(0,1;length=4))
-C = ContinuousPolynomial{1}(range(0,1;length=4))
 
-P \ C
 
 plot(C[:,1:4])
 
