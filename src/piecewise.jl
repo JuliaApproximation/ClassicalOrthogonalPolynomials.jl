@@ -1,3 +1,5 @@
+import BlockBandedMatrices: _BandedBlockBandedMatrix
+
 struct PiecewisePolynomial{T,Bas,P<:AbstractVector} <: Basis{T}
     basis::Bas
     points::P
@@ -80,16 +82,23 @@ end
 #######
 
 function \(P::PiecewisePolynomial{T,<:Legendre}, C::ContinuousPolynomial{1,V}) where {T,V}
+    # diag blocks based on
+    # L = Legendre{T}() \ Weighted(Jacobi{T}(1,1))
     @assert P.points == C.points
     N = length(P.points)
-    v = mortar(Fill.((convert(T,2):2:∞) ./ (3:2:∞), N))
+    v = mortar(Fill.((convert(T,2):2:∞) ./ (3:2:∞), N-1))
     z = Zeros{T}(axes(v))
-    H = BlockBroadcastArray(hcat, v, z)
-    M = BlockVcat(Ones{T}(4,2), H)
+    H1 = BlockBroadcastArray(hcat, z, v)
+    M1 = BlockVcat(Zeros{T}(4,2), H1)
+    M2 = BlockVcat(Ones{T}(4,2), Zeros{T}((axes(v,1),Base.OneTo(2))))
+    H3 = BlockBroadcastArray(hcat, z, -v)
+    M3 = BlockVcat(Hcat(Ones{T}(4), -Ones{T}(4)), H3)
+
     
-    BlockHcat(v, z, -v)
+    dat = BlockHcat(M1, M2, M3)'
     Fill(one(T)/2, N)
 
-    # L = Legendre{T}() \ Weighted(Jacobi{T}(1,1))
 
+
+    _BandedBlockBandedMatrix(dat, (axes(P,2), axes(C,2)), (1,1), (0,1))
 end
