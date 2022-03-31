@@ -81,8 +81,14 @@ end
 
 function \(P::PiecewisePolynomial{T,<:Legendre}, C::ContinuousPolynomial{1,V}) where {T,V}
     @assert P.points == C.points
-
-    v = mortar(Fill.((2:2:∞) ./ (3:2:∞), length(P.points)))
+    N = length(P.points)
+    v = mortar(Fill.((convert(T,2):2:∞) ./ (3:2:∞), N))
+    z = Zeros{T}(axes(v))
+    H = BlockBroadcastArray(hcat, v, z)
+    M = BlockVcat(Ones{T}(4,2), H)
+    
+    BlockHcat(v, z, -v)
+    Fill(one(T)/2, N)
 
     # L = Legendre{T}() \ Weighted(Jacobi{T}(1,1))
 
