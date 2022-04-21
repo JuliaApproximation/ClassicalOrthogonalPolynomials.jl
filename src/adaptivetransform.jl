@@ -32,11 +32,11 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector
         end
 
         m = length(cfs)
-        if maximum(abs,@views(cfs[max(1,m-2):m])) < 10tol*maxabsc
-            n = length(cfs)
-            c = padchop!(cfs, tol, ax)
+        c = padchop!(cfs, tol, ax)
+        
+        if last(colsupport(c)) < m-1 # coefficient tail is "zero" based on standard chop
             un = A * c
-            if all(norm.(un[r] - fr, 1) .< tol * n * maxabsfr*1000)
+            if all(norm.(un[r] - fr, 1) .<  m*tol*1000*max(maxabsfr, 1))
                 return c
             end
         end
