@@ -152,5 +152,17 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             U = V / V \ broadcast(x -> cos.((1:10) .* x), x)
             @test U[0.1] ≈ cos.((1:10) .* 0.1)
         end
+
+        @testset "zero" begin
+            Bˣ = [-1/4 1/4 1/2 1/2; 1/4 -1/4 1/2 1/2; 0 0 -1/4 1/4; 0 0 1/4 -1/4]
+            Bʸ = [1/4 1/4 -1/2 1/2; 1/4 1/4 1/2 -1/2; 0 0 1/4 1/4; 0 0 1/4 1/4]
+            X = z -> Bˣ/z + Bˣ*z
+            Y = z -> Bʸ/z + Bʸ*z
+            F = Fourier{ComplexF64}()
+            S = SetindexInterlace(SMatrix{4,4,ComplexF64},fill(F,4^2)...)
+            θ = axes(S,1)
+            XY = S \ broadcast(θ -> (I-X[exp(im*θ)]^2)*(I-Y[exp(im*θ)]^2), θ)
+            @test iszero(norm(XY))
+        end
     end
 end

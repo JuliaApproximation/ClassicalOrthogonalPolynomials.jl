@@ -11,6 +11,10 @@ padchop(cfs, tol, ax...) = pad(chop(cfs, tol), ax...)
 padchop!(cfs::PseudoBlockVector, tol, ax...) = padchop!(cfs.blocks, tol, ax...)
 
 
+padresize!(cfs, m, ax...) = pad(compatible_resize!(cfs, m), ax...)
+padresize!(cfs::PseudoBlockVector, m, ax...) = padresize!(cfs.blocks, m, ax...)
+
+
 increasingtruncations(::OneToInf) = oneto.(2 .^ (4:∞))
 increasingtruncations(::BlockedUnitRange) = broadcast(n -> Block.(oneto(n)), (2 .^ (4:∞)))
 function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}) where {U,V}
@@ -32,9 +36,11 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector
         end
 
         m = length(cfs)
-        c = padchop!(cfs, tol, ax)
+        m̃ = standardchoplength(cfs, tol)
+
         
-        if last(colsupport(c)) < m-1 # coefficient tail is "zero" based on standard chop
+        if m̃ < m-1 # coefficient tail is "zero" based on standard chop
+            c = padresize!(cfs, m̃, ax)
             un = A * c
             if all(norm.(un[r] - fr, 1) .<  m*tol*1000*max(maxabsfr, 1))
                 return c
