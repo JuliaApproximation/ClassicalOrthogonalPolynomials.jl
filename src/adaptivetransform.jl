@@ -31,7 +31,7 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector
         An = A[:,jr]
         cfs = An \ f
         maxabsc = maximum(abs, cfs)
-        if maxabsc == 0 && maxabsfr == 0
+        if maxabsc ≤ tol && maxabsfr ≤ tol # probably zero
             return pad(similar(cfs,0), ax)
         end
 

@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, StaticArrays, Test
-import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid
+import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid, BroadcastQuasiVector
 
 @testset "Interlace" begin
     @testset "Piecewise" begin
@@ -156,12 +156,12 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
         @testset "zero" begin
             Bˣ = [-1/4 1/4 1/2 1/2; 1/4 -1/4 1/2 1/2; 0 0 -1/4 1/4; 0 0 1/4 -1/4]
             Bʸ = [1/4 1/4 -1/2 1/2; 1/4 1/4 1/2 -1/2; 0 0 1/4 1/4; 0 0 1/4 1/4]
-            X = z -> Bˣ/z + Bˣ*z
-            Y = z -> Bʸ/z + Bʸ*z
+            X = z -> Bˣ/z + Bˣ'*z
+            Y = z -> Bʸ/z + Bʸ'*z
             F = Fourier{ComplexF64}()
             S = SetindexInterlace(SMatrix{4,4,ComplexF64},fill(F,4^2)...)
             θ = axes(S,1)
-            XY = S \ broadcast(θ -> (I-X[exp(im*θ)]^2)*(I-Y[exp(im*θ)]^2), θ)
+            XY = S \ BroadcastQuasiVector{eltype(S)}(θ -> (I-X(exp(im*θ))^2)*(I-Y(exp(im*θ))^2), θ)
             @test iszero(norm(XY))
         end
     end
