@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, LazyArrays, QuasiArrays, BandedMatrices, ContinuumArrays, ForwardDiff, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw, weighted
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw, weighted, oneto
 import QuasiArrays: MulQuasiArray
 
 @testset "Legendre" begin

@@ -310,8 +310,8 @@ end
 
         @testset "inversion" begin
             H̃ = BlockHcat(Eye((axes(H,1),))[:,Block(1)], H)
-            @test BlockArrays.blockcolsupport(H̃,1) == Block.(1:1)
-            @test last(BlockArrays.blockcolsupport(H̃,2)) ≤ Block(30)
+            @test BlockArrays.blockcolsupport(H̃,Block(1)) == Block.(1:1)
+            @test last(BlockArrays.blockcolsupport(H̃,Block(2))) ≤ Block(30)
 
             UT = U \ T
             D = U \ Derivative(x) * T
