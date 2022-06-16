@@ -1,3 +1,5 @@
+using ClassicalOrthogonalPolynomials, LazyBandedMatrices, Test
+
 @testset "2D p-FEM" begin
     W = JacobiWeight(1,1) .* Jacobi(1,1)
     x = axes(W,1)
