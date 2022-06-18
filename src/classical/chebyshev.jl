@@ -148,6 +148,12 @@ massmatrix(::ChebyshevU{V}) where V = Diagonal(Fill(convert(V,π)/2,∞))
 @simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevT}}, B::ChebyshevT) = massmatrix(ChebyshevT{promote_type(eltype(A),eltype(B))}())
 @simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevU}}, B::ChebyshevU) = massmatrix(ChebyshevU{promote_type(eltype(A),eltype(B))}())
 
+@simplify function *(A::QuasiAdjoint{<:Any,<:ChebyshevT}, B::ChebyshevT)
+    T = promote_type(eltype(A), eltype(B))
+    f = (k,j) -> isodd(j-k) ? zero(T) : -(((1 + (-1)^(j + k))*(-1 + j^2 + k^2))/(j^4 + (-1 + k^2)^2 - 2j^2*(1 + k^2)))
+    BroadcastMatrix{T}(f, 0:∞, (0:∞)')
+end
+
 @simplify function *(A::QuasiAdjoint{<:Any,<:ChebyshevT}, B::ChebyshevU)
     T = promote_type(eltype(A), eltype(B))
     f = (k,j) -> isodd(j-k) ? zero(T) : ((one(T) + (-1)^(j + k))*(1 + j))/((1 + j - k)*(1 + j + k))
