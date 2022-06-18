@@ -456,6 +456,18 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         T = ChebyshevT()
         @test ChebyshevT{ComplexF64}() ≡ convert(AbstractQuasiArray{ComplexF64}, T) ≡ convert(AbstractQuasiMatrix{ComplexF64}, T)
     end
+
+    @testset "innerproduct" begin
+        T = ChebyshevT()
+        U = ChebyshevU()
+        x = axes(T,1)
+
+        @test (T'U)[1:10,1:10] ≈ (U'T)[1:10,1:10]'
+        @test (T'T)[1:10,1:10] ≈ ((T'U)*(U\T))[1:10,1:10]
+        @test_broken (U'U)[1:10,1:10] ≈ ((U'T)*(T\U))[1:10,1:10]
+        f,g = (T/T\exp.(x)),(U/U\exp.(x))
+        @test f'g ≈ g'f ≈ f'f ≈ dot(f,g) ≈ dot(f,f) ≈ exp(2)/2 - exp(-2)/2
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end
