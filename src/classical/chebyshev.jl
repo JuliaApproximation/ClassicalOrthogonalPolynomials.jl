@@ -162,6 +162,21 @@ end
 
 
 
+@simplify function *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevU}}, B::Weighted{<:Any,<:ChebyshevU})
+    T = promote_type(eltype(A), eltype(B))
+    f = (k,j) ->  isodd(j-k) ? zero(T) : -((2*(one(T) + (-1)^(j + k))*(1 + j)*(1 + k))/((-1 + j - k)*(1 + j - k)*(1 + j + k)*(3 + j + k)))
+    BroadcastMatrix{T}(f, 0:∞, (0:∞)')
+end
+
+
+@simplify function *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevU}}, B::ChebyshevT)
+    T = promote_type(eltype(A), eltype(B))
+    W = parent(A)
+    U = ChebyshevU{T}()
+    (W'U) * (U\B)
+end
+
+
 ##########
 # Derivatives
 ##########
