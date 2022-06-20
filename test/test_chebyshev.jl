@@ -460,6 +460,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
     @testset "innerproduct" begin
         T = ChebyshevT()
         U = ChebyshevU()
+        W = Weighted(U)
         x = axes(T,1)
 
         @test (T'U)[1:10,1:10] ≈ (U'T)[1:10,1:10]'
@@ -467,6 +468,10 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         @test_broken (U'U)[1:10,1:10] ≈ ((U'T)*(T\U))[1:10,1:10]
         f,g = (T/T\exp.(x)),(U/U\exp.(x))
         @test f'g ≈ g'f ≈ f'f ≈ dot(f,g) ≈ dot(f,f) ≈ exp(2)/2 - exp(-2)/2
+
+        h = W * (U\exp.(x))
+        @test h'h ≈ cosh(2) - sinh(2)/2
+        @test f'h ≈ h'f ≈ 2.498566528528904 # 1/2 π BesselI[1, 2]
     end
 end
 
