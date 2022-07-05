@@ -10,4 +10,7 @@ julia> using ClassicalOrthogonalPolynomials
 
 julia> chebyshevt(5, 0.1) # T_5(0.1) == cos(5acos(0.1))
 0.48016
+
+julia> chebyshevu(5, 0.1) # U_5(0.1) == sin(6acos(0.1))/sin(acos(0.1))
+0.56832
 ```
