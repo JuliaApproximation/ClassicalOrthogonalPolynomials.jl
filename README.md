@@ -3,7 +3,7 @@ A Julia package for classical orthogonal polynomials and expansions
 
 [![Build Status](https://github.com/JuliaApproximation/ClassicalOrthogonalPolynomials.jl/workflows/CI/badge.svg)](https://github.com/JuliaApproximation/ClassicalOrthogonalPolynomials.jl/actions)
 [![codecov](https://codecov.io/gh/JuliaApproximation/ClassicalOrthogonalPolynomials.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaApproximation/ClassicalOrthogonalPolynomials.jl)
-[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://JuliaApproximation.github.io/ClassicalOrthogonalPolynomials.jl/latest)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://JuliaApproximation.github.io/ClassicalOrthogonalPolynomials.jl)
 
 
 This package implements classical orthogonal polynomials.

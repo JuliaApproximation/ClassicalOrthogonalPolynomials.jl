@@ -6,12 +6,12 @@ A Julia package for classical orthogonal polynomials and expansions
 We follow the [Digital Library of Mathematical Functions](https://dlmf.nist.gov/18.3),
 which defines the following classical orthogonal polynomials:
 
-1. Legendre: $P_n(x)$
-2. Chebyshev (1st kind, 2nd kind): $T_n(x)$, $U_n(x)$
-3. Ultraspherical: $C_n^{(λ)}(x)$
-4. Jacobi: $P_n^{(a,b)}(x)$
-5. Laguerre: $L_n^{(α)}(x)$
-6. Hermite: $H_n(x)$
+1. Legendre: ``P_n(x)``
+2. Chebyshev (1st kind, 2nd kind): ``T_n(x)``, ``U_n(x)``
+3. Ultraspherical: ``C_n^{(λ)}(x)``
+4. Jacobi: ``P_n^{(a,b)}(x)``
+5. Laguerre: ``L_n^{(α)}(x)``
+6. Hermite: ``H_n(x)``
 
 ## Evaluation
 
@@ -87,10 +87,10 @@ julia> T[x, 1:1000] # [T_j(x[k]) for k=1:1000, j=0:999]
 ## Expansions
 
 We view a function expansion in say Chebyshev polynomials in terms of continuum arrays as follows:
-$$
+```math
 f(x) = \sum_{k=0}^∞ c_k T_k(x) = \begin{bmatrix}T_0(x) | T_1(x) | … \end{bmatrix} 
 \begin{bmatrix}c_0\\ c_1 \\ \vdots \end{bmatrix} = T[x,:] * 𝐜
-$$
+```
 To be more precise, we think of functions as continuum-vectors. Here is a simple example:
 ```jldoctest
 julia> f = T * [1; 2; 3; zeros(∞)]; # T_0(x) + T_1(x) + T_2(x)
@@ -98,8 +98,8 @@ julia> f = T * [1; 2; 3; zeros(∞)]; # T_0(x) + T_1(x) + T_2(x)
 julia> f[0.1]
 -1.74
 ```
-To find the coefficients for a given function we consider this as the problem of finding $𝐜$
-such that $T*𝐜 == f$, that is:
+To find the coefficients for a given function we consider this as the problem of finding ``𝐜``
+such that ``T*𝐜 == f``, that is:
 ```julia
 julia> T \ f
 vcat(3-element Vector{Float64}, ℵ₀-element FillArrays.Zeros{Float64, 1, Tuple{InfiniteArrays.OneToInf{Int64}}} with indices OneToInf()) with indices OneToInf():
@@ -112,7 +112,7 @@ vcat(3-element Vector{Float64}, ℵ₀-element FillArrays.Zeros{Float64, 1, Tupl
   ⋅ 
  ⋮
 ```
-For a function given only pointwise we broadcast over `x`, e.g., the following are the coefficients of $\exp(x)$:
+For a function given only pointwise we broadcast over `x`, e.g., the following are the coefficients of ``\exp(x)``:
 ```julia
 julia> x = axes(T, 1);
 
@@ -143,13 +143,13 @@ julia> f[0.1]
 ## Jacobi matrices
 
 Orthogonal polynomials satisfy well-known three-term recurrences:
-$$
+```math
 x p_n(x) = c_{n-1} p_{n-1}(x) + a_n p_n(x) + b_n p_{n+1}(x).
-$$
+```
 In continuum-array language this has the  form of a comuting relationship:
-$$
+```math
 x \begin{bmatrix} p_0 | p_1 | \cdots \end{bmatrix} = \begin{bmatrix} p_0 | p_1 | \cdots \end{bmatrix} \begin{bmatrix} a_0 & c_0  \\ b_0 & a_1 & c_1 \\ & b_1 & a_2 & \ddots \\ &&\ddots & \ddots \end{bmatrix}
-$$
+```
 We can therefore find the Jacobi matrix naturally as follows:
 ```julia
 julia> T \ (x .* T)
