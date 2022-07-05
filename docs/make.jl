@@ -8,4 +8,5 @@ makedocs(
 
 deploydocs(
     repo = "github.com/JuliaApproximation/ClassicalOrthogonalPolynomials.jl.git",
+    push_preview = true
 )
