@@ -21,13 +21,13 @@ increasingtruncations(::BlockedUnitRange) = broadcast(n -> Block.(oneto(n)), (2 
 
 
 function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}) where {U,V}
-    T = promote_type(eltype(U),eltype(V))
-
     r = checkpoints(A)
     fr = f[r]
     maxabsfr = norm(fr,Inf)
 
-    tol = 20eps(real(typeof(first(fr))))
+    # don't use V as eltype might be Any
+    T = promote_type(eltype(U), typeof(first(fr)))
+    tol = 20eps(real(T))
     ax = axes(A,2)
 
     for jr in increasingtruncations(ax)
