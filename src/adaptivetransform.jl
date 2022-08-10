@@ -20,9 +20,6 @@ increasingtruncations(::OneToInf) = oneto.(2 .^ (4:∞))
 increasingtruncations(::BlockedUnitRange) = broadcast(n -> Block.(oneto(n)), (2 .^ (4:∞)))
 
 
-realeps(::Number) = eps(real(T))
-realeps(_) = eps()
-
 function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}) where {U,V}
     T = promote_type(eltype(U),eltype(V))
 
@@ -30,7 +27,7 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector
     fr = f[r]
     maxabsfr = norm(fr,Inf)
 
-    tol = 20realeps(T)
+    tol = 20eps(real(typeof(first(fr))))
     ax = axes(A,2)
 
     for jr in increasingtruncations(ax)
