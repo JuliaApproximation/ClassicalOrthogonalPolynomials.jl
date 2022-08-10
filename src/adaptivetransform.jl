@@ -26,7 +26,7 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector
     maxabsfr = norm(fr,Inf)
 
     # don't use V as eltype might be Any
-    T = promote_type(eltype(U), typeof(first(fr)))
+    T = promote_type(eltype(U), eltype(typeof(first(fr))))
     tol = 20eps(real(T))
     ax = axes(A,2)
 
