@@ -473,6 +473,12 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         @test h'h ≈ cosh(2) - sinh(2)/2
         @test f'h ≈ h'f ≈ 2.498566528528904 # 1/2 π BesselI[1, 2]
     end
+
+    @testset "non-type inferred" begin
+        T = Chebyshev()
+        f = x -> abs(x) ≤ 1 ? 1 : "hi"
+        @test T \ f.(axes(T,1)) ≈ [1; zeros(∞)]
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end

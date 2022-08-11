@@ -1,5 +1,6 @@
+
 transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
-    adaptivetransform_ldiv(convert(AbstractQuasiArray{promote_type(T,V)}, A), f)
+    adaptivetransform_ldiv(A, f)
 
 pad(c::AbstractVector{T}, ax::Union{OneTo,OneToInf}) where T = [c; Zeros(length(ax)-length(c))]
 pad(c, ax...) = PaddedArray(c, ax)
@@ -17,13 +18,15 @@ padresize!(cfs::PseudoBlockVector, m, ax...) = padresize!(cfs.blocks, m, ax...)
 
 increasingtruncations(::OneToInf) = oneto.(2 .^ (4:∞))
 increasingtruncations(::BlockedUnitRange) = broadcast(n -> Block.(oneto(n)), (2 .^ (4:∞)))
-function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}) where {U,V}
-    T = promote_type(eltype(U),eltype(V))
 
+
+function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}) where {U,V}
     r = checkpoints(A)
     fr = f[r]
     maxabsfr = norm(fr,Inf)
 
+    # don't use V as eltype might be Any
+    T = promote_type(eltype(U), eltype(typeof(first(fr))))
     tol = 20eps(real(T))
     ax = axes(A,2)
 
