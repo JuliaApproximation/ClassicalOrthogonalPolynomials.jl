@@ -123,8 +123,8 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
 
             # support tensors but for grids
             X = randn(150, 2, 2)
-            F = plan_transform(T, X, 1)
-            F_m = plan_transform(T, X[:,:,1], 1)
+            _,F = plan_transform(T, X, 1)
+            _,F_m = plan_transform(T, X[:,:,1], 1)
             @test (F * X)[:,:,1] ≈ F_m * X[:,:,1]
             @test (F * X)[:,:,2] ≈ F_m * X[:,:,2]
         end
