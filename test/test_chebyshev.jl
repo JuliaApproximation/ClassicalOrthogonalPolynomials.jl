@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatrices, LazyArrays, 
+using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatrices, LazyArrays,
         FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays, LazyBandedMatrices, ForwardDiff
 import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto, Weighted, MappedOPLayout
 import LazyArrays: ApplyStyle
@@ -120,6 +120,13 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
             @time U = T / T \ cos.(x .* (0:1000)');
             @test U[0.1,:] ≈ cos.(0.1 * (0:1000))
             @test U[[0.1,0.2],:] ≈ [cos.(0.1 * (0:1000)'); cos.(0.2 * (0:1000)')]
+
+            # support tensors but for grids
+            X = randn(150, 2, 2)
+            F = plan_transform(T, X, 1)
+            F_m = plan_transform(T, X[:,:,1], 1)
+            @test (F * X)[:,:,1] ≈ F_m * X[:,:,1]
+            @test (F * X)[:,:,2] ≈ F_m * X[:,:,2]
         end
     end
 
@@ -183,11 +190,11 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
             @test sum(wT; dims=1)[:,1:10] ≈ [π zeros(1,9)]
             @test sum(wT[:,1]) ≈ π
             @test iszero(sum(wT[:,2]))
-  
+
             @test (wT \ wU)[1:10,1:10] ≈ inv(wU \ wT)[1:10,1:10]
             @test_skip (wU \ WT)[1,1] == 2
         end
-        
+
         @testset "Derivative" begin
             x = axes(wT,1)
             D = Derivative(x)
@@ -445,7 +452,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         T = ChebyshevT(); U = ChebyshevU()
         D = Derivative(axes(T,1))
         V = view(T,:,[1,3,4])
-        @test (U\(D*V))[1:5,:] == (U \ (V'D')')[1:5,:] == (U\(D*T))[1:5,[1,3,4]] 
+        @test (U\(D*V))[1:5,:] == (U \ (V'D')')[1:5,:] == (U\(D*T))[1:5,[1,3,4]]
     end
 
     @testset "plot" begin

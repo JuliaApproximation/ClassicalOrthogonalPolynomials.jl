@@ -52,7 +52,7 @@ export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomia
             ∞, Derivative, .., Inclusion,
             chebyshevt, chebyshevu, legendre, jacobi, ultraspherical,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
-            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace, plan_transform
 
 
 import Base: oneto
@@ -270,23 +270,20 @@ function golubwelsch(V::SubQuasiArray)
     x,w
 end
 
-function factorize(L::SubQuasiArray{T,2,<:Normalized,<:Tuple{Inclusion,OneTo}}, dims...; kws...) where T
-    x,w = golubwelsch(L)
-    TransformFactorization(x, L[x,:]'*Diagonal(w))
+function plan_transform(Q::Normalized, arr, dims=1)
+    @assert dims == 1
+    x,w = golubwelsch(Q[:,OneTo(size(arr,1))])
+    x, L[x,:]'*Diagonal(w)
 end
 
-
-function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,OneTo}}, dims...; kws...) where T
-    Q = Normalized(parent(L))[parentindices(L)...]
-    D = L \ Q
-    F = factorize(Q, dims...; kws...)
-    TransformFactorization(F.grid, D*F.plan)
+function plan_transform(P::OrthogonalPolynomial, arr, dims...)
+    x, A = plan_transform(Normalized(P), arr, dims...)
+    @assert dims == 1
+    n = size(arr,1)
+    D = (P \ Q)[1:n, 1:n]
+    x, D * A
 end
 
-function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{<:Inclusion,<:AbstractUnitRange}}, dims...; kws...) where T
-    _,jr = parentindices(L)
-    ProjectionFactorization(factorize(parent(L)[:,oneto(maximum(jr))], dims...; kws...), jr)
-end
 
 function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
