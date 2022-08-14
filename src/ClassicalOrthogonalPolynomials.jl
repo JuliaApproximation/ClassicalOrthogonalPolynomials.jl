@@ -273,7 +273,8 @@ end
 
 function plan_transform(Q::Normalized, arr, dims=1)
     @assert dims == 1
-    x,w = golubwelsch(Q[:,OneTo(size(arr,1))])
+    L = Q[:,OneTo(size(arr,1))]
+    x,w = golubwelsch(L)
     x, L[x,:]'*Diagonal(w)
 end
 
