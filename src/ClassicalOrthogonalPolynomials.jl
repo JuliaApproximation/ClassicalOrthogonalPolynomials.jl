@@ -60,13 +60,6 @@ import Base: oneto
 
 
 include("interlace.jl")
-
-
-cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
-cardinality(::EuclideanDomain) = ℵ₁
-cardinality(::Union{DomainSets.RealNumbers,DomainSets.ComplexNumbers}) = ℵ₁
-cardinality(::Union{DomainSets.Integers,DomainSets.Rationals,DomainSets.NaturalNumbers}) = ℵ₀
-
 include("standardchop.jl")
 include("adaptivetransform.jl")
 
