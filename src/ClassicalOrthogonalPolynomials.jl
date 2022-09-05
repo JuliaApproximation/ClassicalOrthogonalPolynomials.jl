@@ -264,16 +264,71 @@ function golubwelsch(V::SubQuasiArray)
     x,w
 end
 
+"""
+    MulPlan(matrix, dims)
+
+Takes a matrix and supports it applied to different dimensions.
+"""
+struct MulPlan{T, Fact, Dims} # <: Plan{T} We don't depend on AbstractFFTs
+    matrix::Fact
+    dims::Dims
+end
+
+MulPlan(fact, dims) = MulPlan{eltype(fact), typeof(fact), typeof(dims)}(fact, dims)
+
+function *(P::MulPlan{<:Any,<:Any,Int}, x::AbstractVector)
+    @assert P.dims == 1
+    P.matrix * x
+end
+
+function *(P::MulPlan{<:Any,<:Any,Int}, X::AbstractMatrix)
+    if P.dims == 1
+        P.matrix * X
+    else
+        @assert P.dims == 2
+        permutedims(P.matrix * permutedims(X))
+    end
+end
+
+function *(P::MulPlan{<:Any,<:Any,Int}, X::AbstractArray{<:Any,3})
+    Y = similar(X)
+    if P.dims == 1
+        for j in axes(X,3)
+            Y[:,:,j] = P.matrix * X[:,:,j]
+        end
+    elseif P.dims == 2
+        for k in axes(X,1)
+            Y[k,:,:] = P.matrix * X[k,:,:]
+        end
+    else
+        @assert P.dims == 3
+        for k in axes(X,1), j in axes(X,2)
+            Y[k,j,:] = P.matrix * X[k,j,:]
+        end
+    end
+    Y
+end
+
+function *(P::MulPlan, X::AbstractArray)
+    for d in P.dims
+        X = MulPlan(P.matrix, d) * X
+    end
+    X
+end
+
+*(A::AbstractMatrix, P::MulPlan) = MulPlan(A*P.matrix, P.dims)
+
+
 function plan_transform(Q::Normalized, arr, dims=1)
     @assert dims == 1
     L = Q[:,OneTo(size(arr,1))]
     x,w = golubwelsch(L)
-    x, L[x,:]'*Diagonal(w)
+    x, MulPlan(L[x,:]'*Diagonal(w), dims)
 end
 
 function plan_transform(P::OrthogonalPolynomial, arr, dims...)
-    x, A = plan_transform(Normalized(P), arr, dims...)
-    @assert dims == 1
+    Q = Normalized(P)
+    x, A = plan_transform(Q, arr, dims...)
     n = size(arr,1)
     D = (P \ Q)[1:n, 1:n]
     x, D * A
