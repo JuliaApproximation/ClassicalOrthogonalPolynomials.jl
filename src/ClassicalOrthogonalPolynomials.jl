@@ -37,7 +37,7 @@ import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffin
     inbounds_getindex, grid, plotgrid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
-    plan_transform
+    plan_transform, plan_grid_transform
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan
 
@@ -319,16 +319,16 @@ end
 *(A::AbstractMatrix, P::MulPlan) = MulPlan(A*P.matrix, P.dims)
 
 
-function plan_transform(Q::Normalized, arr, dims=1)
+function plan_grid_transform(Q::Normalized, arr, dims=1)
     @assert dims == 1
     L = Q[:,OneTo(size(arr,1))]
     x,w = golubwelsch(L)
     x, MulPlan(L[x,:]'*Diagonal(w), dims)
 end
 
-function plan_transform(P::OrthogonalPolynomial, arr, dims...)
+function plan_grid_transform(P::OrthogonalPolynomial, arr, dims...)
     Q = Normalized(P)
-    x, A = plan_transform(Q, arr, dims...)
+    x, A = plan_grid_transform(Q, arr, dims...)
     n = size(arr,1)
     D = (P \ Q)[1:n, 1:n]
     x, D * A

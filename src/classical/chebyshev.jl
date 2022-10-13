@@ -103,12 +103,12 @@ Jacobi(C::ChebyshevU{T}) where T = Jacobi(one(T)/2,one(T)/2)
 #######
 
 
-function plan_transform(T::ChebyshevT, arr, dims...)
+function plan_grid_transform(T::ChebyshevT, arr, dims...)
     n = size(arr,1)
     x = grid(T[:,oneto(n)])
     x, plan_chebyshevtransform(arr, dims...)
 end
-function plan_transform(U::ChebyshevU{<:FastTransforms.fftwNumber}, arr, dims...)
+function plan_grid_transform(U::ChebyshevU{<:FastTransforms.fftwNumber}, arr, dims...)
     n = size(arr,1)
     x = grid(U[:,oneto(n)])
     x, plan_chebyshevutransform(arr, dims...)
