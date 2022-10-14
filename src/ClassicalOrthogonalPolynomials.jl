@@ -89,9 +89,9 @@ _equals(::MappedOPLayout, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && basi
 _equals(::MappedOPLayout, ::MappedBasisLayouts, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
 _equals(::MappedBasisLayouts, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
 
-_broadcastbasis(::typeof(+), ::MappedOPLayout, ::MappedOPLayout, P, Q) where {L,M} = _broadcastbasis(+, MappedBasisLayout(), MappedBasisLayout(), P, Q)
-_broadcastbasis(::typeof(+), ::MappedOPLayout, M::MappedBasisLayout, P, Q) where L = _broadcastbasis(+, MappedBasisLayout(), M, P, Q)
-_broadcastbasis(::typeof(+), L::MappedBasisLayout, ::MappedOPLayout, P, Q) where M = _broadcastbasis(+, L, MappedBasisLayout(), P, Q)
+_broadcastbasis(::typeof(+), ::MappedOPLayout, ::MappedOPLayout, P, Q) = _broadcastbasis(+, MappedBasisLayout(), MappedBasisLayout(), P, Q)
+_broadcastbasis(::typeof(+), ::MappedOPLayout, M::MappedBasisLayout, P, Q) = _broadcastbasis(+, MappedBasisLayout(), M, P, Q)
+_broadcastbasis(::typeof(+), L::MappedBasisLayout, ::MappedOPLayout, P, Q) = _broadcastbasis(+, L, MappedBasisLayout(), P, Q)
 __sum(::MappedOPLayout, A, dims) = __sum(MappedBasisLayout(), A, dims)
 
 # demap to avoid Golub-Welsch fallback
@@ -225,11 +225,6 @@ function recurrencecoefficients(C::SubQuasiArray{T,2,<:Any,<:Tuple{AbstractAffin
     A * kr.A, A*kr.b + B, C
 end
 
-
-_vec(a) = vec(a)
-_vec(a::InfiniteArrays.ReshapedArray) = _vec(parent(a))
-_vec(a::Adjoint{<:Any,<:AbstractVector}) = a'
-
 include("clenshaw.jl")
 include("ratios.jl")
 include("normalized.jl")
@@ -319,8 +314,7 @@ end
 *(A::AbstractMatrix, P::MulPlan) = MulPlan(A*P.matrix, P.dims)
 
 
-function plan_grid_transform(Q::Normalized, arr, dims=1)
-    @assert dims == 1
+function plan_grid_transform(Q::Normalized, arr, dims=1:ndims(arr))
     L = Q[:,OneTo(size(arr,1))]
     x,w = golubwelsch(L)
     x, MulPlan(L[x,:]'*Diagonal(w), dims)

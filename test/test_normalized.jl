@@ -42,6 +42,49 @@ import ContinuumArrays: MappedWeightedBasisLayout
             @test w[0.1] ≈ (1-0.1^2) ≈ w[[0.1]][1]
         end
 
+        @testset "Transform" begin
+            Q = Normalized(Hermite())
+            n = 20
+            Qₙ = Q[:,Base.OneTo(n)]
+            x = axes(Q,1)
+            g = grid(Qₙ)
+            v = exp.(g)
+            P = plan_transform(Q, v)
+            @test P * v ≈ Qₙ[g,:] \ exp.(g) ≈ transform(Qₙ, exp)
+
+            V = cos.(g .* (1:3)')
+            P = plan_transform(Q, V, 1)
+            @test P * V ≈ Qₙ \ cos.(x .* (1:3)')
+
+            X = randn(n, n)
+            P₂ = plan_transform(Q, X, 2)
+
+            P = plan_transform(Q, X)
+
+            PX = P * X
+            for k = 1:n
+                X[:, k] = Qₙ[g,:] \ X[:, k]
+            end
+            for k = 1:n
+                X[k, :] = Qₙ[g,:] \ X[k, :]
+            end
+            @test PX ≈ X
+
+            X = randn(n, n, n)
+            P = plan_transform(Q, X)
+            PX = P * X
+            for k = 1:n, j = 1:n
+                X[:, k, j] = Qₙ[g,:] \ X[:, k, j]
+            end
+            for k = 1:n, j = 1:n
+                X[k, :, j] = Qₙ[g,:] \ X[k, :, j]
+            end
+            for k = 1:n, j = 1:n
+                X[k, j, :] = Qₙ[g,:] \ X[k, j, :]
+            end
+            @test PX ≈ X
+        end
+
         @testset "Conversion" begin
             @test ((P \ Q) * (Q \ P))[1:10,1:10] ≈ (Q \Q)[1:10,1:10] ≈ I
             @test (Jacobi(1,1) \ Q)[1:10,1:10] ≈ ((Jacobi(1,1) \ P) * (P \ Q))[1:10,1:10]
