@@ -36,7 +36,8 @@ import InfiniteLinearAlgebra: chop!, chop, choplength, compatible_resize!
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     inbounds_getindex, grid, plotgrid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
-    checkpoints, weight, unweighted, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis
+    checkpoints, weight, unweighted, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
+    plan_transform, plan_grid_transform
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan
 
@@ -52,20 +53,13 @@ export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomia
             ∞, Derivative, .., Inclusion,
             chebyshevt, chebyshevu, legendre, jacobi, ultraspherical,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
-            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace, plan_transform
 
 
 import Base: oneto
 
 
 include("interlace.jl")
-
-
-cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
-cardinality(::EuclideanDomain) = ℵ₁
-cardinality(::Union{DomainSets.RealNumbers,DomainSets.ComplexNumbers}) = ℵ₁
-cardinality(::Union{DomainSets.Integers,DomainSets.Rationals,DomainSets.NaturalNumbers}) = ℵ₀
-
 include("standardchop.jl")
 include("adaptivetransform.jl")
 
@@ -95,9 +89,9 @@ _equals(::MappedOPLayout, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && basi
 _equals(::MappedOPLayout, ::MappedBasisLayouts, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
 _equals(::MappedBasisLayouts, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
 
-_broadcastbasis(::typeof(+), ::MappedOPLayout, ::MappedOPLayout, P, Q) where {L,M} = _broadcastbasis(+, MappedBasisLayout(), MappedBasisLayout(), P, Q)
-_broadcastbasis(::typeof(+), ::MappedOPLayout, M::MappedBasisLayout, P, Q) where L = _broadcastbasis(+, MappedBasisLayout(), M, P, Q)
-_broadcastbasis(::typeof(+), L::MappedBasisLayout, ::MappedOPLayout, P, Q) where M = _broadcastbasis(+, L, MappedBasisLayout(), P, Q)
+_broadcastbasis(::typeof(+), ::MappedOPLayout, ::MappedOPLayout, P, Q) = _broadcastbasis(+, MappedBasisLayout(), MappedBasisLayout(), P, Q)
+_broadcastbasis(::typeof(+), ::MappedOPLayout, M::MappedBasisLayout, P, Q) = _broadcastbasis(+, MappedBasisLayout(), M, P, Q)
+_broadcastbasis(::typeof(+), L::MappedBasisLayout, ::MappedOPLayout, P, Q) = _broadcastbasis(+, L, MappedBasisLayout(), P, Q)
 __sum(::MappedOPLayout, A, dims) = __sum(MappedBasisLayout(), A, dims)
 
 # demap to avoid Golub-Welsch fallback
@@ -231,11 +225,6 @@ function recurrencecoefficients(C::SubQuasiArray{T,2,<:Any,<:Tuple{AbstractAffin
     A * kr.A, A*kr.b + B, C
 end
 
-
-_vec(a) = vec(a)
-_vec(a::InfiniteArrays.ReshapedArray) = _vec(parent(a))
-_vec(a::Adjoint{<:Any,<:AbstractVector}) = a'
-
 include("clenshaw.jl")
 include("ratios.jl")
 include("normalized.jl")
@@ -270,23 +259,75 @@ function golubwelsch(V::SubQuasiArray)
     x,w
 end
 
-function factorize(L::SubQuasiArray{T,2,<:Normalized,<:Tuple{Inclusion,OneTo}}, dims...; kws...) where T
+"""
+    MulPlan(matrix, dims)
+
+Takes a matrix and supports it applied to different dimensions.
+"""
+struct MulPlan{T, Fact, Dims} # <: Plan{T} We don't depend on AbstractFFTs
+    matrix::Fact
+    dims::Dims
+end
+
+MulPlan(fact, dims) = MulPlan{eltype(fact), typeof(fact), typeof(dims)}(fact, dims)
+
+function *(P::MulPlan{<:Any,<:Any,Int}, x::AbstractVector)
+    @assert P.dims == 1
+    P.matrix * x
+end
+
+function *(P::MulPlan{<:Any,<:Any,Int}, X::AbstractMatrix)
+    if P.dims == 1
+        P.matrix * X
+    else
+        @assert P.dims == 2
+        permutedims(P.matrix * permutedims(X))
+    end
+end
+
+function *(P::MulPlan{<:Any,<:Any,Int}, X::AbstractArray{<:Any,3})
+    Y = similar(X)
+    if P.dims == 1
+        for j in axes(X,3)
+            Y[:,:,j] = P.matrix * X[:,:,j]
+        end
+    elseif P.dims == 2
+        for k in axes(X,1)
+            Y[k,:,:] = P.matrix * X[k,:,:]
+        end
+    else
+        @assert P.dims == 3
+        for k in axes(X,1), j in axes(X,2)
+            Y[k,j,:] = P.matrix * X[k,j,:]
+        end
+    end
+    Y
+end
+
+function *(P::MulPlan, X::AbstractArray)
+    for d in P.dims
+        X = MulPlan(P.matrix, d) * X
+    end
+    X
+end
+
+*(A::AbstractMatrix, P::MulPlan) = MulPlan(A*P.matrix, P.dims)
+
+
+function plan_grid_transform(Q::Normalized, arr, dims=1:ndims(arr))
+    L = Q[:,OneTo(size(arr,1))]
     x,w = golubwelsch(L)
-    TransformFactorization(x, L[x,:]'*Diagonal(w))
+    x, MulPlan(L[x,:]'*Diagonal(w), dims)
 end
 
-
-function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,OneTo}}, dims...; kws...) where T
-    Q = Normalized(parent(L))[parentindices(L)...]
-    D = L \ Q
-    F = factorize(Q, dims...; kws...)
-    TransformFactorization(F.grid, D*F.plan)
+function plan_grid_transform(P::OrthogonalPolynomial, arr, dims...)
+    Q = Normalized(P)
+    x, A = plan_grid_transform(Q, arr, dims...)
+    n = size(arr,1)
+    D = (P \ Q)[1:n, 1:n]
+    x, D * A
 end
 
-function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{<:Inclusion,<:AbstractUnitRange}}, dims...; kws...) where T
-    _,jr = parentindices(L)
-    ProjectionFactorization(factorize(parent(L)[:,oneto(maximum(jr))], dims...; kws...), jr)
-end
 
 function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())

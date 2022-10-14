@@ -241,7 +241,7 @@ function \(F::SetindexFactorization{T,<:AbstractFill}, v::AbstractQuasiVector) w
     for (k,x) in enumerate(F̃.grid)
         data[k,:] = v[x]
     end
-    blockvec(Matrix(transpose(F̃ \ data))) # call Matrix to avoid ReshapedArray
+    blockvec(Matrix(transpose(F̃.plan * data))) # call Matrix to avoid ReshapedArray
 end
 
 
