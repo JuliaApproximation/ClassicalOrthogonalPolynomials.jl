@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · ClassicalOrthogonalPolynomials.jl</title><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href>ClassicalOrthogonalPolynomials.jl</a></span></div><form class="docs-search" action="search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a><ul class="internal"><li><a class="tocitem" href="#Definitions"><span>Definitions</span></a></li><li><a class="tocitem" href="#Evaluation"><span>Evaluation</span></a></li><li><a class="tocitem" href="#Continuum-arrays"><span>Continuum arrays</span></a></li><li><a class="tocitem" href="#Expansions"><span>Expansions</span></a></li><li><a class="tocitem" href="#Jacobi-matrices"><span>Jacobi matrices</span></a></li><li><a class="tocitem" href="#Derivatives"><span>Derivatives</span></a></li><li class="toplevel"><a class="tocitem" href="#Other-recurrence-relationships"><span>Other recurrence relationships</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaApproximation/ClassicalOrthogonalPolynomials.jl/blob/main/docs/src/index.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="ClassicalOrthogonalPolynomials.jl"><a class="docs-heading-anchor" href="#ClassicalOrthogonalPolynomials.jl">ClassicalOrthogonalPolynomials.jl</a><a id="ClassicalOrthogonalPolynomials.jl-1"></a><a class="docs-heading-anchor-permalink" href="#ClassicalOrthogonalPolynomials.jl" title="Permalink"></a></h1><p>A Julia package for classical orthogonal polynomials and expansions</p><h2 id="Definitions"><a class="docs-heading-anchor" href="#Definitions">Definitions</a><a id="Definitions-1"></a><a class="docs-heading-anchor-permalink" href="#Definitions" title="Permalink"></a></h2><p>We follow the <a href="https://dlmf.nist.gov/18.3">Digital Library of Mathematical Functions</a>, which defines the following classical orthogonal polynomials:</p><ol><li>Legendre: <span>$P_n(x)$</span></li><li>Chebyshev (1st kind, 2nd kind): <span>$T_n(x)$</span>, <span>$U_n(x)$</span></li><li>Ultraspherical: <span>$C_n^{(λ)}(x)$</span></li><li>Jacobi: <span>$P_n^{(a,b)}(x)$</span></li><li>Laguerre: <span>$L_n^{(α)}(x)$</span></li><li>Hermite: <span>$H_n(x)$</span></li></ol><h2 id="Evaluation"><a class="docs-heading-anchor" href="#Evaluation">Evaluation</a><a id="Evaluation-1"></a><a class="docs-heading-anchor-permalink" href="#Evaluation" title="Permalink"></a></h2><p>The simplest usage of this package is to evaluate classical orthogonal polynomials:</p><pre><code class="language-julia-repl hljs">julia&gt; using ClassicalOrthogonalPolynomials
+
+julia&gt; n, x = 5, 0.1;
+
+julia&gt; legendrep(n, x) # P_n(x)
+0.17882875
+
+julia&gt; chebyshevt(n, x) # T_n(x) == cos(n*acos(x))
+0.48016
+
+julia&gt; chebyshevu(n, x) # U_n(x) == sin((n+1)*acos(x))/sin(acos(x))
+0.56832
+
+julia&gt; λ = 0.3; ultrasphericalc(n, λ, x) # C_n^(λ)(x)
+0.08578714248
+
+julia&gt; a,b = 0.1,0.2; jacobip(n, a, b, x) # P_n^(a,b)(x)
+0.17459116797117194
+
+julia&gt; laguerrel(n, x) # L_n(x)
+0.5483540833333331
+
+julia&gt; α = 0.1; laguerrel(n, α, x) # L_n^(α)(x)
+0.732916666666666
+
+julia&gt; hermiteh(n, x) # H_n(x)
+11.84032</code></pre><h2 id="Continuum-arrays"><a class="docs-heading-anchor" href="#Continuum-arrays">Continuum arrays</a><a id="Continuum-arrays-1"></a><a class="docs-heading-anchor-permalink" href="#Continuum-arrays" title="Permalink"></a></h2><p>For expansions, recurrence relationships, and other operations linked with linear equations, it is useful to treat the families of orthogonal  polynomials as <em>continuum arrays</em>, as implemented in <a href="https://github.com/JuliaApproximation/ContinuumArrays.jl">ContinuumArrays.jl</a>. The continuum arrays implementation is accessed as follows:</p><pre><code class="language-julia-repl hljs">julia&gt; T = ChebyshevT() # Or just Chebyshev()
+ChebyshevT()
+
+julia&gt; axes(T) # [-1,1] by 1:∞
+(Inclusion(-1.0..1.0 (Chebyshev)), OneToInf())
+
+julia&gt; T[x, n+1] # T_n(x) = cos(n*acos(x))
+0.48016</code></pre><p>We can thereby access many points and indices efficiently using array-like language:</p><pre><code class="language-julia-repl hljs">julia&gt; x = range(-1, 1; length=1000);
+
+julia&gt; T[x, 1:1000] # [T_j(x[k]) for k=1:1000, j=0:999]
+1000×1000 Matrix{Float64}:
+ 1.0  -1.0       1.0       -1.0       1.0       -1.0       1.0       …  -1.0        1.0       -1.0        1.0       -1.0
+ 1.0  -0.997998  0.992     -0.98203   0.968128  -0.95035   0.928766     -0.99029    0.979515  -0.964818   0.946258  -0.92391
+ 1.0  -0.995996  0.984016  -0.964156  0.936575  -0.901494  0.859194     -0.448975   0.367296  -0.282676   0.195792  -0.107341
+ 1.0  -0.993994  0.976048  -0.946378  0.90534   -0.853427  0.791262      0.660163  -0.738397   0.807761  -0.867423   0.916664
+ 1.0  -0.991992  0.968096  -0.928695  0.874421  -0.806141  0.72495      -0.942051   0.892136  -0.827934   0.750471  -0.660989
+ 1.0  -0.98999   0.96016   -0.911108  0.843816  -0.75963   0.660237  …   0.891882  -0.946786   0.982736  -0.999011   0.995286
+ 1.0  -0.987988  0.952241  -0.893616  0.813524  -0.713888  0.597101      0.905338  -0.828835   0.73242   -0.618409   0.489542
+ ⋮                                               ⋮                   ⋱   ⋮                                          
+ 1.0   0.987988  0.952241   0.893616  0.813524   0.713888  0.597101     -0.905338  -0.828835  -0.73242   -0.618409  -0.489542
+ 1.0   0.98999   0.96016    0.911108  0.843816   0.75963   0.660237     -0.891882  -0.946786  -0.982736  -0.999011  -0.995286
+ 1.0   0.991992  0.968096   0.928695  0.874421   0.806141  0.72495   …   0.942051   0.892136   0.827934   0.750471   0.660989
+ 1.0   0.993994  0.976048   0.946378  0.90534    0.853427  0.791262     -0.660163  -0.738397  -0.807761  -0.867423  -0.916664
+ 1.0   0.995996  0.984016   0.964156  0.936575   0.901494  0.859194      0.448975   0.367296   0.282676   0.195792   0.107341
+ 1.0   0.997998  0.992      0.98203   0.968128   0.95035   0.928766      0.99029    0.979515   0.964818   0.946258   0.92391
+ 1.0   1.0       1.0        1.0       1.0        1.0       1.0           1.0        1.0        1.0        1.0        1.0</code></pre><h2 id="Expansions"><a class="docs-heading-anchor" href="#Expansions">Expansions</a><a id="Expansions-1"></a><a class="docs-heading-anchor-permalink" href="#Expansions" title="Permalink"></a></h2><p>We view a function expansion in say Chebyshev polynomials in terms of continuum arrays as follows:</p><p class="math-container">\[f(x) = \sum_{k=0}^∞ c_k T_k(x) = \begin{bmatrix}T_0(x) | T_1(x) | … \end{bmatrix} 
+\begin{bmatrix}c_0\\ c_1 \\ \vdots \end{bmatrix} = T[x,:] * 𝐜\]</p><p>To be more precise, we think of functions as continuum-vectors. Here is a simple example:</p><pre><code class="language-julia-repl hljs">julia&gt; f = T * [1; 2; 3; zeros(∞)]; # T_0(x) + T_1(x) + T_2(x)
+
+julia&gt; f[0.1]
+-1.74</code></pre><p>To find the coefficients for a given function we consider this as the problem of finding <span>$𝐜$</span> such that <span>$T*𝐜 == f$</span>, that is:</p><pre><code class="language-julia hljs">julia&gt; T \ f
+vcat(3-element Vector{Float64}, ℵ₀-element FillArrays.Zeros{Float64, 1, Tuple{InfiniteArrays.OneToInf{Int64}}} with indices OneToInf()) with indices OneToInf():
+ 1.0
+ 2.0
+ 3.0
+  ⋅ 
+  ⋅ 
+  ⋅ 
+  ⋅ 
+ ⋮</code></pre><p>For a function given only pointwise we broadcast over <code>x</code>, e.g., the following are the coefficients of <span>$\exp(x)$</span>:</p><pre><code class="language-julia hljs">julia&gt; x = axes(T, 1);
+
+julia&gt; c = T \ exp.(x)
+vcat(14-element Vector{Float64}, ℵ₀-element FillArrays.Zeros{Float64, 1, Tuple{InfiniteArrays.OneToInf{Int64}}} with indices OneToInf()) with indices OneToInf():
+ 1.2660658777520084
+ 1.1303182079849703
+ 0.27149533953407656
+ 0.04433684984866379
+ 0.0054742404420936785
+ 0.0005429263119139232
+ 4.497732295427654e-5
+ ⋮
+
+julia&gt; f = T*c; f[0.1] # ≈ exp(0.1)
+1.1051709180756477</code></pre><p>With a little cheeky usage of Julia&#39;s order-of-operations this can be written succicently as:</p><pre><code class="language-julia hljs">julia&gt; f = T / T \ exp.(x);
+
+julia&gt; f[0.1]
+1.1051709180756477</code></pre><p>(Or for more clarity just write <code>T * (T \ exp.(x))</code>.)</p><h2 id="Jacobi-matrices"><a class="docs-heading-anchor" href="#Jacobi-matrices">Jacobi matrices</a><a id="Jacobi-matrices-1"></a><a class="docs-heading-anchor-permalink" href="#Jacobi-matrices" title="Permalink"></a></h2><p>Orthogonal polynomials satisfy well-known three-term recurrences:</p><p class="math-container">\[x p_n(x) = c_{n-1} p_{n-1}(x) + a_n p_n(x) + b_n p_{n+1}(x).\]</p><p>In continuum-array language this has the  form of a comuting relationship:</p><p class="math-container">\[x \begin{bmatrix} p_0 | p_1 | \cdots \end{bmatrix} = \begin{bmatrix} p_0 | p_1 | \cdots \end{bmatrix} \begin{bmatrix} a_0 &amp; c_0  \\ b_0 &amp; a_1 &amp; c_1 \\ &amp; b_1 &amp; a_2 &amp; \ddots \\ &amp;&amp;\ddots &amp; \ddots \end{bmatrix}\]</p><p>We can therefore find the Jacobi matrix naturally as follows:</p><pre><code class="language-julia hljs">julia&gt; T \ (x .* T)
+ℵ₀×ℵ₀ LazyBandedMatrices.Tridiagonal{Float64, LazyArrays.ApplyArray{Float64, 1, typeof(vcat), Tuple{Float64, FillArrays.Fill{Float64, 1, Tuple{InfiniteArrays.OneToInf{Int64}}}}}, FillArrays.Zeros{Float64, 1, Tuple{InfiniteArrays.OneToInf{Int64}}}, FillArrays.Fill{Float64, 1, Tuple{InfiniteArrays.OneToInf{Int64}}}} with indices OneToInf()×OneToInf():
+ 0.0  0.5   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅   …  
+ 1.0  0.0  0.5   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+  ⋅   0.5  0.0  0.5   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+  ⋅    ⋅   0.5  0.0  0.5   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+  ⋅    ⋅    ⋅   0.5  0.0  0.5   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+  ⋅    ⋅    ⋅    ⋅   0.5  0.0  0.5   ⋅    ⋅    ⋅    ⋅    ⋅   …  
+  ⋅    ⋅    ⋅    ⋅    ⋅   0.5  0.0  0.5   ⋅    ⋅    ⋅    ⋅      
+ ⋮                        ⋮                        ⋮         ⋱  </code></pre><p>Alternatively, just call <code>jacobimatrix(T)</code> (noting its the transpose of the more traditional convention).</p><h2 id="Derivatives"><a class="docs-heading-anchor" href="#Derivatives">Derivatives</a><a id="Derivatives-1"></a><a class="docs-heading-anchor-permalink" href="#Derivatives" title="Permalink"></a></h2><p>The derivatives of classical orthogonal polynomials are also classical OPs, and this can be seen as follows:</p><pre><code class="language-julia hljs">julia&gt; U = ChebyshevU();
+
+julia&gt; D = Derivative(x);
+
+julia&gt; U\D*T
+ℵ₀×ℵ₀ BandedMatrix{Float64} with bandwidths (-1, 1) with data 1×ℵ₀ adjoint(::InfiniteArrays.InfStepRange{Float64, Float64}) with eltype Float64 with indices Base.OneTo(1)×OneToInf() with indices OneToInf()×OneToInf():
+  ⋅   1.0   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅   …  
+  ⋅    ⋅   2.0   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+  ⋅    ⋅    ⋅   3.0   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+  ⋅    ⋅    ⋅    ⋅   4.0   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+  ⋅    ⋅    ⋅    ⋅    ⋅   5.0   ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+  ⋅    ⋅    ⋅    ⋅    ⋅    ⋅   6.0   ⋅    ⋅    ⋅    ⋅    ⋅   …  
+  ⋅    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅   7.0   ⋅    ⋅    ⋅    ⋅      
+ ⋮                        ⋮                        ⋮         ⋱  </code></pre><p>Similarly, the derivative of <em>weighted</em> classical OPs are weighted classical OPs:</p><pre><code class="language-julia hljs">lia&gt; Weighted(T)\D*Weighted(U)
+ℵ₀×ℵ₀ BandedMatrix{Float64} with bandwidths (1, -1) with data 1×ℵ₀ adjoint(::InfiniteArrays.InfStepRange{Float64, Float64}) with eltype Float64 with indices Base.OneTo(1)×OneToInf() with indices OneToInf()×OneToInf():
+   ⋅     ⋅     ⋅     ⋅     ⋅     ⋅    ⋅    ⋅    ⋅    ⋅    ⋅   …  
+ -1.0    ⋅     ⋅     ⋅     ⋅     ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+   ⋅   -2.0    ⋅     ⋅     ⋅     ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+   ⋅     ⋅   -3.0    ⋅     ⋅     ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+   ⋅     ⋅     ⋅   -4.0    ⋅     ⋅    ⋅    ⋅    ⋅    ⋅    ⋅      
+   ⋅     ⋅     ⋅     ⋅   -5.0    ⋅    ⋅    ⋅    ⋅    ⋅    ⋅   …  
+   ⋅     ⋅     ⋅     ⋅     ⋅   -6.0   ⋅    ⋅    ⋅    ⋅    ⋅      
+  ⋮                             ⋮                        ⋮    ⋱  </code></pre><h1 id="Other-recurrence-relationships"><a class="docs-heading-anchor" href="#Other-recurrence-relationships">Other recurrence relationships</a><a id="Other-recurrence-relationships-1"></a><a class="docs-heading-anchor-permalink" href="#Other-recurrence-relationships" title="Permalink"></a></h1><p>Many other sparse recurrence relationships are implemented. Here&#39;s one:</p><pre><code class="language-julia hljs">julia&gt; U\T
+ℵ₀×ℵ₀ BandedMatrix{Float64} with bandwidths (0, 2) with data vcat(1×ℵ₀ FillArrays.Fill{Float64, 2, Tuple{Base.OneTo{Int64}, InfiniteArrays.OneToInf{Int64}}} with indices Base.OneTo(1)×OneToInf(), 1×ℵ₀ FillArrays.Zeros{Float64, 2, Tuple{Base.OneTo{Int64}, InfiniteArrays.OneToInf{Int64}}} with indices Base.OneTo(1)×OneToInf(), hcat(1×1 Ones{Float64}, 1×ℵ₀ FillArrays.Fill{Float64, 2, Tuple{Base.OneTo{Int64}, InfiniteArrays.OneToInf{Int64}}} with indices Base.OneTo(1)×OneToInf()) with indices Base.OneTo(1)×OneToInf()) with indices Base.OneTo(3)×OneToInf() with indices OneToInf()×OneToInf():
+ 1.0  0.0  -0.5    ⋅     ⋅     ⋅     ⋅     ⋅     ⋅    ⋅    ⋅   …  
+  ⋅   0.5   0.0  -0.5    ⋅     ⋅     ⋅     ⋅     ⋅    ⋅    ⋅      
+  ⋅    ⋅    0.5   0.0  -0.5    ⋅     ⋅     ⋅     ⋅    ⋅    ⋅      
+  ⋅    ⋅     ⋅    0.5   0.0  -0.5    ⋅     ⋅     ⋅    ⋅    ⋅      
+  ⋅    ⋅     ⋅     ⋅    0.5   0.0  -0.5    ⋅     ⋅    ⋅    ⋅      
+  ⋅    ⋅     ⋅     ⋅     ⋅    0.5   0.0  -0.5    ⋅    ⋅    ⋅   …  
+  ⋅    ⋅     ⋅     ⋅     ⋅     ⋅    0.5   0.0  -0.5   ⋅    ⋅      
+ ⋮                            ⋮                           ⋮    ⋱  </code></pre><p>(Probably best to ignore the type signature 😅)</p></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Sunday 30 October 2022 15:05">Sunday 30 October 2022</span>. Using Julia version 1.7.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
