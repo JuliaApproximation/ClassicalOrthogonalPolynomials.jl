@@ -158,11 +158,6 @@ function grid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,Any}}) wh
     ChebyshevGrid{1,T}(maximum(jr))
 end
 
-function plotgrid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,Any}}) where T
-    kr,jr = parentindices(Pn)
-    ChebyshevGrid{2,T}(40maximum(jr))
-end
-
 ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
 ldiv(P::Jacobi{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
 function ldiv(P::Jacobi{V}, f::AbstractQuasiVector) where V
