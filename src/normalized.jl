@@ -83,7 +83,7 @@ QuasiArrays.ApplyQuasiArray(Q::Normalized) = ApplyQuasiArray(*, arguments(ApplyL
 
 ArrayLayouts.mul(Q::Normalized, C::AbstractArray) = ApplyQuasiArray(*, Q, C)
 
-grid(Q::SubQuasiArray{<:Any,2,<:Normalized,<:Tuple{Inclusion,Any}}) = grid(view(parent(Q).P, parentindices(Q)...))
+grid(Q::SubQuasiArray{<:Any,2,<:Normalized,<:Tuple{Inclusion,OneTo}}) = grid(view(parent(Q).P, parentindices(Q)...))
 plotgrid(Q::SubQuasiArray{<:Any,2,<:Normalized,<:Tuple{Inclusion,Any}}) = plotgrid(view(parent(Q).P, parentindices(Q)...))
 
 # transform_ldiv(Q::Normalized, C::AbstractQuasiArray) = Q.scaling .\ (Q.P \ C)
