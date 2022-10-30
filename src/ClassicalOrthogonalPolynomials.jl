@@ -245,8 +245,18 @@ _tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
 jacobimatrix(V::SubQuasiArray{<:Any,2,<:Any,<:Tuple{Inclusion,OneTo}}) =
     _tritrunc(jacobimatrix(parent(V)), maximum(parentindices(V)[2]))
 
-grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}}) =
+grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,OneTo}}) =
     eigvals(symtridiagonalize(jacobimatrix(P)))
+
+function grid(Pn::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}})
+    kr,jr = parentindices(Pn)
+    grid(parent(Pn)[:,oneto(maximum(jr))])
+end
+
+function plotgrid(Pn::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}}) where T
+    kr,jr = parentindices(Pn)
+    grid(parent(Pn)[:,oneto(40maximum(jr))])
+end
 
 function golubwelsch(X)
     D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
