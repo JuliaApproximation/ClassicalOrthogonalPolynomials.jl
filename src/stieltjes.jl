@@ -190,6 +190,10 @@ end
     transpose((X'-z*I) \ [-sum(w)*_p0(P); zeros(∞)])
 end
 
+@simplify function *(S::StieltjesPoint, P::Legendre)
+    S * Weighted(P)
+end
+
 sqrtx2(z::Number) = sqrt(z-1)*sqrt(z+1)
 sqrtx2(x::Real) = sign(x)*sqrt(x^2-1)
 
