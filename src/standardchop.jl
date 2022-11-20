@@ -49,7 +49,9 @@ function standardchoplength(coeffs, tol)
     # Step 1: Convert COEFFS to a new monotonically nonincreasing
     #         vector ENVELOPE normalized to begin with the value 1.
 
-    b = Vector(coeffs); b .= abs.(b)
+    # convert to Vector first as copyto! is more likely to be optimised than
+    # broadcast
+    b = abs.(convert(Vector, coeffs))
     for j = n-1:-1:1
         b[j] = max(b[j], b[j+1])
     end
