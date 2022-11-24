@@ -144,12 +144,12 @@ end
             
             x = axes(Laguerre(), 1)
             @test (inv.(x .- x') * LaguerreWeight())[0.1] ≈ exp(-0.1)*expinti(0.1)
-            @test isapprox((inv.(x .- x') * LaguerreWeight(-0.5))[0.1],  3.317769, rtol=1e-4) # Mathematica
-            @test isapprox((inv.(x .- x') * LaguerreWeight(-0.5))[2.1],  1.0829, rtol=1e-4) # Mathematica
-            @test isapprox((inv.(x .- x') * LaguerreWeight(0.5))[0.1],  -1.44067, rtol=1e-4) # Mathematica
-            @test isapprox((inv.(x .- x') * LaguerreWeight(0.5))[2.1],  0.5017, rtol=1e-3) # Mathematica
-            @test isapprox((inv.(x .- x') * LaguerreWeight(3.5))[0.1],  -3.46658, rtol=1e-4) # Mathematica
-            @test isapprox((inv.(x .- x') * LaguerreWeight(3.5))[2.1],  -5.37663, rtol=1e-4) # Mathematica
+            @test (inv.(x .- x') * LaguerreWeight(-0.5))[0.1] ≈ 3.3177694149902   # Mathematica
+            @test (inv.(x .- x') * LaguerreWeight(-0.5))[2.1] ≈ 1.08294830124810  # Mathematica
+            @test (inv.(x .- x') * LaguerreWeight(0.5))[0.1]  ≈ -1.44067690942561 # Mathematica
+            @test (inv.(x .- x') * LaguerreWeight(0.5))[2.1]  ≈ 0.501737581714500 # Mathematica
+            @test (inv.(x .- x') * LaguerreWeight(3.5))[0.1]  ≈ -3.46658795669242 # Mathematica
+            @test (inv.(x .- x') * LaguerreWeight(3.5))[2.1]  ≈ -5.37663478253357 # Mathematica
         end
 
         @test (Ultraspherical(1) \ (H*wT))[1:10,1:10] == diagm(1 => fill(-π,9))
