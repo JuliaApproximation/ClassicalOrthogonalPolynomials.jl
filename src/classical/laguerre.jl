@@ -9,7 +9,8 @@ end
 
 LaguerreWeight{T}() where T = LaguerreWeight{T}(zero(T))
 LaguerreWeight() = LaguerreWeight{Float64}()
-axes(::LaguerreWeight{T}) where T = (Inclusion(ℝ),)
+# axes(::LaguerreWeight{T}) where T = (Inclusion(ℝ),)
+axes(::LaguerreWeight{T}) where T = (Inclusion(HalfLine{T}()),)
 function getindex(w::LaguerreWeight, x::Number)
     x ∈ axes(w,1) || throw(BoundsError())
     x^w.α * exp(-x)

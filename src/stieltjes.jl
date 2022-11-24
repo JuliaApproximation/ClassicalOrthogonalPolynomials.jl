@@ -94,9 +94,25 @@ end
     ChebyshevT{T}() * _BandedMatrix(Fill(convert(T,π),1,∞), ℵ₀, 1, -1)
 end
 
+@simplify function *(H::Hilbert{<:Any,<:HalfLine,<:HalfLine}, w::LaguerreWeight)
+    T = promote_type(eltype(H), eltype(w))
+    α = convert(T, w.α)
+    z = axes(w,1)
+    
+    α == 0 && return real(exp.(log.(expinti.(z) .+ zero(T)*im) .-z))
 
+    β = -1 < α < 0 ? α : α - ceil(α)
+    # S = (2* π * im) * (-z)^β*exp(-z)*gamma(-β,-z)/(gamma(-β)*(exp(im*π*β)-exp(-im*π*β)))
+    S = (2 * convert(T,π) * im) .* exp.(β*log.(-z .+ zero(T)*im) .- z + loggamma.(-β, -z .+ zero(T)*im)) ./ (gamma(-β)*(exp(im*convert(T,π)*β)-exp(-im*convert(T,π)*β)))
+    if α > 0
+        for j in 1:Int(ceil(α))
+            S = -gamma(β+j) .+ z .* S
+        end
+    end
+    real(S)
+end
 
-@simplify function *(H::Hilbert{<:Any,<:ChebyshevInterval,<:ChebyshevInterval}, wP::Weighted{<:Any,<:OrthogonalPolynomial})
+@simplify function *(H::Hilbert{<:Any,<:Any,<:Any}, wP::Weighted{<:Any,<:OrthogonalPolynomial})
     P = wP.P
     w = orthogonalityweight(P)
     A = recurrencecoefficients(P)[1]

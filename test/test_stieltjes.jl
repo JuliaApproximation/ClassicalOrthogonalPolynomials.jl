@@ -141,6 +141,15 @@ end
             @test H * ChebyshevTWeight() ≡ QuasiZeros{Float64}((x,))
             @test H * ChebyshevUWeight() == π*x
             @test (H * LegendreWeight())[0.1] ≈ log((0.1+1)/(1-0.1))
+            
+            x = axes(Laguerre(), 1)
+            @test (inv.(x .- x') * LaguerreWeight())[0.1] ≈ exp(-0.1)*expinti(0.1)
+            @test isapprox((inv.(x .- x') * LaguerreWeight(-0.5))[0.1],  3.317769, rtol=1e-4) # Mathematica
+            @test isapprox((inv.(x .- x') * LaguerreWeight(-0.5))[2.1],  1.0829, rtol=1e-4) # Mathematica
+            @test isapprox((inv.(x .- x') * LaguerreWeight(0.5))[0.1],  -1.44067, rtol=1e-4) # Mathematica
+            @test isapprox((inv.(x .- x') * LaguerreWeight(0.5))[2.1],  0.5017, rtol=1e-3) # Mathematica
+            @test isapprox((inv.(x .- x') * LaguerreWeight(3.5))[0.1],  -3.46658, rtol=1e-4) # Mathematica
+            @test isapprox((inv.(x .- x') * LaguerreWeight(3.5))[2.1],  -5.37663, rtol=1e-4) # Mathematica
         end
 
         @test (Ultraspherical(1) \ (H*wT))[1:10,1:10] == diagm(1 => fill(-π,9))
