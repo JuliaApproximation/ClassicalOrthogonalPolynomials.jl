@@ -66,3 +66,19 @@ recurrencecoefficients(L::Laguerre{T}) where T = ((-one(T)) ./ (1:∞), ((L.α+1
     D = _BandedMatrix(Fill(-one(T),1,∞), ∞, -1,1)
     Laguerre(L.α+1)*D
 end
+
+##########
+# Conversion
+##########
+
+function \(L::Laguerre, K::Laguerre)
+    T = promote_type(eltype(L), eltype(K))
+    @assert L.α ≈ K.α + one(T)
+    BandedMatrix(0=>Fill{T}(one(T), ∞), 1=>Fill{T}(-one(T), ∞))
+end
+
+function \(w_A::Weighted{<:Any,<:Laguerre}, w_B::Weighted{<:Any,<:Laguerre})
+    T = promote_type(eltype(w_A), eltype(w_B))
+    @assert w_A.P.α + one(T) ≈ w_B.P.α
+    BandedMatrix(0=>w_B.P.α:∞, -1=>-1:-1:-∞)
+end
