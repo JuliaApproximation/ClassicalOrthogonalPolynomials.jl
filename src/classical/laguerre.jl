@@ -67,6 +67,12 @@ recurrencecoefficients(L::Laguerre{T}) where T = ((-one(T)) ./ (1:∞), ((L.α+1
     Laguerre(L.α+1)*D
 end
 
+@simplify function *(D::Derivative, w_A::Weighted{<:Any,<:Laguerre})
+    T = promote_type(eltype(D),eltype(w_A))
+    D = BandedMatrix(-1=>one(T):∞)
+    Weighted(Laguerre{T}(w_A.P.α-1))*D
+end
+
 ##########
 # Conversion
 ##########
