@@ -73,12 +73,22 @@ end
 
 function \(L::Laguerre, K::Laguerre)
     T = promote_type(eltype(L), eltype(K))
-    @assert L.α ≈ K.α + one(T)
-    BandedMatrix(0=>Fill{T}(one(T), ∞), 1=>Fill{T}(-one(T), ∞))
+    if L.α ≈ K.α
+        Eye{T}(∞)
+    elseif L.α ≈ K.α + 1
+        BandedMatrix(0=>Fill{T}(one(T), ∞), 1=>Fill{T}(-one(T), ∞))
+    else
+        error("Not implemented for this choice of L.α and K.α.")
+    end
 end
 
 function \(w_A::Weighted{<:Any,<:Laguerre}, w_B::Weighted{<:Any,<:Laguerre})
     T = promote_type(eltype(w_A), eltype(w_B))
-    @assert w_A.P.α + one(T) ≈ w_B.P.α
-    BandedMatrix(0=>w_B.P.α:∞, -1=>-1:-1:-∞)
+    if w_A.P.α ≈ w_B.P.α
+        Eye{T}(∞)
+    elseif w_A.P.α + 1 ≈ w_B.P.α
+        BandedMatrix(0=>w_B.P.α:∞, -1=>-one(T):-one(T):-∞)
+    else
+        error("Not implemented for this choice of w_A.P.α and w_B.P.α.")
+    end
 end

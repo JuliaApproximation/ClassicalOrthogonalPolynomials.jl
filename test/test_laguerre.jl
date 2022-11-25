@@ -31,12 +31,14 @@ import ClassicalOrthogonalPolynomials: orthogonalityweight
         α = 0.3
         L = Laguerre(α)
         P = Laguerre(α-1)
-    
-        @test P[0.1, 1:10] ≈ (L[0.1,1:20]'*(L \ P)[1:20,1:20])[1:10]
+        
+        @test L \ L == Eye(∞)
+        @test P[0.1, 1:10] ≈ (L[0.1,1:10]'*(L \ P)[1:10,1:10])'
     
         wL = Weighted(L)
         wP = Weighted(P)
-    
-        @test wL[0.1, 1:10] ≈ (wP[0.1,1:20]'*(wP \ wL)[1:20,1:20])[1:10]
+        
+        @test wL \ wL == Eye(∞)
+        @test wL[0.1, 1:10] ≈ (wP[0.1,1:11]'*(wP \ wL)[1:11,1:10])'
     end
 end
