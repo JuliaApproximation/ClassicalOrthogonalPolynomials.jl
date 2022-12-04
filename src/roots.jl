@@ -18,9 +18,35 @@ function colleaguematrix(P, c)
 end
 
 
-function _roots(::ExpansionLayout{<:AbstractOPLayout}, f)
+function _findall(::typeof(iszero), ::ExpansionLayout{<:AbstractOPLayout}, f)
     C = colleaguematrix(f.args...)
     ax = axes(f,1)
     convert(Vector{eltype(ax)}, filter!(in(ax), eigvals(C)))
 end
-findall(::typeof(iszero), f::AbstractQuasiVector) = _roots(MemoryLayout(f), f)
+findall(f, v::AbstractQuasiVector) = _findall(f, MemoryLayout(v), v)
+
+# gives a generalization of midpoint for when `a` or `b` is infinite
+function genmidpoint(a::T, b::T) where T
+    if isinf(a) && isinf(b)
+        zero(T)
+    elseif isinf(a)
+        b - 100
+    elseif isinf(b)
+        a + 100
+    else
+        (a+b)/2
+    end
+end
+
+
+function _searchsortedfirst(::ExpansionLayout{<:AbstractOPLayout}, f, x; iterations=47)
+    d = axes(f,1)
+    a,b = first(d), last(d)
+
+    for k=1:iterations  #TODO: decide 47
+        m= genmidpoint(a,b)
+        (f[m] ≤ x) ? (a = m) : (b = m)
+    end
+    (a+b)/2
+end
+searchsortedfirst(f::AbstractQuasiVector, x; kwds...) = _searchsortedfirst(MemoryLayout(f), f, x; kwds...)
