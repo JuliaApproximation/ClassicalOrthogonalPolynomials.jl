@@ -54,7 +54,8 @@ export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomia
             ∞, Derivative, .., Inclusion,
             chebyshevt, chebyshevu, legendre, jacobi, ultraspherical,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
-            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace, plan_transform
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace, plan_transform,
+            expand, transform
 
 
 import Base: oneto

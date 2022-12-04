@@ -23,7 +23,7 @@ function _findall(::typeof(iszero), ::ExpansionLayout{<:AbstractOPLayout}, f)
     ax = axes(f,1)
     convert(Vector{eltype(ax)}, filter!(in(ax), eigvals(C)))
 end
-findall(f, v::AbstractQuasiVector) = _findall(f, MemoryLayout(v), v)
+findall(f::Function, v::AbstractQuasiVector) = _findall(f, MemoryLayout(v), v)
 
 # gives a generalization of midpoint for when `a` or `b` is infinite
 function genmidpoint(a::T, b::T) where T
