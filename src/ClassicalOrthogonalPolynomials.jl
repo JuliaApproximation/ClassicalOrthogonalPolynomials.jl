@@ -10,7 +10,8 @@ using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, Bloc
 import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy, setindex,
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
-                to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
+                to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary,
+                findall
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
@@ -381,6 +382,6 @@ include("classical/ultraspherical.jl")
 include("classical/laguerre.jl")
 include("classical/fourier.jl")
 include("stieltjes.jl")
-
+include("roots.jl")
 
 end # module
