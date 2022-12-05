@@ -12,7 +12,7 @@ function getindex(F::Fourier{T}, x::Real, j::Int)::T where T
 end
 
 ### transform
-checkpoints(::Fourier{T}) where T = T[1.223972,3.14,5.83273484]
+checkpoints(F::Fourier) = eltype(axes(F,1))[1.223972,3.14,5.83273484]
 
 fouriergrid(T, n) = convert(T,π)*collect(0:2:2n-2)/n
 
