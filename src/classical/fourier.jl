@@ -19,7 +19,7 @@ fouriergrid(T, n) = convert(T,π)*collect(0:2:2n-2)/n
 function grid(Pn::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:AbstractUnitRange}}) where T
     kr,jr = parentindices(Pn)
     n = maximum(jr)
-    fouriergrid(T, n)
+    fouriergrid(eltype(axes(Pn,1)), n)
 end
 
 """
