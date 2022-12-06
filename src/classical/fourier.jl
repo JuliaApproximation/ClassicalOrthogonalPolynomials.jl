@@ -96,7 +96,22 @@ function _shuffledFFT_postscale!(_, ret::AbstractVector{T}) where T
     reverseeven!(interlace!(cfs,1))
 end
 
-
+function _shuffledFFT_postscale!(d::Number, ret::AbstractMatrix{T}) where T
+    if isone(d)
+        n = size(ret,1)
+        lmul!(inv(convert(T,n)), ret)
+        for j in axes(ret,2)
+            reverseeven!(interlace!(view(ret,:,j),1))
+        end
+    else
+        n = size(ret,2)
+        lmul!(inv(convert(T,n)), ret)
+        for k in axes(ret,1)
+            reverseeven!(interlace!(view(ret,k,:),1))
+        end
+    end
+    ret
+end
 
 function mul!(ret::AbstractArray{T}, F::ShuffledR2HC{T}, b::AbstractArray) where T
     mul!(ret, F.plan, convert(Array{T}, b))
@@ -131,9 +146,19 @@ import BlockBandedMatrices: _BlockSkylineMatrix
     PseudoBlockArray(Diagonal(Vcat(2convert(TV,π),Fill(convert(TV,π),∞))), (axes(A,1),axes(B,2)))
 end
 
+@simplify function *(A::QuasiAdjoint{<:Any,<:Laurent}, B::Laurent)
+    TV = promote_type(eltype(A),eltype(B))
+    Diagonal(Fill(2convert(TV,π),(axes(B,2),)))
+end
+
 @simplify function *(D::Derivative, F::Fourier)
     TV = promote_type(eltype(D),eltype(F))
     Fourier{TV}()*_BlockArray(Diagonal(Vcat([reshape([0.0],1,1)], (1.0:∞) .* Fill([0 -one(TV); one(TV) 0], ∞))), (axes(F,2),axes(F,2)))
+end
+
+@simplify function *(D::Derivative, F::Laurent)
+    TV = promote_type(eltype(D),eltype(F))
+    Laurent{TV}() * Diagonal(PseudoBlockVector((((1:∞) .÷ 2) .* (1 .- 2 .* iseven.(1:∞))) * convert(TV,im), (axes(F,2),)))
 end
 
 
