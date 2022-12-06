@@ -1,42 +1,67 @@
+abstract type AbstractFourier{T} <: Basis{T} end
 
-struct Fourier{T} <: Basis{T} end
+struct Fourier{T} <: AbstractFourier{T} end
+struct Laurent{T} <: AbstractFourier{T} end
+
 Fourier() = Fourier{Float64}()
+Laurent() = Laurent{ComplexF64}()
 
 ==(::Fourier, ::Fourier) = true
+==(::Laurent, ::Laurent) = true
 
-axes(F::Fourier) = (Inclusion(ℝ), _BlockedUnitRange(1:2:∞))
+axes(F::AbstractFourier) = (Inclusion(ℝ), _BlockedUnitRange(1:2:∞))
 
 function getindex(F::Fourier{T}, x::Real, j::Int)::T where T
     isodd(j) && return cos((j÷2)*x)
     sin((j÷2)*x)
 end
 
+function getindex(F::Laurent{T}, x::Real, j::Int)::T where T
+    s = 1-2iseven(j)
+    exp(im*s*(j÷2)*x)
+end
+
 ### transform
-checkpoints(F::Fourier) = eltype(axes(F,1))[1.223972,3.14,5.83273484]
+checkpoints(F::AbstractFourier) = eltype(axes(F,1))[1.223972,3.14,5.83273484]
 
 fouriergrid(T, n) = convert(T,π)*collect(0:2:2n-2)/n
 
-function grid(Pn::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:AbstractUnitRange}}) where T
+function grid(Pn::SubQuasiArray{T,2,<:AbstractFourier,<:Tuple{<:Inclusion,<:AbstractUnitRange}}) where T
     kr,jr = parentindices(Pn)
     n = maximum(jr)
     fouriergrid(eltype(axes(Pn,1)), n)
 end
 
+
+abstract type AbstractShuffledPlan{T} <: Plan{T} end
+
 """
 Gives a shuffled version of the real FFT, with order
 1,sin(θ),cos(θ),sin(2θ)…
 """
-struct ShuffledRFFT{T,Pl<:Plan} <: Factorization{T}
+struct ShuffledR2HC{T,Pl<:Plan} <: AbstractShuffledPlan{T}
     plan::Pl
 end
 
-size(F::ShuffledRFFT, k) = size(F.plan,k)
-size(F::ShuffledRFFT) = size(F.plan)
+"""
+Gives a shuffled version of the FFT, with order
+1,sin(θ),cos(θ),sin(2θ)…
+"""
+struct ShuffledFFT{T,Pl<:Plan} <: AbstractShuffledPlan{T}
+    plan::Pl
+end
 
-ShuffledRFFT{T}(p::Pl) where {T,Pl<:Plan} = ShuffledRFFT{T,Pl}(p)
-ShuffledRFFT{T}(n, d...) where T = ShuffledRFFT{T}(FFTW.plan_r2r(Array{T}(undef, n), FFTW.R2HC, d...))
+size(F::AbstractShuffledPlan, k) = size(F.plan,k)
+size(F::AbstractShuffledPlan) = size(F.plan)
 
-function _shuffledrfft_postscale!(_, ret::AbstractVector{T}) where T
+ShuffledR2HC{T}(p::Pl) where {T,Pl<:Plan} = ShuffledR2HC{T,Pl}(p)
+ShuffledR2HC{T}(n, d...) where T = ShuffledR2HC{T}(FFTW.plan_r2r(Array{T}(undef, n), FFTW.R2HC, d...))
+
+ShuffledFFT{T}(p::Pl) where {T,Pl<:Plan} = ShuffledFFT{T,Pl}(p)
+ShuffledFFT{T}(n, d...) where T = ShuffledFFT{T}(FFTW.plan_fft(Array{T}(undef, n), d...))
+
+
+function _shuffledR2HC_postscale!(_, ret::AbstractVector{T}) where T
     n = length(ret)
     lmul!(convert(T,2)/n, ret)
     ret[1] /= 2
@@ -44,7 +69,7 @@ function _shuffledrfft_postscale!(_, ret::AbstractVector{T}) where T
     negateeven!(reverseeven!(interlace!(ret,1)))
 end
 
-function _shuffledrfft_postscale!(d::Number, ret::AbstractMatrix{T}) where T
+function _shuffledR2HC_postscale!(d::Number, ret::AbstractMatrix{T}) where T
     if isone(d)
         n = size(ret,1)
         lmul!(convert(T,2)/n, ret)
@@ -65,20 +90,38 @@ function _shuffledrfft_postscale!(d::Number, ret::AbstractMatrix{T}) where T
     ret
 end
 
-
-function mul!(ret::AbstractArray{T}, F::ShuffledRFFT{T}, b::AbstractArray) where T
-    mul!(ret, F.plan, convert(Array{T}, b))
-    _shuffledrfft_postscale!(F.plan.region, ret)
+function _shuffledFFT_postscale!(_, ret::AbstractVector{T}) where T
+    n = length(ret)
+    cfs = lmul!(inv(convert(T,n)), ret)
+    reverseeven!(interlace!(cfs,1))
 end
 
-*(F::ShuffledRFFT{T}, b::AbstractVecOrMat) where T = mul!(similar(b, T), F, b)
+
+
+function mul!(ret::AbstractArray{T}, F::ShuffledR2HC{T}, b::AbstractArray) where T
+    mul!(ret, F.plan, convert(Array{T}, b))
+    _shuffledR2HC_postscale!(F.plan.region, ret)
+end
+
+function mul!(ret::AbstractArray{T}, F::ShuffledFFT{T}, b::AbstractArray) where T
+    mul!(ret, F.plan, convert(Array{T}, b))
+    _shuffledFFT_postscale!(F.plan.region, ret)
+end
+
+*(F::AbstractShuffledPlan{T}, b::AbstractVecOrMat) where T = mul!(similar(b, T), F, b)
 
 factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:OneTo}}) where T =
-    TransformFactorization(grid(L), ShuffledRFFT{T}(size(L,2)))
+    TransformFactorization(grid(L), ShuffledR2HC{T}(size(L,2)))
 factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:OneTo}}, d) where T =
-    TransformFactorization(grid(L), ShuffledRFFT{T}((size(L,2),d),1))
+    TransformFactorization(grid(L), ShuffledR2HC{T}((size(L,2),d),1))
 
-factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:BlockSlice}},d...) where T =
+factorize(L::SubQuasiArray{T,2,<:Laurent,<:Tuple{<:Inclusion,<:OneTo}}) where T =
+    TransformFactorization(grid(L), ShuffledFFT{T}(size(L,2)))
+factorize(L::SubQuasiArray{T,2,<:Laurent,<:Tuple{<:Inclusion,<:OneTo}}, d) where T =
+    TransformFactorization(grid(L), ShuffledFFT{T}((size(L,2),d),1))
+
+
+factorize(L::SubQuasiArray{T,2,<:AbstractFourier,<:Tuple{<:Inclusion,<:BlockSlice}},d...) where T =
     ProjectionFactorization(factorize(parent(L)[:,OneTo(size(L,2))],d...),parentindices(L)[2])
 
 import BlockBandedMatrices: _BlockSkylineMatrix
