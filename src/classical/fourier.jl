@@ -25,13 +25,7 @@ end
 checkpoints(F::AbstractFourier) = eltype(axes(F,1))[1.223972,3.14,5.83273484]
 
 fouriergrid(T, n) = convert(T,π)*collect(0:2:2n-2)/n
-
-function grid(Pn::SubQuasiArray{T,2,<:AbstractFourier,<:Tuple{<:Inclusion,<:AbstractUnitRange}}) where T
-    kr,jr = parentindices(Pn)
-    n = maximum(jr)
-    fouriergrid(eltype(axes(Pn,1)), n)
-end
-
+grid(Pn::AbstractFourier, n::Integer) = fouriergrid(eltype(axes(Pn,1)), n)
 
 abstract type AbstractShuffledPlan{T} <: Plan{T} end
 

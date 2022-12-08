@@ -35,10 +35,10 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop, choplength, compatible_resize!
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
-    inbounds_getindex, grid, plotgrid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
+    inbounds_getindex, grid, plotgrid, _plotgrid, _grid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
-    plan_transform, plan_grid_transform
+    plan_transform, plan_grid_transform, MAX_PLOT_POINTS
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan
 
@@ -247,18 +247,10 @@ _tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
 jacobimatrix(V::SubQuasiArray{<:Any,2,<:Any,<:Tuple{Inclusion,OneTo}}) =
     _tritrunc(jacobimatrix(parent(V)), maximum(parentindices(V)[2]))
 
-grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,OneTo}}) =
-    eigvals(symtridiagonalize(jacobimatrix(P)))
-
-function grid(Pn::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}})
-    kr,jr = parentindices(Pn)
-    grid(parent(Pn)[:,oneto(maximum(jr))])
-end
-
-function plotgrid(Pn::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}}) where T
-    kr,jr = parentindices(Pn)
-    grid(parent(Pn)[:,oneto(40maximum(jr))])
-end
+_grid(::AbstractOPLayout, P, n::Integer) = eigvals(symtridiagonalize(jacobimatrix(P[:,OneTo(n)])))
+_grid(::MappedOPLayout, P, n::Integer) = _grid(MappedBasisLayout(), P, n)
+_plotgrid(::AbstractOPLayout, P, n::Integer) = grid(P, min(40n, MAX_PLOT_POINTS))
+_plotgrid(::MappedOPLayout, P, n::Integer) = _plotgrid(MappedBasisLayout(), P, n)
 
 function golubwelsch(X)
     D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition

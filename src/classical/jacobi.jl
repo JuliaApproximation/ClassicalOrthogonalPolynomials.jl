@@ -153,15 +153,8 @@ summary(io::IO, P::Jacobi) = print(io, "Jacobi($(P.a), $(P.b))")
 # transforms
 ###
 
-function grid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,OneTo}}) where T
-    kr,jr = parentindices(Pn)
-    ChebyshevGrid{1,T}(maximum(jr))
-end
-
-function plotgrid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,Any}}) where T
-    kr,jr = parentindices(Pn)
-    ChebyshevGrid{2,T}(40maximum(jr))
-end
+grid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{1,T}(n)
+plotgrid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{2,T}(min(40n, MAX_PLOT_POINTS))
 
 ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
 ldiv(P::Jacobi{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
