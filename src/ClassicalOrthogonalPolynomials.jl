@@ -113,7 +113,6 @@ copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:MappedBasisLayouts = copy(Ldiv{Mapp
 
 # OPs are immutable
 copy(a::OrthogonalPolynomial) = a
-copy(a::SubQuasiArray{<:Any,N,<:OrthogonalPolynomial}) where N = a
 
 """
     jacobimatrix(P)
