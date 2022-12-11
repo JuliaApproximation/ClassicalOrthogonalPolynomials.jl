@@ -318,13 +318,13 @@ end
 *(A::AbstractMatrix, P::MulPlan) = MulPlan(A*P.matrix, P.dims)
 
 
-function plan_grid_transform(Q::Normalized, szs, dims=1:ndims(arr))
+function plan_grid_transform(Q::Normalized, szs::NTuple{N,Int}, dims=1:N) where N
     L = Q[:,OneTo(szs[1])]
     x,w = golubwelsch(L)
     x, MulPlan(L[x,:]'*Diagonal(w), dims)
 end
 
-function plan_grid_transform(P::OrthogonalPolynomial, szs, dims...)
+function plan_grid_transform(P::OrthogonalPolynomial, szs::NTuple{N,Int}, dims=1:N) where N
     Q = Normalized(P)
     x, A = plan_grid_transform(Q, szs, dims...)
     n = szs[1]
