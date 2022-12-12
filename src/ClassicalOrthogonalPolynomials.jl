@@ -10,7 +10,8 @@ using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, Bloc
 import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy, setindex,
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
-                to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
+                to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary,
+                findall, searchsortedfirst
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
@@ -34,10 +35,10 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop, choplength, compatible_resize!
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
-    inbounds_getindex, grid, plotgrid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
+    inbounds_getindex, grid, plotgrid, _plotgrid, _grid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
-    plan_transform, plan_grid_transform
+    plan_transform, plan_grid_transform, MAX_PLOT_POINTS
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan
 
@@ -47,13 +48,14 @@ import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray, block
 import BandedMatrices: bandwidths
 
 export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial,
-            Hermite, Jacobi, Legendre, Chebyshev, ChebyshevT, ChebyshevU, ChebyshevInterval, Ultraspherical, Fourier, Laguerre,
+            Hermite, Jacobi, Legendre, Chebyshev, ChebyshevT, ChebyshevU, ChebyshevInterval, Ultraspherical, Fourier, Laurent, Laguerre,
             HermiteWeight, JacobiWeight, ChebyshevWeight, ChebyshevGrid, ChebyshevTWeight, ChebyshevUWeight, UltrasphericalWeight, LegendreWeight, LaguerreWeight,
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
             ∞, Derivative, .., Inclusion,
             chebyshevt, chebyshevu, legendre, jacobi, ultraspherical,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
-            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace, plan_transform
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace, plan_transform,
+            expand, transform
 
 
 import Base: oneto
@@ -111,7 +113,6 @@ copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:MappedBasisLayouts = copy(Ldiv{Mapp
 
 # OPs are immutable
 copy(a::OrthogonalPolynomial) = a
-copy(a::SubQuasiArray{<:Any,N,<:OrthogonalPolynomial}) where N = a
 
 """
     jacobimatrix(P)
@@ -245,18 +246,10 @@ _tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
 jacobimatrix(V::SubQuasiArray{<:Any,2,<:Any,<:Tuple{Inclusion,OneTo}}) =
     _tritrunc(jacobimatrix(parent(V)), maximum(parentindices(V)[2]))
 
-grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,OneTo}}) =
-    eigvals(symtridiagonalize(jacobimatrix(P)))
-
-function grid(Pn::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}})
-    kr,jr = parentindices(Pn)
-    grid(parent(Pn)[:,oneto(maximum(jr))])
-end
-
-function plotgrid(Pn::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}}) where T
-    kr,jr = parentindices(Pn)
-    grid(parent(Pn)[:,oneto(40maximum(jr))])
-end
+_grid(::AbstractOPLayout, P, n::Integer) = eigvals(symtridiagonalize(jacobimatrix(P[:,OneTo(n)])))
+_grid(::MappedOPLayout, P, n::Integer) = _grid(MappedBasisLayout(), P, n)
+_plotgrid(::AbstractOPLayout, P, n::Integer) = grid(P, min(40n, MAX_PLOT_POINTS))
+_plotgrid(::MappedOPLayout, P, n::Integer) = _plotgrid(MappedBasisLayout(), P, n)
 
 function golubwelsch(X)
     D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
@@ -324,16 +317,16 @@ end
 *(A::AbstractMatrix, P::MulPlan) = MulPlan(A*P.matrix, P.dims)
 
 
-function plan_grid_transform(Q::Normalized, arr, dims=1:ndims(arr))
-    L = Q[:,OneTo(size(arr,1))]
+function plan_grid_transform(Q::Normalized, szs::NTuple{N,Int}, dims=1:N) where N
+    L = Q[:,OneTo(szs[1])]
     x,w = golubwelsch(L)
     x, MulPlan(L[x,:]'*Diagonal(w), dims)
 end
 
-function plan_grid_transform(P::OrthogonalPolynomial, arr, dims...)
+function plan_grid_transform(P::OrthogonalPolynomial, szs::NTuple{N,Int}, dims=1:N) where N
     Q = Normalized(P)
-    x, A = plan_grid_transform(Q, arr, dims...)
-    n = size(arr,1)
+    x, A = plan_grid_transform(Q, szs, dims...)
+    n = szs[1]
     D = (P \ Q)[1:n, 1:n]
     x, D * A
 end
@@ -381,6 +374,6 @@ include("classical/ultraspherical.jl")
 include("classical/laguerre.jl")
 include("classical/fourier.jl")
 include("stieltjes.jl")
-
+include("roots.jl")
 
 end # module

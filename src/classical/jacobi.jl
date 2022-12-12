@@ -153,15 +153,8 @@ summary(io::IO, P::Jacobi) = print(io, "Jacobi($(P.a), $(P.b))")
 # transforms
 ###
 
-function grid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,OneTo}}) where T
-    kr,jr = parentindices(Pn)
-    ChebyshevGrid{1,T}(maximum(jr))
-end
-
-function plotgrid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,Any}}) where T
-    kr,jr = parentindices(Pn)
-    ChebyshevGrid{2,T}(40maximum(jr))
-end
+grid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{1,T}(n)
+plotgrid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{2,T}(min(40n, MAX_PLOT_POINTS))
 
 ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
 ldiv(P::Jacobi{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
@@ -310,14 +303,22 @@ function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
         Bidiagonal(((2:2:∞) .+ 2A.b)./((2:2:∞) .+ (A.a+A.b)), (2:2:∞)./((2:2:∞) .+ (A.a+A.b)), :L)
     elseif B.a == A.a+1 && B.b == A.b && wB.b == wA.b && wB.a == wA.a+1
         Bidiagonal(((2:2:∞) .+ 2A.a)./((2:2:∞) .+ (A.a+A.b)), -(2:2:∞)./((2:2:∞) .+ (A.a+A.b)), :L)
-    elseif wB.a ≥ wA.a+1
+    elseif wB.a ≥ wA.a+1 && B.a > 0
         J = JacobiWeight(wB.a-1,wB.b) .* Jacobi(B.a-1,B.b)
         (w_A\J) * (J\w_B)
-    elseif wB.b ≥ wA.b+1
+    elseif wB.b ≥ wA.b+1 && B.b > 0
         J = JacobiWeight(wB.a,wB.b-1) .* Jacobi(B.a,B.b-1)
         (w_A\J) * (J\w_B)
+    elseif wB.a ≥ wA.a+1
+        X = jacobimatrix(B)
+        J = JacobiWeight(wB.a-1,wB.b) .* Jacobi(B.a,B.b)
+        (w_A\J) * (I-X)
+    elseif wB.b ≥ wA.b+1
+        X = jacobimatrix(B)
+        J = JacobiWeight(wB.a,wB.b-1) .* Jacobi(B.a,B.b)
+        (w_A\J) * (I+X)
     else
-        error("not implemented for $A and $wB")
+        error("not implemented for $w_A and $w_B")
     end
 end
 
@@ -387,20 +388,46 @@ end
     elseif iszero(w.b) && w.a == a #L_6^t
         D * HalfWeighted{:a}(S)
     elseif iszero(w.a)
-        W = (JacobiWeight(w.a, b-1) .* Jacobi(a+1, b-1)) \ (D * (JacobiWeight(w.a,b) .* S))
+        # We differentiate
+        # D * ((1+x)^w.b * P^(a,b)) == D * ((1+x)^(w.b-b) * (1+x)^b * P^(a,b))
+        #    == (1+x)^(w.b-1) * (w.b-b) * P^(a,b) + (1+x)^(w.b-b) * D*((1+x)^b*P^(a,b))
+        #    == (1+x)^(w.b-1) * P^(a+1,b) ((w.b-b) * C2 + C1 * W)
+        W = HalfWeighted{:b}(Jacobi(a+1, b-1)) \ (D * HalfWeighted{:b}(S))
         J = Jacobi(a+1,b) # range Jacobi
         C1 = J \ Jacobi(a+1, b-1)
         C2 = J \ Jacobi(a,b)
         ApplyQuasiMatrix(*, JacobiWeight(w.a,w.b-1) .* J, (w.b-b) * C2 + C1 * W)
     elseif iszero(w.b)
-        W = (JacobiWeight(a-1, w.b) .* Jacobi(a-1, b+1)) \ (D * (JacobiWeight(a,w.b) .* S))
+        W = HalfWeighted{:a}(Jacobi(a-1, b+1)) \ (D * (HalfWeighted{:a}(S)))
         J = Jacobi(a,b+1) # range Jacobi
         C1 = J \ Jacobi(a-1, b+1)
         C2 = J \ Jacobi(a,b)
         ApplyQuasiMatrix(*, JacobiWeight(w.a-1,w.b) .* J, -(w.a-a) * C2 + C1 * W)
+    elseif iszero(a) && iszero(b) # Legendre
+        # D * ((1+x)^w.b * (1-x)^w.a * P))
+        #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b) * P - (1+x) * w.a * P + (1-x^2) * D * P)
+        #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b) * P - (1+x) * w.a * P + P * L * W)
+        J = Jacobi(a+1,b+1) # range space
+        W = J \ (D * S)
+        X = jacobimatrix(S)
+        L = S \ Weighted(J)
+        (JacobiWeight(w.a-1,w.b-1) .* S) *  (((w.b-w.a)*I-(w.a+w.b) * X) + L*W)
     else
-        error("Not implemented")
+        # We differentiate
+        # D * ((1+x)^w.b * (1-x)^w.a * P^(a,b)) == D * ((1+x)^(w.b-b) * (1-x)^(w.a-a)  * (1+x)^b * (1-x)^a * P^(a,b))
+        #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b-b) * P^(a,b) + (1+x) * (a-w.a) * P^(a,b))
+        #        + (1+x)^(w.b-b) * (1-x)^(w.a-a) * D * ((1+x)^b * (1-x)^a * P^(a,b)))
+        
+        W = Weighted(Jacobi(a-1,b-1)) \ (D * Weighted(S))
+        X = jacobimatrix(S)
+        C = S \ Jacobi(a-1,b-1)
+        (JacobiWeight(w.a-1,w.b-1) .* S) *  (((w.b-b+a-w.a)*I+(a-w.a-w.b+b) * X) + C*W)
     end
+end
+
+@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::WeightedBasis{<:Any,<:JacobiWeight,<:Legendre})
+    w,S = WS.args
+    D * (w .* Jacobi(S))
 end
 
 
