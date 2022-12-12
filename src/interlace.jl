@@ -302,10 +302,7 @@ end
 ###
 
 
-function plotgrid(Pn::SubQuasiArray{T,2,<:PiecewiseInterlace,<:Tuple{Inclusion,Any}}) where T
-    kr,jr = parentindices(Pn)
-    P = parent(Pn)
-    N = findblock(axes(P,2),maximum(jr))
-    sort!(vcat(plotgrid.(getindex.(P.args, :, Ref(oneto(Int(N)))))...))
-end
+plotgrid(P::PiecewiseInterlace, n::Integer) = plotgrid(P, findblock(axes(P,2),n))
+plotgrid(P::PiecewiseInterlace, N::Block{1}) = sort!(vcat(plotgrid.(P.args, Int(N))...))
+
 

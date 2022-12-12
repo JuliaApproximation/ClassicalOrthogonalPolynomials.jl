@@ -131,6 +131,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             Ri = A \ B
             @test Ri[1:10,1:10] ≈ inv(R[1:10,1:10])
             @test A[0.1,:]' * (Ri * c) ≈ B[0.1,:]' * c
+
+            # special weighted conversions
+            W = (JacobiWeight(-1,-1) .* Jacobi(0,0)) \ Jacobi(0,0)
+            @test ((JacobiWeight(-1,-1) .* Jacobi(0,0)) * W)[0.1,1:10] ≈ Jacobi(0,0)[0.1,1:10]
         end
 
         @testset "Derivative" begin
@@ -147,6 +151,14 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test (D * (JacobiWeight(0,c) .* S) * u)[x̃] ≈ exp(x̃) * (1+x̃)^(c-1) * (1+c+x̃)
             @test (D * (JacobiWeight(c,0) .* S) * u)[x̃] ≈ exp(x̃) * (1-x̃)^(c-1) * (1-c-x̃)
             @test (D * (JacobiWeight(0,0) .* S) * u)[x̃] ≈ exp(x̃)
+            @test (D * (JacobiWeight(c,a) .* S) * u)[x̃] ≈ -exp(x̃) * (1-x̃)^(-1+c)*(1+x̃)^(-1+a)*(c*(1+x̃)+(-1+x̃)*(1+a+x̃))
+
+            P = Jacobi(0,0)
+
+            h = 1E-8
+            @test (D * (JacobiWeight(c,a) .* S))[0.1,1:5] ≈ ((JacobiWeight(c,a) .* S)[0.1+h,1:5]-(JacobiWeight(c,a) .* S)[0.1,1:5])/h atol=1E-5
+            @test (D * (JacobiWeight(c,a) .* P))[0.1,1:5] ≈ ((JacobiWeight(c,a) .* P)[0.1+h,1:5]-(JacobiWeight(c,a) .* P)[0.1,1:5])/h atol=1E-5
+            @test (D * (JacobiWeight(c,a) .* P))[0.1,1:5] ≈ (D * (JacobiWeight(c,a) .* Legendre()))[0.1,1:5]
         end
     end
 
