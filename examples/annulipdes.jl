@@ -1,6 +1,9 @@
+
+
 using ClassicalOrthogonalPolynomials, Plots
 
-ρ = 0.5; T = chebyshevt(ρ..1); U = chebyshevu(T); C = ultraspherical(2, ρ..1); r = axes(T,1); D = Derivative(r);
+ρ = 0.5
+T,U = chebyshevt(ρ..1),chebyshevu(T); C = ultraspherical(2, ρ..1); r = axes(T,1); D = Derivative(r);
 
 L = C \ (r.^2 .* (D^2 * T)) + C \ (r .* (D * T)) # r^2 * ∂^2 + r*∂
 M = C\T # Identity
@@ -34,10 +37,13 @@ d = [T[[begin,end],:];
 
 # transform
 
-f = (r,θ) -> exp(r*cos(θ))
-n = 10 # create a 10 x 10 transform
-T,F = Chebyshev(),Fourier()
+f = (r,θ) -> exp(r*cos(θ)+sin(θ))
+T,F = chebyshevt(ρ..1),Fourier()
+n = 1000 # create a 1000 x 1000 transform
 𝐫,𝛉 = ClassicalOrthogonalPolynomials.grid(T, n),ClassicalOrthogonalPolynomials.grid(F, n)
-PF = plan_transform(F, (n,n), 2)
+PT,PF = plan_transform(T, (n,n), 1),plan_transform(F, (n,n), 2)
+ 
+@time X = PT * (PF * f.(𝐫, 𝛉'))
 
-transform(T, transform(F, f.(𝐫, 𝛉'); dims=2); dims=1)
+@test T[0.1,1:n]'*X*F[0.2,1:n] ≈ f(0.1,0.2)
+

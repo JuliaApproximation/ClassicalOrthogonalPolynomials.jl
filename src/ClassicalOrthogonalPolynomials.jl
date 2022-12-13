@@ -323,7 +323,7 @@ function plan_grid_transform(Q::Normalized, szs::NTuple{N,Int}, dims=1:N) where 
     x, MulPlan(L[x,:]'*Diagonal(w), dims)
 end
 
-function plan_grid_transform(P::OrthogonalPolynomial, szs::NTuple{N,Int}, dims=1:N) where N
+function plan_grid_transform(::AbstractOPLayout, P, szs::NTuple{N,Int}, dims=1:N) where N
     Q = Normalized(P)
     x, A = plan_grid_transform(Q, szs, dims...)
     n = szs[1]
@@ -331,6 +331,9 @@ function plan_grid_transform(P::OrthogonalPolynomial, szs::NTuple{N,Int}, dims=1
     x, D * A
 end
 
+
+plan_grid_transform(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=1:N) where N =
+    plan_grid_transform(MappedBasisLayout(), L, szs, dims)
 
 function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
