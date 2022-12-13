@@ -35,10 +35,9 @@ d = [T[[begin,end],:];
 # transform
 
 f = (r,θ) -> exp(r*cos(θ))
-
 n = 10 # create a 10 x 10 transform
-
-F = Fourier()
-𝐫,𝛉 = grid(T, n),grid(F, n)
+T,F = Chebyshev(),Fourier()
+𝐫,𝛉 = ClassicalOrthogonalPolynomials.grid(T, n),ClassicalOrthogonalPolynomials.grid(F, n)
+PF = plan_transform(F, (n,n), 2)
 
 transform(T, transform(F, f.(𝐫, 𝛉'); dims=2); dims=1)

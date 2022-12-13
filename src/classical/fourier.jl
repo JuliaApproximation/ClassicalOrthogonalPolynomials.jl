@@ -119,19 +119,8 @@ end
 
 *(F::AbstractShuffledPlan{T}, b::AbstractVecOrMat) where T = mul!(similar(b, T), F, b)
 
-factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:OneTo}}) where T =
-    TransformFactorization(grid(L), ShuffledR2HC{T}(size(L,2)))
-factorize(L::SubQuasiArray{T,2,<:Fourier,<:Tuple{<:Inclusion,<:OneTo}}, d) where T =
-    TransformFactorization(grid(L), ShuffledR2HC{T}((size(L,2),d),1))
-
-factorize(L::SubQuasiArray{T,2,<:Laurent,<:Tuple{<:Inclusion,<:OneTo}}) where T =
-    TransformFactorization(grid(L), ShuffledFFT{T}(size(L,2)))
-factorize(L::SubQuasiArray{T,2,<:Laurent,<:Tuple{<:Inclusion,<:OneTo}}, d) where T =
-    TransformFactorization(grid(L), ShuffledFFT{T}((size(L,2),d),1))
-
-
-factorize(L::SubQuasiArray{T,2,<:AbstractFourier,<:Tuple{<:Inclusion,<:BlockSlice}},d...) where T =
-    ProjectionFactorization(factorize(parent(L)[:,OneTo(size(L,2))],d...),parentindices(L)[2])
+plan_grid_transform(F::Fourier{T}, szs::NTuple{N,Int}, dims...) where {T,N} = grid(F, szs[1]), ShuffledR2HC{T}(szs, dims...)
+plan_grid_transform(F::Laurent{T}, szs::NTuple{N,Int}, dims...) where {T,N} = grid(F, szs[1]), ShuffledFFT{T}(szs, dims...)
 
 import BlockBandedMatrices: _BlockSkylineMatrix
 
