@@ -38,9 +38,9 @@ import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffin
     inbounds_getindex, grid, plotgrid, _plotgrid, _grid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
-    plan_transform, plan_grid_transform, MAX_PLOT_POINTS
+    plan_transform, plan_grid_transform, MAX_PLOT_POINTS, MulPlan
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
-                        _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan
+                        _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan
 
 import FastGaussQuadrature: jacobimoment
 
@@ -262,60 +262,6 @@ function golubwelsch(V::SubQuasiArray)
     x,w
 end
 
-"""
-    MulPlan(matrix, dims)
-
-Takes a matrix and supports it applied to different dimensions.
-"""
-struct MulPlan{T, Fact, Dims} # <: Plan{T} We don't depend on AbstractFFTs
-    matrix::Fact
-    dims::Dims
-end
-
-MulPlan(fact, dims) = MulPlan{eltype(fact), typeof(fact), typeof(dims)}(fact, dims)
-
-function *(P::MulPlan{<:Any,<:Any,Int}, x::AbstractVector)
-    @assert P.dims == 1
-    P.matrix * x
-end
-
-function *(P::MulPlan{<:Any,<:Any,Int}, X::AbstractMatrix)
-    if P.dims == 1
-        P.matrix * X
-    else
-        @assert P.dims == 2
-        permutedims(P.matrix * permutedims(X))
-    end
-end
-
-function *(P::MulPlan{<:Any,<:Any,Int}, X::AbstractArray{<:Any,3})
-    Y = similar(X)
-    if P.dims == 1
-        for j in axes(X,3)
-            Y[:,:,j] = P.matrix * X[:,:,j]
-        end
-    elseif P.dims == 2
-        for k in axes(X,1)
-            Y[k,:,:] = P.matrix * X[k,:,:]
-        end
-    else
-        @assert P.dims == 3
-        for k in axes(X,1), j in axes(X,2)
-            Y[k,j,:] = P.matrix * X[k,j,:]
-        end
-    end
-    Y
-end
-
-function *(P::MulPlan, X::AbstractArray)
-    for d in P.dims
-        X = MulPlan(P.matrix, d) * X
-    end
-    X
-end
-
-*(A::AbstractMatrix, P::MulPlan) = MulPlan(A*P.matrix, P.dims)
-
 
 function plan_grid_transform(Q::Normalized, szs::NTuple{N,Int}, dims=1:N) where N
     L = Q[:,OneTo(szs[1])]
@@ -323,7 +269,7 @@ function plan_grid_transform(Q::Normalized, szs::NTuple{N,Int}, dims=1:N) where 
     x, MulPlan(L[x,:]'*Diagonal(w), dims)
 end
 
-function plan_grid_transform(P::OrthogonalPolynomial, szs::NTuple{N,Int}, dims=1:N) where N
+function plan_grid_transform(::AbstractOPLayout, P, szs::NTuple{N,Int}, dims=1:N) where N
     Q = Normalized(P)
     x, A = plan_grid_transform(Q, szs, dims...)
     n = szs[1]
@@ -331,6 +277,9 @@ function plan_grid_transform(P::OrthogonalPolynomial, szs::NTuple{N,Int}, dims=1
     x, D * A
 end
 
+
+plan_grid_transform(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=1:N) where N =
+    plan_grid_transform(MappedBasisLayout(), L, szs, dims)
 
 function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
