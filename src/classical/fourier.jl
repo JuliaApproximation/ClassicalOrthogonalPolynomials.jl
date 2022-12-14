@@ -38,10 +38,26 @@ struct ShuffledR2HC{T,Pl<:Plan} <: AbstractShuffledPlan{T}
 end
 
 """
+Gives a shuffled version of the real IFFT, with order
+1,sin(θ),cos(θ),sin(2θ)…
+"""
+struct ShuffledIR2HC{T,Pl<:Plan} <: AbstractShuffledPlan{T}
+    plan::Pl
+end
+
+"""
 Gives a shuffled version of the FFT, with order
 1,sin(θ),cos(θ),sin(2θ)…
 """
 struct ShuffledFFT{T,Pl<:Plan} <: AbstractShuffledPlan{T}
+    plan::Pl
+end
+
+"""
+Gives a shuffled version of the IFFT, with order
+1,sin(θ),cos(θ),sin(2θ)…
+"""
+struct ShuffledIFFT{T,Pl<:Plan} <: AbstractShuffledPlan{T}
     plan::Pl
 end
 
@@ -54,8 +70,17 @@ ShuffledR2HC{T}(n, d...) where T = ShuffledR2HC{T}(FFTW.plan_r2r(Array{T}(undef,
 ShuffledFFT{T}(p::Pl) where {T,Pl<:Plan} = ShuffledFFT{T,Pl}(p)
 ShuffledFFT{T}(n, d...) where T = ShuffledFFT{T}(FFTW.plan_fft(Array{T}(undef, n), d...))
 
+ShuffledIFFT{T}(p::Pl) where {T,Pl<:Plan} = ShuffledIFFT{T,Pl}(p)
+ShuffledIR2HC{T}(p::Pl) where {T,Pl<:Plan} = ShuffledIR2HC{T,Pl}(p)
 
-function _shuffledR2HC_postscale!(_, ret::AbstractVector{T}) where T
+inv(P::ShuffledR2HC{T}) where T = ShuffledIR2HC{T}(inv(P.plan))
+inv(P::ShuffledFFT{T}) where T = ShuffledIFFT{T}(inv(P.plan))
+
+
+_shuffled_prescale!(_, ret::AbstractVector) = ret
+_shuffled_postscale!(_, ret::AbstractVector) = ret
+
+function _shuffled_postscale!(::ShuffledR2HC, ret::AbstractVector{T}) where T
     n = length(ret)
     lmul!(convert(T,2)/n, ret)
     ret[1] /= 2
@@ -63,59 +88,47 @@ function _shuffledR2HC_postscale!(_, ret::AbstractVector{T}) where T
     negateeven!(reverseeven!(interlace!(ret,1)))
 end
 
-function _shuffledR2HC_postscale!(d::Number, ret::AbstractMatrix{T}) where T
-    if isone(d)
-        n = size(ret,1)
-        lmul!(convert(T,2)/n, ret)
-        ldiv!(2, view(ret,1,:))
-        iseven(n) && ldiv!(2, view(ret,n÷2+1,:))
-        for j in axes(ret,2)
-            negateeven!(reverseeven!(interlace!(view(ret,:,j),1)))
-        end
-    else
-        n = size(ret,2)
-        lmul!(convert(T,2)/n, ret)
-        ldiv!(2, view(ret,:,1))
-        iseven(n) && ldiv!(2, view(ret,:,n÷2+1))
-        for k in axes(ret,1)
-            negateeven!(reverseeven!(interlace!(view(ret,k,:),1)))
-        end
-    end
-    ret
+function _shuffled_prescale!(::ShuffledIR2HC, ret::AbstractVector{T}) where T
+    n = length(ret)
+    reverseeven!(negateeven!(ret))
+    ret .= [ret[1:2:end]; ret[2:2:end]] # todo: non-allocating
+    iseven(n) && (ret[n÷2+1] *= 2)
+    ret[1] *= 2
+    lmul!(convert(T,n)/2, ret)
 end
 
-function _shuffledFFT_postscale!(_, ret::AbstractVector{T}) where T
+function _shuffled_postscale!(::ShuffledFFT, ret::AbstractVector{T}) where T
     n = length(ret)
     cfs = lmul!(inv(convert(T,n)), ret)
     reverseeven!(interlace!(cfs,1))
 end
 
-function _shuffledFFT_postscale!(d::Number, ret::AbstractMatrix{T}) where T
-    if isone(d)
-        n = size(ret,1)
-        lmul!(inv(convert(T,n)), ret)
-        for j in axes(ret,2)
-            reverseeven!(interlace!(view(ret,:,j),1))
+_region(F::Plan) = F.region
+_region(F::ScaledPlan) = F.p.region
+
+for func in (:_shuffled_postscale!, :_shuffled_prescale!)
+    @eval function $func(F::AbstractShuffledPlan, ret::AbstractMatrix{T}) where T
+        d = _region(F.plan)
+        if isone(d)
+            for j in axes(ret,2)
+                $func(F, view(ret,:,j))
+            end
+        else
+            @assert d == 2
+            for k in axes(ret,1)
+                $func(F, view(ret,k,:))
+            end
         end
-    else
-        n = size(ret,2)
-        lmul!(inv(convert(T,n)), ret)
-        for k in axes(ret,1)
-            reverseeven!(interlace!(view(ret,k,:),1))
-        end
+        ret
     end
-    ret
 end
 
-function mul!(ret::AbstractArray{T}, F::ShuffledR2HC{T}, b::AbstractArray) where T
-    mul!(ret, F.plan, convert(Array{T}, b))
-    _shuffledR2HC_postscale!(F.plan.region, ret)
+function mul!(ret::AbstractArray{T}, F::AbstractShuffledPlan{T}, bin::AbstractArray) where T
+    b = _shuffled_prescale!(F, Array{T}(bin))
+    mul!(ret, F.plan, b)
+    _shuffled_postscale!(F, ret)
 end
 
-function mul!(ret::AbstractArray{T}, F::ShuffledFFT{T}, b::AbstractArray) where T
-    mul!(ret, F.plan, convert(Array{T}, b))
-    _shuffledFFT_postscale!(F.plan.region, ret)
-end
 
 *(F::AbstractShuffledPlan{T}, b::AbstractVecOrMat) where T = mul!(similar(b, T), F, b)
 

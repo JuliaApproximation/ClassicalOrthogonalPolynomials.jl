@@ -1,25 +1,47 @@
-
-
 using ClassicalOrthogonalPolynomials, Plots
 
+###
+# Laplace's equation
+###
+
 ρ = 0.5
-T,U = chebyshevt(ρ..1),chebyshevu(T); C = ultraspherical(2, ρ..1); r = axes(T,1); D = Derivative(r);
+T,U,C,F = chebyshevt(ρ..1),chebyshevu(ρ..1),ultraspherical(2, ρ..1),Fourier()
+r = axes(T,1)
+D = Derivative(r)
 
 L = C \ (r.^2 .* (D^2 * T)) + C \ (r .* (D * T)) # r^2 * ∂^2 + r*∂
 M = C\T # Identity
+R = C \ (r .* C) # mult by r
 
-m = 2
-Δₘ = L - m^2*M # r^2 * Laplacian for exp(im*m*θ)*u(r), i.e. (r^2 * ∂^2 + r*∂ - m^2*I)*u
+uᵨ = transform(F, θ -> exp(cos(θ)+sin(θ-1)))
+u₁ = transform(F, θ -> cos(cos(θ)-sin(θ+1)-1))
+
+n = 100
+X = zeros(n,n)
+
+for j = 1:n
+    m = j ÷ 2
+    Δₘ = L - m^2*M # r^2 * Laplacian for exp(im*m*θ)*u(r), i.e. (r^2 * ∂^2 + r*∂ - m^2*I)*u
+    d = [T[[begin,end],:]; L] \ [uᵨ[j]; u₁[j]; zeros(∞)]
+    X[:,j] .= d[1:n]
+end
+
+𝐫,𝛉 = ClassicalOrthogonalPolynomials.grid(T, n),ClassicalOrthogonalPolynomials.grid(F, n)
+PT,PF = plan_transform(T, (n,n), 1),plan_transform(F, (n,n), 2)
+U = PT \ (PF \ X); U = [U U[:,1]]
+
+
+𝐱 = 𝐫 .* cos.([𝛉; 2π]')
+𝐲 = 𝐫 .* sin.([𝛉; 2π]')
+surface(𝐱, 𝐲, U)
+
+
+
 
 
 
 # Poisson solve
 c = C \ exp.(r)
-R = C \ (r .* C)
-
-
-d = [T[[begin,end],:];
-            Δₘ] \ [1; 2; R^2 * c]
 
 plot(T*d)
 
@@ -29,7 +51,7 @@ plot(T*d)
 
 Q = R^2 * M # r^2, needed for Helmholtz (Δ + k^2)*u = f
 
-k = 5 # f
+k = 5 # f 
 
 d = [T[[begin,end],:];
             Δₘ+k^2*Q] \ [1; 2; R^2 * c]
