@@ -324,9 +324,5 @@ include("classical/laguerre.jl")
 include("classical/fourier.jl")
 include("stieltjes.jl")
 include("roots.jl")
-include("decompOPs.jl")
-
-export cholesky_jacobimatrix
-
 
 end # module
