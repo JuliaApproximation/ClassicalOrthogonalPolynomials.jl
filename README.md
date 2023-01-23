@@ -69,8 +69,8 @@ julia> associatedlegendre(2)[0.1,1:10]
 ## p-Finite Element Method
 
 The language of quasi-arrays gives a natural framework for constructing p-finite element methods. The convention
-is that adjoint-products are understood as inner products over the axes with uniform weight. Thus to solve Poisson's equation
-using its weak formulation with Dirichlet conditions we can expand in a weighted Jacobi basis:
+is that adjoint-products are understood as inner products over the axes with uniform weight. To solve Poisson's equation
+using its weak formulation with Dirichlet conditions we can thus expand in a weighted Jacobi basis:
 ```julia
 julia> P¹¹ = Jacobi(1.0,1.0); # Quasi-matrix of Jacobi polynomials
 
