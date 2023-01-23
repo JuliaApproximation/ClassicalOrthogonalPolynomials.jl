@@ -14,8 +14,8 @@ import LazyArrays: rowsupport, colsupport
     @testset "Operators" begin
         @testset "Lowering" begin
             λ = 1
-            wC1 = WeightedUltraspherical(λ)
-            wC2 = WeightedUltraspherical(λ+1)
+            wC1 = Weighted(Ultraspherical(λ))
+            wC2 = Weighted(Ultraspherical(λ+1))
             L = wC1 \ wC2
             @test L isa BandedMatrix
             @test bandwidths(L) == (2,0)
@@ -27,8 +27,8 @@ import LazyArrays: rowsupport, colsupport
 
         @testset "Weighted Derivative" begin
             T = Chebyshev()
-            wC1 = WeightedUltraspherical(1)
-            wC2 = WeightedUltraspherical(2)
+            wC1 = Weighted(Ultraspherical(1))
+            wC2 = Weighted(Ultraspherical(2))
             x = axes(wC2,1)
             D = Derivative(x)
 

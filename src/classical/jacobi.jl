@@ -10,7 +10,7 @@ broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(*), w::AbstractJacobiWeight, v::A
 broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(sqrt), w::AbstractJacobiWeight) =
     JacobiWeight(w.a/2, w.b/2)
 
-broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(Base.literal_pow), ::Base.RefValue{typeof(^)}, w::AbstractJacobiWeight, ::Base.RefValue{Val{k}}) where k = 
+broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(Base.literal_pow), ::Base.RefValue{typeof(^)}, w::AbstractJacobiWeight, ::Base.RefValue{Val{k}}) where k =
     JacobiWeight(k * w.a, k * w.b)
 
 struct JacobiWeight{T} <: AbstractJacobiWeight{T}
@@ -33,49 +33,16 @@ summary(io::IO, w::JacobiWeight) = print(io, "(1-x)^$(w.a) * (1+x)^$(w.b) on -1.
 
 sum(P::JacobiWeight) = jacobimoment(P.a, P.b)
 
-struct LegendreWeight{T} <: AbstractJacobiWeight{T} end
-LegendreWeight() = LegendreWeight{Float64}()
-legendreweight(d::AbstractInterval{T}) where T = LegendreWeight{float(T)}()[affine(d,ChebyshevInterval{T}())]
-
-function getindex(w::LegendreWeight{T}, x::Number) where T
-    x ∈ axes(w,1) || throw(BoundsError())
-    one(T)
-end
-
-getproperty(w::LegendreWeight{T}, ::Symbol) where T = zero(T)
-
-sum(::LegendreWeight{T}) where T = 2one(T)
-
-_weighted(::LegendreWeight, P) = P
-_weighted(::SubQuasiArray{<:Any,1,<:LegendreWeight}, P) = P
-
-broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(*), ::LegendreWeight{T}, ::LegendreWeight{V}) where {T,V} =
-    LegendreWeight{promote_type(T,V)}()
-
-broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(sqrt), w::LegendreWeight{T}) where T = w
-
-broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(Base.literal_pow), ::Base.RefValue{typeof(^)}, w::LegendreWeight, ::Base.RefValue{Val{k}}) where k = w
 
 # support auto-basis determination
 
 singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
-singularitiesbroadcast(_, L::LegendreWeight) = L # Assume we stay smooth
-singularitiesbroadcast(::typeof(exp), L::LegendreWeight) = L
-singularitiesbroadcast(::typeof(Base.literal_pow), ::typeof(^), L::LegendreWeight, ::Val) = L
 
 
 for op in (:+, :*)
     @eval singularitiesbroadcast(::typeof($op), A, B, C, D...) = singularitiesbroadcast(*, singularitiesbroadcast(*, A, B), C, D...)
 end
-for op in (:+, :-, :*)
-    @eval begin
-        singularitiesbroadcast(::typeof($op), A::LegendreWeight, B::LegendreWeight) = LegendreWeight{promote_type(eltype(A), eltype(B))}()
-        singularitiesbroadcast(::typeof($op), L::LegendreWeight, ::NoSingularities) = L
-        singularitiesbroadcast(::typeof($op), ::NoSingularities, L::LegendreWeight) = L
-    end
-end
-singularitiesbroadcast(::typeof(^), L::LegendreWeight, ::NoSingularities) = L
-singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # can't find roots
+
 
 _parent(::NoSingularities) = NoSingularities()
 _parent(a) = parent(a)
@@ -87,38 +54,13 @@ singularitiesbroadcast(F, V::Union{NoSingularities,SubQuasiArray}...) = singular
 singularitiesbroadcast(::typeof(*), V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(*, map(_parent,V)...)[_parentindices(V...)...]
 
 
+abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
+
+include("legendre.jl")
+
 singularitiesbroadcast(::typeof(*), ::LegendreWeight, b::AbstractJacobiWeight) = b
 singularitiesbroadcast(::typeof(*), a::AbstractJacobiWeight, ::LegendreWeight) = a
 
-abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
-
-singularities(::AbstractJacobi{T}) where T = LegendreWeight{T}()
-singularities(::Inclusion{T,<:AbstractInterval}) where T = LegendreWeight{T}()
-singularities(d::Inclusion{T,<:Interval}) where T = LegendreWeight{T}()[affine(d,ChebyshevInterval{T}())]
-
-struct Legendre{T} <: AbstractJacobi{T} end
-Legendre() = Legendre{Float64}()
-
-legendre() = Legendre()
-legendre(d::AbstractInterval{T}) where T = Legendre{float(T)}()[affine(d,ChebyshevInterval{T}()), :]
-
-"""
-     legendrep(n, z)
-
-computes the `n`-th Legendre polynomial at `z`.
-"""
-legendrep(n::Integer, z::Number) = Base.unsafe_getindex(Legendre{typeof(z)}(), z, n+1)
-
-
-==(::Legendre, ::Legendre) = true
-
-OrthogonalPolynomial(w::LegendreWeight{T}) where {T} = Legendre{T}()
-orthogonalityweight(::Legendre{T}) where T = LegendreWeight{T}()
-
-function qr(P::Legendre)
-    Q = Normalized(P)
-    QuasiQR(Q, Diagonal(Q.scaling))
-end
 
 struct Jacobi{T} <: AbstractJacobi{T}
     a::T
@@ -136,7 +78,7 @@ Jacobi(P::Legendre{T}) where T = Jacobi(zero(T), zero(T))
 """
      jacobip(n, a, b, z)
 
-computes the `n`-th Jacobi polynomial, orthogonal with 
+computes the `n`-th Jacobi polynomial, orthogonal with
 respec to `(1-x)^a*(1+x)^b`, at `z`.
 """
 jacobip(n::Integer, a, b, z::Number) = Base.unsafe_getindex(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b), z, n+1)
@@ -146,10 +88,6 @@ OrthogonalPolynomial(w::JacobiWeight) = Jacobi(w.a, w.b)
 orthogonalityweight(P::Jacobi) = JacobiWeight(P.a, P.b)
 
 const WeightedJacobi{T} = WeightedBasis{T,<:JacobiWeight,<:Jacobi}
-
-WeightedJacobi(a,b) = JacobiWeight(a,b) .* Jacobi(a,b)
-WeightedJacobi{T}(a,b) where T = JacobiWeight{T}(a,b) .* Jacobi{T}(a,b)
-
 
 """
     HalfWeighted{lr}(Jacobi(a,b))
@@ -163,34 +101,38 @@ end
 
 HalfWeighted{lr}(P) where lr = HalfWeighted{lr,eltype(P),typeof(P)}(P)
 
+weight(wP::HalfWeighted{:a, T, <:Jacobi}) where T = JacobiWeight(wP.P.a,zero(T))
+weight(wP::HalfWeighted{:b, T, <:Jacobi}) where T = JacobiWeight(zero(T),wP.P.b)
+
+weight(wP::HalfWeighted{lr, T, <:Normalized}) where {lr,T} = weight(HalfWeighted{lr}(wP.P.P))
+
 axes(Q::HalfWeighted) = axes(Q.P)
 copy(Q::HalfWeighted) = Q
 
 ==(A::HalfWeighted{lr}, B::HalfWeighted{lr}) where lr = A.P == B.P
 ==(A::HalfWeighted, B::HalfWeighted) = false
 
-convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:a,T,<:Jacobi}) where T = JacobiWeight(Q.P.a,zero(T)) .* Q.P
-convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{:b,T,<:Jacobi}) where T = JacobiWeight(zero(T),Q.P.b) .* Q.P
-function convert(::Type{WeightedOrthogonalPolynomial}, Q::HalfWeighted{lr,T,<:Normalized}) where {T,lr}
-    w,_ = arguments(convert(WeightedOrthogonalPolynomial, HalfWeighted{lr}(Q.P.P)))
+function ==(A::HalfWeighted, wB::WeightedJacobi)
+    w,B = arguments(wB)
+    A.P == B && w == weight(A)
+end
+==(wB::WeightedJacobi, A::HalfWeighted) = A == wB
+==(A::Jacobi, wB::HalfWeighted{:a}) = A == wB.P && iszero(A.a)
+==(A::Jacobi, wB::HalfWeighted{:b}) = A == wB.P && iszero(A.b)
+
+==(wB::HalfWeighted, A::Jacobi) = A == wB
+
+
+function convert(::Type{WeightedBasis}, Q::HalfWeighted{lr,T,<:Normalized}) where {T,lr}
+    w,_ = arguments(convert(WeightedBasis, HalfWeighted{lr}(Q.P.P)))
     w .* Q.P
 end
 
-getindex(Q::HalfWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = convert(WeightedOrthogonalPolynomial, Q)[x,jr]
+# broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::HalfWeighted) = Q * (Q.P \ (x .* Q.P))
 
-broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::HalfWeighted) = Q * (Q.P \ (x .* Q.P))
-
-\(w_A::HalfWeighted, w_B::HalfWeighted) = convert(WeightedOrthogonalPolynomial, w_A) \ convert(WeightedOrthogonalPolynomial, w_B)
-\(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedOrthogonalPolynomial, w_A) \ B
-\(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedOrthogonalPolynomial, w_B)
-
-function _norm_expand_ldiv(A, w_B)
-    w,B = w_B.args
-    B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
-    (A \ (w .* B̃)) * D
-end
-\(A::AbstractQuasiArray, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
-\(A::WeightedOrthogonalPolynomial, w_B::WeightedOrthogonalPolynomial{<:Any,<:Weight,<:Normalized}) = _norm_expand_ldiv(A, w_B)
+\(w_A::HalfWeighted, w_B::HalfWeighted) = convert(WeightedBasis, w_A) \ convert(WeightedBasis, w_B)
+\(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedBasis, w_A) \ B
+\(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedBasis, w_B)
 
 axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b
@@ -211,22 +153,11 @@ summary(io::IO, P::Jacobi) = print(io, "Jacobi($(P.a), $(P.b))")
 # transforms
 ###
 
-function grid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,Any}}) where T
-    kr,jr = parentindices(Pn)
-    ChebyshevGrid{1,T}(maximum(jr))
-end
+grid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{1,T}(n)
+plotgrid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{2,T}(min(40n, MAX_PLOT_POINTS))
 
-function plotgrid(Pn::SubQuasiArray{T,2,<:AbstractJacobi,<:Tuple{Inclusion,Any}}) where T
-    kr,jr = parentindices(Pn)
-    ChebyshevGrid{2,T}(40maximum(jr))
-end
-
-
-function ldiv(::Legendre{V}, f::AbstractQuasiVector) where V
-    T = ChebyshevT{V}()
-    [cheb2leg(paddeddata(T \ f)); zeros(V,∞)]
-end
-
+ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
+ldiv(P::Jacobi{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
 function ldiv(P::Jacobi{V}, f::AbstractQuasiVector) where V
     T = ChebyshevT{V}()
     [cheb2jac(paddeddata(T \ f), P.a, P.b); zeros(V,∞)]
@@ -237,23 +168,22 @@ end
 # Mass Matrix
 #########
 
-legendre_massmatrix(::Type{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
 
-function legendre_massmatrix(Ac, B)
-    A = parent(Ac)
-    P = Legendre{eltype(B)}()
-    (P\A)'*legendre_massmatrix(eltype(P))*(P\B)
+@simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractJacobi) = legendre_massmatrix(Ac,B)
+@simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::Weighted{<:Any,<:AbstractJacobi}) = legendre_massmatrix(Ac,B)
+
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractQuasiVector)
+    P = Legendre{eltype(Ac)}()
+    (Ac * P) * (P \ B)
 end
 
-@simplify *(Ac::QuasiAdjoint{<:Any,<:Legendre}, B::Legendre) = legendre_massmatrix(Ac, B)
-@simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractJacobi) = legendre_massmatrix(Ac,B)
-
 # 2^{a + b + 1} {\Gamma(n+a+1) \Gamma(n+b+1) \over (2n+a+b+1) \Gamma(n+a+b+1) n!}.
-
-function jacobi_massmatrix(a, b)
+function massmatrix(P::Jacobi)
+    a,b = P.a,P.b
     n = 0:∞
     Diagonal(2^(a+b+1) .* (exp.(loggamma.(n .+ (a+1)) .+ loggamma.(n .+ (b+1)) .- loggamma.(n .+ (a+b+1)) .- loggamma.(n .+ 1)) ./ (2n .+ (a+b+1))))
 end
+
 
 
 @simplify function *(wAc::QuasiAdjoint{<:Any,<:WeightedBasis{<:Any,<:AbstractJacobiWeight}}, wB::WeightedBasis{<:Any,<:AbstractJacobiWeight})
@@ -265,20 +195,12 @@ end
     A = parent(Ac)
     w,B = arguments(wB)
     P = Jacobi(w.a, w.b)
-    (P\A)' * jacobi_massmatrix(w.a, w.b) * (P \ B)
+    (P\A)' * massmatrix(P) * (P \ B)
 end
 
 ########
 # Jacobi Matrix
 ########
-
-jacobimatrix(::Legendre{T}) where T =  Tridiagonal((one(T):∞)./(1:2:∞), Zeros{T}(∞), (one(T):∞)./(3:2:∞))
-
-# These return vectors A[k], B[k], C[k] are from DLMF. Cause of MikaelSlevinsky we need an extra entry in C ... for now.
-function recurrencecoefficients(::Legendre{T}) where T
-    n = zero(T):∞
-    ((2n .+ 1) ./ (n .+ 1), Zeros{T}(∞), n ./ (n .+ 1))
-end
 
 function jacobimatrix(J::Jacobi)
     b,a = J.b,J.a
@@ -301,19 +223,6 @@ function recurrencecoefficients(P::Jacobi)
     (A,B,C)
 end
 
-# explicit special case for normalized Legendre
-# todo: do we want these explicit constructors for normalized Legendre?
-# function jacobimatrix(::Normalized{<:Any,<:Legendre{T}}) where T
-#     b = (one(T):∞) ./sqrt.(4 .*(one(T):∞).^2 .-1)
-#     Symmetric(_BandedMatrix(Vcat(zeros(∞)', (b)'), ∞, 1, 0), :L)
-# end
-# function recurrencecoefficients(::Normalized{<:Any,<:Legendre{T}}) where T
-#     n = zero(T):∞
-#     nn = one(T):∞
-#     ((2n .+ 1) ./ (n .+ 1) ./ sqrt.(1 .-2 ./(3 .+2n)), Zeros{T}(∞), Vcat(zero(T),nn ./ (nn .+ 1) ./ sqrt.(1 .-4 ./(3 .+2nn))))
-# end
-
-@simplify *(X::Identity, P::Legendre) = ApplyQuasiMatrix(*, P, P\(X*P))
 
 
 
@@ -323,6 +232,7 @@ end
 
 \(A::Jacobi, B::Legendre) = A\Jacobi(B)
 \(A::Legendre, B::Jacobi) = Jacobi(A)\B
+\(A::Legendre, B::Weighted{<:Any,<:Jacobi}) = Jacobi(A)\B
 
 function \(A::Jacobi, B::Jacobi)
     T = promote_type(eltype(A), eltype(B))
@@ -379,6 +289,10 @@ function broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::WeightedJacobi)
     w .* P
 end
 
+broadcastbasis(::typeof(+), w_A::Weighted{<:Any,<:Jacobi}, w_B::Weighted{<:Any,<:Jacobi}) = broadcastbasis(+, convert(WeightedBasis,w_A), convert(WeightedBasis,w_B))
+broadcastbasis(::typeof(+), w_A::Weighted{<:Any,<:Jacobi}, w_B::WeightedJacobi) = broadcastbasis(+, convert(WeightedBasis,w_A), w_B)
+broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::Weighted{<:Any,<:Jacobi}) = broadcastbasis(+, w_A, convert(WeightedBasis,w_B))
+
 function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
     wA,A = w_A.args
     wB,B = w_B.args
@@ -389,16 +303,29 @@ function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
         Bidiagonal(((2:2:∞) .+ 2A.b)./((2:2:∞) .+ (A.a+A.b)), (2:2:∞)./((2:2:∞) .+ (A.a+A.b)), :L)
     elseif B.a == A.a+1 && B.b == A.b && wB.b == wA.b && wB.a == wA.a+1
         Bidiagonal(((2:2:∞) .+ 2A.a)./((2:2:∞) .+ (A.a+A.b)), -(2:2:∞)./((2:2:∞) .+ (A.a+A.b)), :L)
-    elseif wB.a ≥ wA.a+1
+    elseif wB.a ≥ wA.a+1 && B.a > 0
         J = JacobiWeight(wB.a-1,wB.b) .* Jacobi(B.a-1,B.b)
         (w_A\J) * (J\w_B)
-    elseif wB.b ≥ wA.b+1
+    elseif wB.b ≥ wA.b+1 && B.b > 0
         J = JacobiWeight(wB.a,wB.b-1) .* Jacobi(B.a,B.b-1)
         (w_A\J) * (J\w_B)
+    elseif wB.a ≥ wA.a+1
+        X = jacobimatrix(B)
+        J = JacobiWeight(wB.a-1,wB.b) .* Jacobi(B.a,B.b)
+        (w_A\J) * (I-X)
+    elseif wB.b ≥ wA.b+1
+        X = jacobimatrix(B)
+        J = JacobiWeight(wB.a,wB.b-1) .* Jacobi(B.a,B.b)
+        (w_A\J) * (I+X)
     else
-        error("not implemented for $A and $wB")
+        error("not implemented for $w_A and $w_B")
     end
 end
+
+\(w_A::WeightedJacobi, w_B::Weighted{<:Any,<:Jacobi}) = w_A \ convert(WeightedBasis,w_B)
+\(w_A::Weighted{<:Any,<:Jacobi}, w_B::Weighted{<:Any,<:Jacobi}) = convert(WeightedBasis,w_A) \ convert(WeightedBasis,w_B)
+\(w_A::Weighted{<:Any,<:Jacobi}, w_B::WeightedJacobi) = convert(WeightedBasis,w_A) \ w_B
+\(A::Jacobi, w_B::Weighted{<:Any,<:Jacobi}) = A \ convert(WeightedBasis,w_B)
 
 \(A::Legendre, wB::WeightedJacobi) = Jacobi(A) \ wB
 
@@ -461,20 +388,46 @@ end
     elseif iszero(w.b) && w.a == a #L_6^t
         D * HalfWeighted{:a}(S)
     elseif iszero(w.a)
-        W = (JacobiWeight(w.a, b-1) .* Jacobi(a+1, b-1)) \ (D * (JacobiWeight(w.a,b) .* S))
+        # We differentiate
+        # D * ((1+x)^w.b * P^(a,b)) == D * ((1+x)^(w.b-b) * (1+x)^b * P^(a,b))
+        #    == (1+x)^(w.b-1) * (w.b-b) * P^(a,b) + (1+x)^(w.b-b) * D*((1+x)^b*P^(a,b))
+        #    == (1+x)^(w.b-1) * P^(a+1,b) ((w.b-b) * C2 + C1 * W)
+        W = HalfWeighted{:b}(Jacobi(a+1, b-1)) \ (D * HalfWeighted{:b}(S))
         J = Jacobi(a+1,b) # range Jacobi
         C1 = J \ Jacobi(a+1, b-1)
         C2 = J \ Jacobi(a,b)
         ApplyQuasiMatrix(*, JacobiWeight(w.a,w.b-1) .* J, (w.b-b) * C2 + C1 * W)
     elseif iszero(w.b)
-        W = (JacobiWeight(a-1, w.b) .* Jacobi(a-1, b+1)) \ (D * (JacobiWeight(a,w.b) .* S))
+        W = HalfWeighted{:a}(Jacobi(a-1, b+1)) \ (D * (HalfWeighted{:a}(S)))
         J = Jacobi(a,b+1) # range Jacobi
         C1 = J \ Jacobi(a-1, b+1)
         C2 = J \ Jacobi(a,b)
         ApplyQuasiMatrix(*, JacobiWeight(w.a-1,w.b) .* J, -(w.a-a) * C2 + C1 * W)
+    elseif iszero(a) && iszero(b) # Legendre
+        # D * ((1+x)^w.b * (1-x)^w.a * P))
+        #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b) * P - (1+x) * w.a * P + (1-x^2) * D * P)
+        #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b) * P - (1+x) * w.a * P + P * L * W)
+        J = Jacobi(a+1,b+1) # range space
+        W = J \ (D * S)
+        X = jacobimatrix(S)
+        L = S \ Weighted(J)
+        (JacobiWeight(w.a-1,w.b-1) .* S) *  (((w.b-w.a)*I-(w.a+w.b) * X) + L*W)
     else
-        error("Not implemented")
+        # We differentiate
+        # D * ((1+x)^w.b * (1-x)^w.a * P^(a,b)) == D * ((1+x)^(w.b-b) * (1-x)^(w.a-a)  * (1+x)^b * (1-x)^a * P^(a,b))
+        #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b-b) * P^(a,b) + (1+x) * (a-w.a) * P^(a,b))
+        #        + (1+x)^(w.b-b) * (1-x)^(w.a-a) * D * ((1+x)^b * (1-x)^a * P^(a,b)))
+        
+        W = Weighted(Jacobi(a-1,b-1)) \ (D * Weighted(S))
+        X = jacobimatrix(S)
+        C = S \ Jacobi(a-1,b-1)
+        (JacobiWeight(w.a-1,w.b-1) .* S) *  (((w.b-b+a-w.a)*I+(a-w.a-w.b+b) * X) + C*W)
     end
+end
+
+@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::WeightedBasis{<:Any,<:JacobiWeight,<:Legendre})
+    w,S = WS.args
+    D * (w .* Jacobi(S))
 end
 
 
@@ -504,25 +457,11 @@ end
 end
 
 
-###
-# Splines
-###
-
-function \(A::Legendre, B::HeavisideSpline)
-    @assert B.points == -1:2:1
-    Vcat(1, Zeros(∞,1))
-end
 
 ###
 # sum
 ###
 
-function _sum(P::Legendre{T}, dims) where T
-    @assert dims == 1
-    Hcat(convert(T, 2), Zeros{T}(1,∞))
-end
-
-_sum(p::SubQuasiArray{T,1,Legendre{T},<:Tuple{Inclusion,Int}}, ::Colon) where T = parentindices(p)[2] == 1 ? convert(T, 2) : zero(T)
 _sum(P::AbstractJacobi{T}, dims) where T = 2 * (Legendre{T}() \ P)[1:1,:]
 
 

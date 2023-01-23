@@ -95,24 +95,19 @@ end
 # Clenshaw
 ###
 
-function unsafe_getindex(f::Expansion{<:Any,<:OrthogonalPolynomial}, x::Number)
-    P,c = arguments(f)
+function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::Number)
+    P,c = f.A,f.B
     _p0(P)*clenshaw(paddeddata(c), recurrencecoefficients(P)..., x)
 end
 
-Base.@propagate_inbounds function getindex(f::Expansion{<:Any,<:OrthogonalPolynomial}, x::Number)
-    @inbounds checkbounds(f, x)
-    unsafe_getindex(f, x)
+function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::Number, jr)
+    P,c = f.A,f.B
+    _p0(P)*clenshaw(view(paddeddata(c),:,jr), recurrencecoefficients(P)..., x)
 end
 
-getindex(f::Expansion{T,<:OrthogonalPolynomial}, x::AbstractVector{<:Number}) where T = 
-    copyto!(Vector{T}(undef, length(x)), view(f, x))
-
-function copyto!(dest::AbstractVector{T}, v::SubArray{<:Any,1,<:Expansion{<:Any,<:OrthogonalPolynomial}, <:Tuple{AbstractVector{<:Number}}}) where T
-    f = parent(v)
-    (x,) = parentindices(v)
-    P,c = arguments(f)
-    clenshaw!(paddeddata(c), recurrencecoefficients(P)..., x, Fill(_p0(P), length(x)), dest)
+Base.@propagate_inbounds function getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::Number, j...)
+    @inbounds checkbounds(ApplyQuasiArray(*,f.A,f.B), x, j...)
+    unsafe_getindex(f, x, j...)
 end
 
 ###
@@ -133,7 +128,9 @@ Base.@propagate_inbounds function _clenshaw_next!(n, A::AbstractVector, ::Zeros,
 end
 
 Base.@propagate_inbounds function _clenshaw_next!(n, A::AbstractVector, B::AbstractVector, C::AbstractVector, x::AbstractMatrix, c, bn1::AbstractMatrix{T}, bn2::AbstractMatrix{T}) where T
-    bn2 .= B[n] .* bn1 .- C[n+1] .* bn2
+    # bn2 .= B[n] .* bn1 .- C[n+1] .* bn2
+    lmul!(-C[n+1], bn2)
+    BLAS.axpy!(B[n], bn1, bn2)
     muladd!(A[n], x, bn1, one(T), bn2)
     view(bn2,band(0)) .+= c[n]
     bn2
@@ -166,7 +163,8 @@ Base.@propagate_inbounds function _clenshaw_first!(A, ::Zeros, C, X, c, bn1, bn2
 end
 
 Base.@propagate_inbounds function _clenshaw_first!(A, B, C, X, c, bn1, bn2) 
-    bn2 .= B[1] .* bn1 .- C[2] .* bn2
+    lmul!(-C[2], bn2)
+    BLAS.axpy!(B[1], bn1, bn2)
     muladd!(A[1], X, bn1, one(eltype(bn2)), bn2)
     view(bn2,band(0)) .+= c[1]
     bn2
@@ -283,17 +281,17 @@ function _BandedMatrix(::ClenshawLayout, V::SubArray{<:Any,2})
     M = parent(V)
     kr,jr = parentindices(V)
     b = bandwidth(M,1)
-    jkr=max(1,min(jr[1],kr[1])-b÷2):max(jr[end],kr[end])+b÷2
+    jkr=max(1,min(first(jr),first(kr))-b÷2):max(last(jr),last(kr))+b÷2
     # relationship between jkr and kr, jr
-    kr2,jr2 = kr.-jkr[1].+1,jr.-jkr[1].+1
+    kr2,jr2 = kr.-first(jkr).+1,jr.-first(jkr).+1
     lmul!(M.p0, clenshaw(M.c, M.A, M.B, M.C, M.X[jkr, jkr])[kr2,jr2])
 end
 
 function getindex(M::Clenshaw{T}, kr::AbstractUnitRange, j::Integer) where T
     b = bandwidth(M,1)
-    jkr=max(1,min(j,kr[1])-b÷2):max(j,kr[end])+b÷2
+    jkr=max(1,min(j,first(kr))-b÷2):max(j,last(kr))+b÷2
     # relationship between jkr and kr, jr
-    kr2,j2 = kr.-jkr[1].+1,j-jkr[1]+1
+    kr2,j2 = kr.-first(jkr).+1,j-first(jkr)+1
     f = [Zeros{T}(j2-1); one(T); Zeros{T}(length(jkr)-j2)]
     lmul!(M.p0, clenshaw(M.c, M.A, M.B, M.C, M.X[jkr, jkr], f)[kr2])
 end
@@ -322,19 +320,25 @@ function materialize!(M::MatMulVecAdd{<:ClenshawLayout,<:PaddedLayout,<:PaddedLa
     y
 end
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::Expansion{<:Any,<:OrthogonalPolynomial}, P::OrthogonalPolynomial)
+# TODO: generalise this to be trait based
+function layout_broadcasted(::Tuple{ExpansionLayout{<:AbstractOPLayout},AbstractOPLayout}, ::typeof(*), a, P)
     axes(a,1) == axes(P,1) || throw(DimensionMismatch())
     P * Clenshaw(a, P)
 end
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::Expansion{<:Any,<:WeightedOrthogonalPolynomial}, P::OrthogonalPolynomial)
-    axes(a,1) == axes(P,1) || throw(DimensionMismatch())
-    wQ,c = arguments(a)
-    w,Q = arguments(wQ)
-    (w .* P) * Clenshaw(Q * c, P)
+# TODO: layout_broadcasted
+function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::ApplyQuasiVector{<:Any,typeof(*),<:Tuple{SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Slice}},Any}}, V::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Any}})
+    axes(a,1) == axes(V,1) || throw(DimensionMismatch())
+    kr,jr = parentindices(V)
+    P = view(parent(V),kr,:)
+    P * Clenshaw(a, P)[:,jr]
 end
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), wv::BroadcastQuasiVector{<:Any,typeof(*),<:Tuple{Weight,AffineQuasiVector}}, P::OrthogonalPolynomial)
+
+layout_broadcasted(::Tuple{BroadcastLayout{typeof(*)},AbstractOPLayout}, ::typeof(*), a, P) =
+    _broadcasted_layout_broadcasted_mul(map(MemoryLayout,arguments(BroadcastLayout{typeof(*)}(),a)),a,P)
+
+function _broadcasted_layout_broadcasted_mul(::Tuple{WeightLayout,PolynomialLayout}, wv, P)
     w,v = arguments(wv)
     Q = OrthogonalPolynomial(w)
     a = (w .* Q) * (Q \ v)

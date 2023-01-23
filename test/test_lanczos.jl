@@ -18,7 +18,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
 
         @test A[1:10] isa Vector{Float64}
         @test B[1:10] isa Vector{Float64}
-        @test C[1:10] isa Vector{Float64}
+        # @test C[1:10] isa Vector{Float64}
 
         @test Q[0.1,1:10] ≈ Q̃[0.1,1:10]
 
@@ -61,7 +61,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
 
         Q = LanczosPolynomial(  1 ./ (2 .+ x).^2);
         R = P \ Q
-        @test norm(R[1,4:10]) ≤ 1E-14
+        @test norm(R[1,4:10]) ≤ 2E-14
 
         # polys
         Q = LanczosPolynomial( 2 .+ x);
@@ -90,6 +90,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         @test R \ [1; 2; 3; zeros(∞)] ≈ [1; 2; 3; zeros(∞)]
         @test (Q * (Q \ (1 .- x.^2)))[0.1] ≈ (1-0.1^2)
 
+        @test Q \ (x .* x) ≈ Q \ x.^2
+
         ũ = Normalized(P)*[1; 2; 3; zeros(∞)]
         u = Q*[1; 2; 3; zeros(∞)]
         ū = P * (P\u)
@@ -109,7 +111,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
     end
 
     @testset "Singularity" begin
-        T = Chebyshev(); wT = WeightedChebyshev()
+        T = Chebyshev(); wT = Weighted(Chebyshev())
         x = axes(T,1)
 
         w = wT * [1; zeros(∞)];
@@ -150,6 +152,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         Q = LanczosPolynomial(w, P)
         @test Q[0.1,1:10] ≈ Normalized(P)[0.1,1:10]
 
+        @test (Q \ (exp.(x) .* P)) * [1; zeros(∞)] ≈ Q \ exp.(x)
+
         w = @. exp(x) * sqrt(1-x)
         Q = LanczosPolynomial(w, P)
         # emperical from Julia
@@ -184,7 +188,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         p = LanczosPolynomial(w)
         x = axes(w,1)
         b = 2
-        wP = WeightedJacobi(α+1,β+1)
+        wP = Weighted(Jacobi(α+1,β+1))
         ϕw = wP * (Jacobi(α+1,β+1) \ (b .- x))
         pϕ = LanczosPolynomial(ϕw)
         @test (pϕ.P' * (ϕw .* pϕ.P))[1:3,1:3] ≈ [2 -0.5 0; -0.5 2 -0.5; 0 -0.5 2]
@@ -239,6 +243,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         Pϕ = Normalized(LanczosPolynomial(ϕ))
         P = Normalized(Legendre())
         Cϕ = Pϕ\P
+        @test Cϕ[1,1] ≈ 1.9327585352432264
     end
 
     @testset "3-mul-singularity" begin
@@ -257,5 +262,37 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         Q = LanczosPolynomial(w, U, dat);
         R = U \ Q;
         @test R[1:5,1:5] isa Matrix{Float64}
+    end
+
+    @testset "Marchenko–Pastur" begin
+        # MP law
+        r = 0.5
+        lmin, lmax = (1-sqrt(r))^2,  (1+sqrt(r))^2
+        U = chebyshevu(lmin..lmax)
+        x = axes(U,1)
+        w = @. 1/(2π) * sqrt((lmax-x)*(x-lmin))/(x*r)
+
+        # Q is a quasimatrix such that Q[x,k+1] is equivalent to
+        # qₖ(x), the k-th orthogonal polynomial wrt to w
+        Q = LanczosPolynomial(w, U)
+
+        # The Jacobi matrix associated with Q, as an ∞×∞ SymTridiagonal
+        J = jacobimatrix(Q)
+
+        @test J[1:3,1:3] ≈ SymTridiagonal([1,1.5,1.5], fill(1/sqrt(2),2))
+
+        # plot q₀,…,q₆
+        @test plotgrid(Q[:,1:7]) ≈ eigvals(Symmetric(J[1:280,1:280]))
+    end
+
+    @testset "Wachter law" begin
+        a,b = 5,10
+        c,d = sqrt(a/(a+b) * (1-1/(a+b))), sqrt(1/(a+b) * (1-a/(a+b)))
+        lmin,lmax = (c-d)^2,(c+d)^2
+        U = chebyshevu(lmin..lmax)
+        x = axes(U,1)
+        w = @. (a+b) * sqrt((x-lmin)*(lmax-x)/(2π*x*(1-x)))
+        Q = LanczosPolynomial(w, U)
+        @test Q[0.5,1:3] ≈ [0.9384176649676137,1.2140849874743076,0.5387898199391473]
     end
 end

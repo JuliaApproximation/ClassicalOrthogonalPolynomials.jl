@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices, 
+using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices,
         SemiseparableMatrices, LazyArrays, ArrayLayouts, Test
 
 import QuasiArrays: MulQuasiMatrix
@@ -44,28 +44,52 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
     end
 
     @testset "∞-FEM" begin
-        S = Jacobi(true,true)
-        w = JacobiWeight(true,true)
-        D = Derivative(axes(w,1))
-        WS = w.*S
-        L = D* WS
-        Δ = L'L
-        P = Legendre()
+        @testset "w .* P(true,true)" begin
+            S = Jacobi(true,true)
+            w = JacobiWeight(true,true)
+            D = Derivative(axes(w,1))
+            WS = w.*S
+            L = D* WS
+            Δ = L'L
+            P = Legendre()
 
-        f = P * Vcat(randn(10), Zeros(∞))
-        (P\WS)'*(P'P)*(P\WS)
-        B = BroadcastArray(+, Δ, (P\WS)'*(P'P)*(P\WS))
-        @test colsupport(B,1) == 1:3
+            f = P * Vcat(randn(10), Zeros(∞))
+            (P\WS)'*(P'P)*(P\WS)
+            B = BroadcastArray(+, Δ, (P\WS)'*(P'P)*(P\WS))
+            @test colsupport(B,1) == 1:3
 
-        @test axes(B.args[2].args[1]) == (oneto(∞),oneto(∞))
-        @test axes(B.args[2]) == (oneto(∞),oneto(∞))
-        @test axes(B) == (oneto(∞),oneto(∞))
+            @test axes(B.args[2].args[1]) == (oneto(∞),oneto(∞))
+            @test axes(B.args[2]) == (oneto(∞),oneto(∞))
+            @test axes(B) == (oneto(∞),oneto(∞))
 
-        @test BandedMatrix(view(B,1:10,13:20)) == zeros(10,8)
+            @test BandedMatrix(view(B,1:10,13:20)) == zeros(10,8)
 
-        F = qr(B);
-        b = Vcat(randn(10), Zeros(∞))
-        @test B*(F \ b) ≈ b
+            F = qr(B);
+            b = Vcat(randn(10), Zeros(∞))
+            @test B*(F \ b) ≈ b
+        end
+
+        @testset "simple" begin
+            W = Weighted(Jacobi(1,1))
+            P = Legendre()
+            x = axes(W,1)
+            D = Derivative(x)
+            Δ = -((D*W)'*(D*W))
+            u = W * (Δ \ (W'*exp.(x)))
+            let x = 0.1
+                @test u[x] ≈ (-1 + 2exp(1 + x) + x - exp(2)*(1 + x))/(2ℯ)
+            end
+
+            M = W'W
+            u = W * ((Δ+10M) \ (W'*exp.(x)))
+            let x = 0.1
+                @test u[x] ≈ (csc(2sqrt(10))*sin(sqrt(10)*(-1 + x)) + ℯ*(exp(x) - ℯ*csc(2sqrt(10))*sin(sqrt(10)*(1 + x))))/(11ℯ)
+            end
+
+            V = W'*(x.*W)
+            u = W * ((Δ+10V) \ (W'*exp.(x)))
+            @test u[0.1] ≈ -1.6914064963142479 # mathematica
+        end
     end
 
     @testset "Collocation" begin
@@ -186,5 +210,49 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         L = x .* D + cos.(x) .* D^2
         M = C \ (L * T)
         @test C[0.1,:]' * (M * (T \ exp.(x))) ≈ (0.1 + cos(0.1))*exp(0.1)
+    end
+
+    @testset "Neumann" begin
+        W = Weighted(Jacobi(1,1))
+        x = axes(W,1)
+        P = Legendre()
+        D = Derivative(x)
+
+        @testset "[x W]" begin
+            Q = [x W]
+            Δ = -((P\D*Q)'*(P'P)*(P\D*Q))
+            @test bandwidths(Δ) == (0,0)
+            c = Δ \ (Q'*exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ -0.5922177802211208
+
+            Δ = -((D*Q)'*(D*Q))
+            @test bandwidths(Δ) == (0,0)
+            c = Δ \ (Q'*exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ -0.5922177802211208
+        end
+
+        @testset "natural" begin
+            Q = [one(x) x W]
+            Δ = -((D*Q)'*(D*Q))
+            M = Q'Q
+            @test isbanded(Δ)
+            @test isbanded(M)
+            @test bandwidths(M) == (2,2)
+            @test bandwidths(Δ) == (0,0)
+            c = (Δ + M) \ (Q'exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ 1.104838515599687
+        end
+
+        @testset "one-sided" begin
+            Q = [one(x)-x W]
+            Δ = -((D*Q)'*(D*Q))
+            M = Q'Q;
+            c = (Δ + M) \ (Q'exp.(x))
+            u = Q * c
+            @test u[0.1] ≈ 1.6878004187402804
+        end
     end
 end

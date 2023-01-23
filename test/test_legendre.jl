@@ -1,5 +1,5 @@
-using ClassicalOrthogonalPolynomials, LazyArrays, QuasiArrays, BandedMatrices, ForwardDiff, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw
+using ClassicalOrthogonalPolynomials, LazyArrays, QuasiArrays, BandedMatrices, ContinuumArrays, ForwardDiff, Test
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw, weighted, oneto
 import QuasiArrays: MulQuasiArray
 
 @testset "Legendre" begin
@@ -8,12 +8,14 @@ import QuasiArrays: MulQuasiArray
         @test w.^2 isa LegendreWeight
         @test sqrt.(w) isa LegendreWeight
         @test w .* w isa LegendreWeight
+        @test w[0.1] ≡ 1.0
     end
 
     @testset "basics" begin
         P = Legendre()
         @test axes(P) == (Inclusion(ChebyshevInterval()),oneto(∞))
         @test P == P == Legendre{Float32}()
+        @test weighted(P) == P
         A,B,C = recurrencecoefficients(P)
         @test B isa Zeros
         P = Jacobi(0.0,0.0)
@@ -65,6 +67,11 @@ import QuasiArrays: MulQuasiArray
         W = P \ (w .* P)
         @test W isa Clenshaw
         @test W * [1; 2; zeros(∞)] ≈ P \ (w .* (P[:,1:2] * [1,2]))
+
+        M = P'P
+        @test M isa Diagonal
+        @test P'x ≈ [0; 2/3; zeros(∞)]
+        @test P'exp.(x) ≈ M * (P\exp.(x))
     end
 
     @testset "test on functions" begin
@@ -96,14 +103,17 @@ import QuasiArrays: MulQuasiArray
     end
 
     @testset "sum" begin
-        P = Legendre()
+        P = legendre()
         x = axes(P,1)
         w = P * (P \ exp.(x))
         @test sum(w) ≈ ℯ - inv(ℯ)
+        @test sum(P[:,5]) == 0
     end
 
     @testset "Mapped" begin
         P = legendre(0..1)
+        @test weighted(P) == P
+        @test weighted(Normalized(Legendre())[parentindices(P)...]) == Normalized(Legendre())[parentindices(P)...]
         x = axes(P,1)
         X = jacobimatrix(P)
         @test X[1:10,1:10] ≈ (P \ (x .* P))[1:10,1:10]
@@ -133,5 +143,14 @@ import QuasiArrays: MulQuasiArray
 
     @testset "special syntax" begin
         @test legendrep.(0:5, 0.3) == Legendre()[0.3, 1:6]
+    end
+
+    @testset "Inner products" begin
+        x = Inclusion(ChebyshevInterval())
+        @test x'exp.(x) ≈ 2/ℯ
+    end
+
+    @testset "Heaviside and Legendre" begin
+        @test Legendre() \ HeavisideSpline([-1,1]) == Vcat(1,Zeros(∞,1))
     end
 end

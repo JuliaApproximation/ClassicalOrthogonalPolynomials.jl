@@ -8,111 +8,111 @@ using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, Bloc
     LazyBandedMatrices, HypergeometricFunctions
 
 import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /, \, +, -,
-                IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy,
+                IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy, setindex,
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
-                to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary
+                to_indices, _maybetail, tail, getproperty, inv, show, isapprox, summary,
+                findall, searchsortedfirst
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
-import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, colsupport, adjointlayout,
+import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
                 _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
-                AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!
+                AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!,
+                simplifiable, PaddedArray, converteltype
 import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
-                        subdiagonaldata, diagonaldata, supdiagonaldata
+                        subdiagonaldata, diagonaldata, supdiagonaldata, mul, rowsupport, colsupport
 import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1, AbstractLazyBandedLayout
-import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot
+import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot, mul!
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
 import FillArrays: AbstractFill, getindex_value, SquareEye
-
+import DomainSets: components
 import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclusion, SubQuasiArray,
                     QuasiDiagonal, MulQuasiArray, MulQuasiMatrix, MulQuasiVector, QuasiMatMulMat,
                     ApplyQuasiArray, ApplyQuasiMatrix, LazyQuasiArrayApplyStyle, AbstractQuasiArrayApplyStyle,
                     LazyQuasiArray, LazyQuasiVector, LazyQuasiMatrix, LazyLayout, LazyQuasiArrayStyle,
-                    _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector
+                    _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector,
+                    AbstractQuasiFill, _dot, _equals, QuasiArrayLayout, PolynomialLayout
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
+import InfiniteLinearAlgebra: chop!, chop, choplength, compatible_resize!
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
-    inbounds_getindex, grid, plotgrid, transform, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, Expansion,
-    AffineQuasiVector, AffineMap, WeightLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
-    checkpoints, weight, unweightedbasis, MappedBasisLayouts, __sum, invmap
+    inbounds_getindex, grid, plotgrid, _plotgrid, _grid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
+    AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
+    checkpoints, weight, unweighted, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
+    plan_transform, plan_grid_transform, MAX_PLOT_POINTS, MulPlan
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
-                        _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints
+                        _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan
 
 import FastGaussQuadrature: jacobimoment
 
-import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray, block, blockindex, BlockSlice
+import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray, block, blockindex, BlockSlice, blockvec
 import BandedMatrices: bandwidths
 
 export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial,
-            Hermite, Jacobi, Legendre, Chebyshev, ChebyshevT, ChebyshevU, ChebyshevInterval, Ultraspherical, Fourier, Laguerre,
+            Hermite, Jacobi, Legendre, Chebyshev, ChebyshevT, ChebyshevU, ChebyshevInterval, Ultraspherical, Fourier, Laurent, Laguerre,
             HermiteWeight, JacobiWeight, ChebyshevWeight, ChebyshevGrid, ChebyshevTWeight, ChebyshevUWeight, UltrasphericalWeight, LegendreWeight, LaguerreWeight,
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
             ∞, Derivative, .., Inclusion,
             chebyshevt, chebyshevu, legendre, jacobi, ultraspherical,
             legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
-            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace
+            jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace, plan_transform,
+            expand, transform
 
 
 import Base: oneto
 
 
 include("interlace.jl")
+include("standardchop.jl")
+include("adaptivetransform.jl")
 
-
-cardinality(::FullSpace{<:AbstractFloat}) = ℵ₁
-cardinality(::EuclideanDomain) = ℵ₁
-
-transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
-    adaptivetransform_ldiv(convert(AbstractQuasiArray{promote_type(T,V)}, A), f)
-
-function chop!(c::AbstractVector, tol::Real)
-    @assert tol >= 0
-
-    for k=length(c):-1:1
-        if abs(c[k]) > tol
-            resize!(c,k)
-            return c
-        end
-    end
-    resize!(c,0)
-    c
-end
-
-setaxis(c, ::OneToInf) = c
-setaxis(c, ax::BlockedUnitRange) = PseudoBlockVector(c, (ax,))
-
-function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiArray{V}) where {U,V}
-    T = promote_type(U,V)
-
-    r = checkpoints(A)
-    fr = f[r]
-    maxabsfr = norm(fr,Inf)
-
-    tol = 20eps(real(T))
-
-    for n = 2 .^ (4:∞)
-        An = A[:,oneto(n)]
-        cfs = An \ f
-        maxabsc = maximum(abs, cfs)
-        if maxabsc == 0 && maxabsfr == 0
-            return zeros(T,∞)
-        end
-
-        un = A * [cfs; Zeros{T}(∞)]
-        # we allow for transformed coefficients being a different size
-        ##TODO: how to do scaling for unnormalized bases like Jacobi?
-        if maximum(abs,@views(cfs[n-2:end])) < 10tol*maxabsc &&
-                all(norm.(un[r] - fr, 1) .< tol * n * maxabsfr*1000)
-            return setaxis([chop!(cfs, tol); zeros(T,∞)], axes(A,2))
-        end
-    end
-    error("Have not converged")
-end
-
+const WeightedBasis{T, A<:AbstractQuasiVector, B<:Basis} = BroadcastQuasiMatrix{T,typeof(*),<:Tuple{A,B}}
 abstract type OrthogonalPolynomial{T} <: Basis{T} end
+abstract type AbstractOPLayout <: AbstractBasisLayout end
+struct OPLayout <: AbstractOPLayout end
+MemoryLayout(::Type{<:OrthogonalPolynomial}) = OPLayout()
+
+
+
+sublayout(::AbstractOPLayout, ::Type{<:Tuple{<:AbstractAffineQuasiVector,<:Slice}}) = MappedOPLayout()
+
+struct MappedOPLayout <: AbstractOPLayout end
+struct WeightedOPLayout{Lay<:AbstractOPLayout} <: AbstractWeightedBasisLayout end
+
+isorthogonalityweighted(::WeightedOPLayout, _) = true
+function isorthogonalityweighted(::AbstractWeightedBasisLayout, wS)
+    w,S = arguments(wS)
+    w == orthogonalityweight(S)
+end
+
+isorthogonalityweighted(wS) = isorthogonalityweighted(MemoryLayout(wS), wS)
+
+
+_equals(::MappedOPLayout, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
+_equals(::MappedOPLayout, ::MappedBasisLayouts, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
+_equals(::MappedBasisLayouts, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
+
+_broadcastbasis(::typeof(+), ::MappedOPLayout, ::MappedOPLayout, P, Q) = _broadcastbasis(+, MappedBasisLayout(), MappedBasisLayout(), P, Q)
+_broadcastbasis(::typeof(+), ::MappedOPLayout, M::MappedBasisLayout, P, Q) = _broadcastbasis(+, MappedBasisLayout(), M, P, Q)
+_broadcastbasis(::typeof(+), L::MappedBasisLayout, ::MappedOPLayout, P, Q) = _broadcastbasis(+, L, MappedBasisLayout(), P, Q)
+__sum(::MappedOPLayout, A, dims) = __sum(MappedBasisLayout(), A, dims)
+
+# demap to avoid Golub-Welsch fallback
+ContinuumArrays.transform_ldiv_if_columns(L::Ldiv{MappedOPLayout,Lay}, ax::OneTo) where Lay = ContinuumArrays.transform_ldiv_if_columns(Ldiv{MappedBasisLayout,Lay}(L.A,L.B), ax)
+ContinuumArrays.transform_ldiv_if_columns(L::Ldiv{MappedOPLayout,ApplyLayout{typeof(hcat)}}, ax::OneTo) = ContinuumArrays.transform_ldiv_if_columns(Ldiv{MappedBasisLayout,UnknownLayout}(L.A,L.B), ax)
+
+_equals(::AbstractOPLayout, ::AbstractWeightedBasisLayout, _, _) = false # Weighedt-Legendre doesn't exist
+_equals(::AbstractWeightedBasisLayout, ::AbstractOPLayout, _, _) = false # Weighedt-Legendre doesn't exist
+
+_equals(::WeightedOPLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unweighted(wQ)
+_equals(::WeightedOPLayout, ::WeightedBasisLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
+_equals(::WeightedBasisLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
+_equals(::WeightedBasisLayout{<:AbstractOPLayout}, ::WeightedBasisLayout{<:AbstractOPLayout}, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
+
+
+copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:MappedBasisLayouts = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
 
 # OPs are immutable
 copy(a::OrthogonalPolynomial) = a
-copy(a::SubQuasiArray{<:Any,N,<:OrthogonalPolynomial}) where N = a
 
 """
     jacobimatrix(P)
@@ -153,12 +153,6 @@ function recurrencecoefficients(Q::AbstractQuasiMatrix{T}) where T
 end
 
 
-const WeightedOrthogonalPolynomial{T, A<:AbstractQuasiVector, B<:OrthogonalPolynomial} = WeightedBasis{T, A, B}
-
-function isorthogonalityweighted(wS::WeightedOrthogonalPolynomial)
-    w,S = wS.args
-    w == orthogonalityweight(S)
-end
 
 """
     singularities(f)
@@ -169,9 +163,9 @@ gives the singularity structure of an expansion, e.g.,
 singularities(::WeightLayout, w) = w
 singularities(lay::BroadcastLayout, a) = singularitiesbroadcast(call(a), map(singularities, arguments(lay, a))...)
 singularities(::WeightedBasisLayouts, a) = singularities(BroadcastLayout{typeof(*)}(), a)
+singularities(::WeightedOPLayout, a) = singularities(weight(a))
 singularities(w) = singularities(MemoryLayout(w), w)
-singularities(f::Expansion) = singularities(basis(f))
-singularities(S::WeightedOrthogonalPolynomial) = singularities(S.args[1])
+singularities(::ExpansionLayout, f) = singularities(basis(f))
 
 singularities(S::SubQuasiArray) = singularities(parent(S))[parentindices(S)[1]]
 
@@ -185,17 +179,24 @@ singularities(r::Base.RefValue) = r[] # pass through
 orthogonalityweight(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) =
     orthogonalityweight(parent(P))[parentindices(P)[1]]
 
-_weighted(w, P) = w .* P
-weighted(P::AbstractQuasiMatrix) = _weighted(orthogonalityweight(P), P)
+function massmatrix(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}})
+    Q = parent(P)
+    kr,jr = parentindices(P)
+    massmatrix(Q)/kr.A
+end
+
+weighted(P::AbstractQuasiMatrix) = Weighted(P)
 
 OrthogonalPolynomial(w::Weight) =error("Override for $(typeof(w))")
 
 @simplify *(B::Identity, C::OrthogonalPolynomial) = C*jacobimatrix(C)
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, C::OrthogonalPolynomial)
+function layout_broadcasted(::Tuple{PolynomialLayout,AbstractOPLayout}, ::typeof(*), x::Inclusion, C)
     x == axes(C,1) || throw(DimensionMismatch())
     C*jacobimatrix(C)
 end
+
+
 
 # function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::BroadcastQuasiVector, C::OrthogonalPolynomial)
 #     axes(a,1) == axes(C,1) || throw(DimensionMismatch())
@@ -203,65 +204,13 @@ end
 #     broadcast(*, C * (C \ a), C)
 # end
 
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::AbstractAffineQuasiVector, C::OrthogonalPolynomial)
-    x = axes(C,1)
-    axes(a,1) == x || throw(DimensionMismatch())
-    broadcast(*, C * (C \ a), C)
-end
-
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, C::WeightedOrthogonalPolynomial)
-    x == axes(C,1) || throw(DimensionMismatch())
-    w,P = C.args
-    P2, J = (x .* P).args
-    @assert P == P2
-    (w .* P) * J
-end
-
-##
-# Multiplication for mapped and subviews x .* view(P,...)
-##
-
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
-    T = promote_type(eltype(x), eltype(C))
-    x == axes(C,1) || throw(DimensionMismatch())
-    P = parent(C)
-    kr,jr = parentindices(C)
-    y = axes(P,1)
-    Y = P \ (y .* P)
-    X = kr.A \ (Y     - kr.b * Eye{T}(∞))
-    P[kr, :] * view(X,:,jr)
-end
-
-function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}})
-    T = promote_type(eltype(x), eltype(C))
-    x == axes(C,1) || throw(DimensionMismatch())
-    P = parent(C)
-    kr,_ = parentindices(C)
-    y = axes(P,1)
-    Y = P \ (y .* P)
-    X = kr.A \ (Y     - kr.b * Eye{T}(∞))
-    P[kr, :] * X
-end
-
-
-# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::AbstractQuasiVector, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Slice}})
-#     T = promote_type(eltype(f), eltype(C))
-#     axes(f,1) == axes(C,1) || throw(DimensionMismatch())
-#     P = parent(C)
-#     kr,jr = parentindices(C)
-#     (f[invmap(kr)] .* P)[kr,jr]
+# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::AbstractAffineQuasiVector, C::OrthogonalPolynomial)
+#     x = axes(C,1)
+#     axes(a,1) == x || throw(DimensionMismatch())
+#     broadcast(*, C * (C \ a), C)
 # end
 
-# function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::AbstractQuasiVector, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}})
-#     T = promote_type(eltype(f), eltype(C))
-#     axes(f,1) == axes(C,1) || throw(DimensionMismatch())
-#     P = parent(C)
-#     kr,jr = parentindices(C)
-#     (f[invmap(kr)] .* P)[kr,jr]
-# end
 
-broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), f::Broadcasted, C::SubQuasiArray{<:Any,2,<:Any,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}) =
-    broadcast(*, materialize(f), C)
 
 function jacobimatrix(C::SubQuasiArray{T,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) where T
     P = parent(C)
@@ -276,11 +225,6 @@ function recurrencecoefficients(C::SubQuasiArray{T,2,<:Any,<:Tuple{AbstractAffin
     A,B,C = recurrencecoefficients(P)
     A * kr.A, A*kr.b + B, C
 end
-
-
-_vec(a) = vec(a)
-_vec(a::InfiniteArrays.ReshapedArray) = _vec(parent(a))
-_vec(a::Adjoint{<:Any,<:AbstractVector}) = a'
 
 include("clenshaw.jl")
 include("ratios.jl")
@@ -302,8 +246,10 @@ _tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
 jacobimatrix(V::SubQuasiArray{<:Any,2,<:Any,<:Tuple{Inclusion,OneTo}}) =
     _tritrunc(jacobimatrix(parent(V)), maximum(parentindices(V)[2]))
 
-grid(P::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,Any}}) =
-    eigvals(symtridiagonalize(jacobimatrix(P)))
+_grid(::AbstractOPLayout, P, n::Integer) = eigvals(symtridiagonalize(jacobimatrix(P[:,OneTo(n)])))
+_grid(::MappedOPLayout, P, n::Integer) = _grid(MappedBasisLayout(), P, n)
+_plotgrid(::AbstractOPLayout, P, n::Integer) = grid(P, min(40n, MAX_PLOT_POINTS))
+_plotgrid(::MappedOPLayout, P, n::Integer) = _plotgrid(MappedBasisLayout(), P, n)
 
 function golubwelsch(X)
     D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
@@ -316,23 +262,24 @@ function golubwelsch(V::SubQuasiArray)
     x,w
 end
 
-function factorize(L::SubQuasiArray{T,2,<:Normalized,<:Tuple{Inclusion,OneTo}}) where T
+
+function plan_grid_transform(Q::Normalized, szs::NTuple{N,Int}, dims=1:N) where N
+    L = Q[:,OneTo(szs[1])]
     x,w = golubwelsch(L)
-    TransformFactorization(x, L[x,:]'*Diagonal(w))
+    x, MulPlan(L[x,:]'*Diagonal(w), dims)
+end
+
+function plan_grid_transform(::AbstractOPLayout, P, szs::NTuple{N,Int}, dims=1:N) where N
+    Q = Normalized(P)
+    x, A = plan_grid_transform(Q, szs, dims...)
+    n = szs[1]
+    D = (P \ Q)[1:n, 1:n]
+    x, D * A
 end
 
 
-function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{Inclusion,OneTo}}) where T
-    Q = Normalized(parent(L))[parentindices(L)...]
-    D = L \ Q
-    F = factorize(Q)
-    TransformFactorization(F.grid, D*F.plan)
-end
-
-function factorize(L::SubQuasiArray{T,2,<:OrthogonalPolynomial,<:Tuple{<:Inclusion,<:AbstractUnitRange}}) where T
-    _,jr = parentindices(L)
-    ProjectionFactorization(factorize(parent(L)[:,oneto(maximum(jr))]), jr)
-end
+plan_grid_transform(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=1:N) where N =
+    plan_grid_transform(MappedBasisLayout(), L, szs, dims)
 
 function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
@@ -347,12 +294,27 @@ function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}}, 
 end
 
 # assume we can expand w_B in wA to reduce to polynomial multiplication
-function \(wA::WeightedOrthogonalPolynomial, wB::WeightedOrthogonalPolynomial)
-    _,A = arguments(wA)
-    w_B,B = arguments(wB)
-    A \ ((A * (wA \ w_B)) .* B)
+# function \(wA::WeightedOrthogonalPolynomial, wB::WeightedOrthogonalPolynomial)
+#     _,A = arguments(wA)
+#     w_B,B = arguments(wB)
+#     A \ ((A * (wA \ w_B)) .* B)
+# end
+
+## special expansion routines for constants and x
+function _op_ldiv(P::AbstractQuasiMatrix{V}, f::AbstractQuasiFill{T,1}) where {T,V}
+    TV = promote_type(T,V)
+    Vcat(getindex_value(f)/_p0(P),Zeros{TV}(∞))
 end
 
+_op_ldiv(::AbstractQuasiMatrix{V}, ::QuasiZeros{T,1}) where {T,V} = Zeros{promote_type(T,V)}(∞)
+
+function _op_ldiv(P::AbstractQuasiMatrix{V}, f::Inclusion{T}) where {T,V}
+    axes(P,1) == f || throw(DimensionMismatch())
+    A,B,_ = recurrencecoefficients(P)
+    TV = promote_type(T,V)
+    c = inv(convert(TV,A[1]*_p0(P)))
+    Vcat(-B[1]c, c, Zeros{TV}(∞))
+end
 
 include("classical/hermite.jl")
 include("classical/jacobi.jl")
@@ -361,6 +323,7 @@ include("classical/ultraspherical.jl")
 include("classical/laguerre.jl")
 include("classical/fourier.jl")
 include("stieltjes.jl")
+include("roots.jl")
 include("decompOPs.jl")
 
 export cholesky_jacobimatrix

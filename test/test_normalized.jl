@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, LinearAlgebra, Test
-import ClassicalOrthogonalPolynomials: NormalizedBasisLayout, recurrencecoefficients, Normalized, Clenshaw, weighted, grid, plotgrid
+import ClassicalOrthogonalPolynomials: NormalizedOPLayout, recurrencecoefficients, Normalized, Clenshaw, weighted, grid, plotgrid
 import LazyArrays: CachedVector, PaddedLayout
 import ContinuumArrays: MappedWeightedBasisLayout
 
@@ -9,7 +9,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
         Q = Normalized(P)
 
         @testset "Basic" begin
-            @test MemoryLayout(Q) isa NormalizedBasisLayout
+            @test MemoryLayout(Q) isa NormalizedOPLayout
             @test (Q\Q) ≡ Eye(∞)
             @test Q == Q
             @test P ≠ Q
@@ -78,7 +78,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
         end
 
         @testset "show" begin
-            @test stringmime("text/plain", Normalized(Legendre())) == "Normalized(Legendre{Float64})"
+            @test stringmime("text/plain", Normalized(Legendre())) == "Normalized(Legendre())"
         end
 
         @testset "qr" begin
@@ -92,11 +92,11 @@ import ContinuumArrays: MappedWeightedBasisLayout
     @testset "Chebyshev" begin
         T = ChebyshevT()
         w = ChebyshevWeight()
-        wT = WeightedChebyshevT()
+        wT = Weighted(ChebyshevT())
         Q = Normalized(T)
 
         @testset "Basic" begin
-            @test MemoryLayout(Q) isa NormalizedBasisLayout
+            @test MemoryLayout(Q) isa NormalizedOPLayout
             @test (Q\Q) ≡ Eye(∞)
         end
 
@@ -196,7 +196,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
         n = 10
         Pn = Diagonal([Ones(n); Zeros(∞)])
         @test (X*Pn - Pn*X)[1:n,1:n] ≈ zeros(n,n)
-        @test Pn * Q[y,:] isa CachedVector
+        @test MemoryLayout(Pn * Q[y,:]) isa PaddedLayout
 
         # @test (x-y) * Q[x,1:n]'*Q[y,1:n] ≈ (x-y) * Q[x,:]'*Pn*Q[y,:] ≈ (x-y) * Q[x,:]'*Pn*Q[y,:]
         # Q[x,:]' * ((X*Pn - Pn*X)* Q[y,:])
@@ -208,5 +208,48 @@ import ContinuumArrays: MappedWeightedBasisLayout
         Q = Normalized(P)
         @test grid(Q[:,1:5]) == grid(Q[:,collect(1:5)]) == grid(P[:,1:5])
         @test plotgrid(Q[:,1:5]) == plotgrid(Q[:,collect(1:5)]) == plotgrid(P[:,1:5])
+    end
+
+    @testset "Transform" begin
+        Q = Normalized(Hermite())
+        n = 20
+        Qₙ = Q[:,Base.OneTo(n)]
+        x = axes(Q,1)
+        g = grid(Qₙ)
+        v = exp.(g)
+        P = plan_transform(Q, v)
+        @test P * v ≈ Qₙ[g,:] \ exp.(g) ≈ transform(Qₙ, exp)
+
+        V = cos.(g .* (1:3)')
+        P = plan_transform(Q, V, 1)
+        @test P * V ≈ Qₙ \ cos.(x .* (1:3)')
+
+        X = randn(n, n)
+        P₂ = plan_transform(Q, X, 2)
+
+        P = plan_transform(Q, X)
+
+        PX = P * X
+        for k = 1:n
+            X[:, k] = Qₙ[g,:] \ X[:, k]
+        end
+        for k = 1:n
+            X[k, :] = Qₙ[g,:] \ X[k, :]
+        end
+        @test PX ≈ X
+
+        X = randn(n, n, n)
+        P = plan_transform(Q, X)
+        PX = P * X
+        for k = 1:n, j = 1:n
+            X[:, k, j] = Qₙ[g,:] \ X[:, k, j]
+        end
+        for k = 1:n, j = 1:n
+            X[k, :, j] = Qₙ[g,:] \ X[k, :, j]
+        end
+        for k = 1:n, j = 1:n
+            X[k, j, :] = Qₙ[g,:] \ X[k, j, :]
+        end
+        @test PX ≈ X
     end
 end

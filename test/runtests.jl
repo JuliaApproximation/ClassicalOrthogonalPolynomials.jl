@@ -1,6 +1,6 @@
 using Base, ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, FillArrays,
         LazyArrays, BandedMatrices, LinearAlgebra, FastTransforms, IntervalSets,
-        InfiniteLinearAlgebra, Test
+        InfiniteLinearAlgebra, Random, Test
 using ForwardDiff, SemiseparableMatrices, SpecialFunctions, LazyBandedMatrices
 import ContinuumArrays: BasisLayout, MappedBasisLayout
 import ClassicalOrthogonalPolynomials: jacobimatrix, ∞, ChebyshevInterval, LegendreWeight,
@@ -11,6 +11,8 @@ import QuasiArrays: MulQuasiMatrix
 import ClassicalOrthogonalPolynomials: oneto
 import InfiniteLinearAlgebra: KronTrav, Block
 import FastTransforms: clenshaw!
+
+Random.seed!(0)
 
 @testset "singularities" begin
     x = Inclusion(ChebyshevInterval())
@@ -38,8 +40,9 @@ include("test_odes.jl")
 include("test_ratios.jl")
 include("test_normalized.jl")
 include("test_lanczos.jl")
-include("test_stieltjes.jl")
 include("test_interlace.jl")
+include("test_stieltjes.jl")
+include("test_roots.jl")
 include("test_decompOPs.jl")
 
 @testset "Auto-diff" begin

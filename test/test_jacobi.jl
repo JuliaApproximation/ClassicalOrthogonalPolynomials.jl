@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, QuasiArrays, LazyArrays, LazyBandedMatrices, FastGaussQuadrature, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted, WeightedOrthogonalPolynomial
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted
 
 @testset "Jacobi" begin
     @testset "JacobiWeight" begin
@@ -16,6 +16,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
     @testset "basics" begin
         @test Legendre() == Jacobi(0,0)
         @test Jacobi(0,0) == Legendre()
+        @test Jacobi(1,2) .* Legendre() == Jacobi(1,2) .* Jacobi(0,0)
     end
 
     @testset "basis" begin
@@ -47,22 +48,38 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
     end
 
     @testset "orthogonality" begin
-        a,b = 0.1,0.2
-        x,w = gaussjacobi(3,a,b)
-        P = Jacobi(a,b)
+        @testset "legendre" begin
+            P̃ = Jacobi(0,0)
+            x = axes(P̃,1)
+            @test P̃'exp.(x) ≈ Legendre()'exp.(x)
+            @test P̃'P̃ isa Diagonal
+        end
 
-        M = P[x,1:3]'Diagonal(w)*P[x,1:3]
-        @test M ≈ Diagonal(M)
-        x,w = gaussradau(3,a,b)
-        M = P[x,1:3]'Diagonal(w)*P[x,1:3]
-        @test M ≈ Diagonal(M)
+        @testset "integer" begin
+            P¹ = Jacobi(1,1)
+            P = Legendre()
+            x = axes(P¹,1)
+            @test (P¹'exp.(x))[1:10] ≈ (P¹'P)[1:10,1:10] * (P \ exp.(x))[1:10]
+        end
 
-        w = JacobiWeight(a,b)
-        w_2 = sqrt.(w)
-        @test w_2 .^ 2 == w
-        @test (P' * (w .* P))[1:3,1:3] ≈ (P' * (w .* P))[1:3,1:3] ≈ ((w_2 .* P)'*(w_2 .* P))[1:3,1:3] ≈ M
+        @testset "fractional a,b" begin
+            a,b = 0.1,0.2
+            x,w = gaussjacobi(3,a,b)
+            P = Jacobi(a,b)
 
-        @test (Jacobi(0,0)'Jacobi(0,0))[1:10,1:10] ≈ (Legendre()'Legendre())[1:10,1:10]
+            M = P[x,1:3]'Diagonal(w)*P[x,1:3]
+            @test M ≈ Diagonal(M)
+            x,w = gaussradau(3,a,b)
+            M = P[x,1:3]'Diagonal(w)*P[x,1:3]
+            @test M ≈ Diagonal(M)
+
+            w = JacobiWeight(a,b)
+            w_2 = sqrt.(w)
+            @test w_2 .^ 2 == w
+            @test (P' * (w .* P))[1:3,1:3] ≈ (P' * (w .* P))[1:3,1:3] ≈ ((w_2 .* P)'*(w_2 .* P))[1:3,1:3] ≈ M
+
+            @test (Jacobi(0,0)'Jacobi(0,0))[1:10,1:10] ≈ (Legendre()'Legendre())[1:10,1:10]
+        end
     end
 
     @testset "operators" begin
@@ -82,12 +99,12 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test w[x] ≈ (1-x)^a * (1+x)^b
             @test OrthogonalPolynomial(w) == S
             wS = w.*S
-            @test wS == WeightedJacobi(a,b) == WeightedJacobi{Float64}(a,b)
+            @test wS == Weighted(Jacobi(a,b)) == Weighted(Jacobi{Float64}(a,b))
             @test wS[0.1,1] ≈ w[0.1]
             @test wS[0.1,1:2] ≈ w[0.1] .* S[0.1,1:2]
 
-            w_A = WeightedJacobi(-1/2,0)
-            w_B =  WeightedJacobi(1/2,0)
+            w_A = Weighted(Jacobi(-1/2,0))
+            w_B =  Weighted(Jacobi(1/2,0))
 
             u = w_A * [1 ; 2; zeros(∞)]
             v = w_B * [1 ; 2; zeros(∞)]
@@ -114,6 +131,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             Ri = A \ B
             @test Ri[1:10,1:10] ≈ inv(R[1:10,1:10])
             @test A[0.1,:]' * (Ri * c) ≈ B[0.1,:]' * c
+
+            # special weighted conversions
+            W = (JacobiWeight(-1,-1) .* Jacobi(0,0)) \ Jacobi(0,0)
+            @test ((JacobiWeight(-1,-1) .* Jacobi(0,0)) * W)[0.1,1:10] ≈ Jacobi(0,0)[0.1,1:10]
         end
 
         @testset "Derivative" begin
@@ -130,6 +151,14 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test (D * (JacobiWeight(0,c) .* S) * u)[x̃] ≈ exp(x̃) * (1+x̃)^(c-1) * (1+c+x̃)
             @test (D * (JacobiWeight(c,0) .* S) * u)[x̃] ≈ exp(x̃) * (1-x̃)^(c-1) * (1-c-x̃)
             @test (D * (JacobiWeight(0,0) .* S) * u)[x̃] ≈ exp(x̃)
+            @test (D * (JacobiWeight(c,a) .* S) * u)[x̃] ≈ -exp(x̃) * (1-x̃)^(-1+c)*(1+x̃)^(-1+a)*(c*(1+x̃)+(-1+x̃)*(1+a+x̃))
+
+            P = Jacobi(0,0)
+
+            h = 1E-8
+            @test (D * (JacobiWeight(c,a) .* S))[0.1,1:5] ≈ ((JacobiWeight(c,a) .* S)[0.1+h,1:5]-(JacobiWeight(c,a) .* S)[0.1,1:5])/h atol=1E-5
+            @test (D * (JacobiWeight(c,a) .* P))[0.1,1:5] ≈ ((JacobiWeight(c,a) .* P)[0.1+h,1:5]-(JacobiWeight(c,a) .* P)[0.1,1:5])/h atol=1E-5
+            @test (D * (JacobiWeight(c,a) .* P))[0.1,1:5] ≈ (D * (JacobiWeight(c,a) .* Legendre()))[0.1,1:5]
         end
     end
 
@@ -151,7 +180,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         x = axes(P,1)
         @test (P * (P \ exp.(x)))[0.1] ≈ exp(0.1)
 
-        wP = WeightedJacobi(1/2,0.)
+        @test P[0.1,:]' * (P \ [exp.(x) cos.(x)]) ≈ [exp(0.1) cos(0.1)]
+
+
+        wP = Weighted(Jacobi(1/2,0.))
         f = @.(sqrt(1 - x) * exp(x))
         @test wP[0.1,1:100]'*(wP[:,1:100] \ f) ≈ sqrt(1-0.1) * exp(0.1)
         @test (wP * (wP \ f))[0.1] ≈ sqrt(1-0.1) * exp(0.1)
@@ -169,6 +201,24 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             x = axes(P,1)
             u = P * (P \ exp.(x))
             @test u[0.1] ≈ exp(0.1)
+            # U = P * (P \ [exp.(x) cos.(x)]) # not good at multiscale
+            @test_broken U[0.1,:] ≈ [exp(0.1),cos(0.1)]
+        end
+
+        @testset "special cases" begin
+            P = Jacobi(0.1,0.2)
+            x = axes(P,1)
+            @test P \ zero(x) isa Zeros
+            @test P \ one(x) == [1; Zeros(∞)]
+            @test P \ x ≈ P \ broadcast(x -> x, x)
+        end
+
+        @testset "Weighted addition" begin
+            a = Weighted(Jacobi(2,2)) * [1; 2; zeros(∞)]
+            b = Weighted(Jacobi(1,1)) * [3; 4; 5; zeros(∞)]
+            c = (JacobiWeight(2,2) .* Jacobi(1,1)) * [6; zeros(∞)]
+            @test (a + b)[0.1] ≈ a[0.1] + b[0.1]
+            @test (a + c)[0.1] ≈ (c + a)[0.1] ≈ a[0.1] + c[0.1]
         end
     end
 
@@ -371,6 +421,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         D_W = Weighted(A) \ (D * Weighted(B))
         @test (A * (D_W * (B \ exp.(x))))[0.1] ≈ (-a*(1+0.1) + b*(1-0.1) + (1-0.1^2)) *exp(0.1)
 
+        @test copy(HalfWeighted{:a}(Jacobi(a,b))) == HalfWeighted{:a}(Jacobi(a,b))
+
         D_a = HalfWeighted{:a}(Jacobi(a-1,b+1)) \ (D * HalfWeighted{:a}(B))
         D_b = HalfWeighted{:b}(Jacobi(a+1,b-1)) \ (D * HalfWeighted{:b}(B))
         @test (Jacobi(a-1,b+1) * (D_a * (B \ exp.(x))))[0.1] ≈ (-a + 1-0.1) *exp(0.1)
@@ -390,10 +442,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test HalfWeighted{:a}(Jacobi(0.2,0.1)) ≠ HalfWeighted{:b}(Jacobi(0.2,0.1))
         @test HalfWeighted{:a}(Jacobi(0.2,0.1)) == HalfWeighted{:a}(Jacobi(0.2,0.1))
 
-        @test convert(WeightedOrthogonalPolynomial, HalfWeighted{:a}(Normalized(Jacobi(0.1,0.2))))[0.1,1:10] ≈
-            HalfWeighted{:a}(Normalized(Jacobi(0.1,0.2)))[0.1,1:10]
-        @test convert(WeightedOrthogonalPolynomial, HalfWeighted{:b}(Normalized(Jacobi(0.1,0.2))))[0.1,1:10] ≈
-            HalfWeighted{:b}(Normalized(Jacobi(0.1,0.2)))[0.1,1:10]
+        # @test convert(WeightedOrthogonalPolynomial, HalfWeighted{:a}(Normalized(Jacobi(0.1,0.2))))[0.1,1:10] ≈
+        #     HalfWeighted{:a}(Normalized(Jacobi(0.1,0.2)))[0.1,1:10]
+        # @test convert(WeightedOrthogonalPolynomial, HalfWeighted{:b}(Normalized(Jacobi(0.1,0.2))))[0.1,1:10] ≈
+        #     HalfWeighted{:b}(Normalized(Jacobi(0.1,0.2)))[0.1,1:10]
 
         
         L = Normalized(Jacobi(0, 0)) \ HalfWeighted{:a}(Normalized(Jacobi(1, 0)))
@@ -408,6 +460,46 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test L[1:10,1:10] ≈ (Legendre() \ Weighted(Jacobi(1,1)))[1:10,1:10]
             @test Weighted(Jacobi(0,0)) \ Legendre() == Eye(∞)
             @test Weighted(Jacobi(0,0)) \ (Legendre() * [1; zeros(∞)]) ≈ [1; zeros(∞)]
+        end
+
+        @testset "Mapped" begin
+            x = Inclusion(0..1)
+            W = Weighted(jacobi(1,1,0..1))
+            D = Derivative(x)
+            P¹ = Jacobi(1,1)
+            @test (D * W)[0.1,1:10] ≈ (D * Weighted(P¹)[affine(x,axes(P¹,1)),:])[0.1,1:10]
+        end
+
+        @testset "==" begin
+            @test HalfWeighted{:a}(Jacobi(1,2)) == JacobiWeight(1,0) .* Jacobi(1,2)
+            @test JacobiWeight(1,0) .* Jacobi(1,2) == HalfWeighted{:a}(Jacobi(1,2))
+            @test HalfWeighted{:a}(Jacobi(0,2)) == Jacobi(0,2)
+            @test Jacobi(0,2) == HalfWeighted{:a}(Jacobi(0,2))
+            @test HalfWeighted{:b}(Jacobi(2,0)) == Jacobi(2,0)
+            @test Jacobi(2,0) == HalfWeighted{:b}(Jacobi(2,0))
+        end
+
+        @testset "Weighted(Normalized)" begin
+            w = JacobiWeight(1,1)
+            P = Jacobi(1,1)
+            Q = Normalized(P)
+
+            @test w .* Q == w .* Q
+
+            @test Weighted(Q) \ Weighted(P) isa Diagonal
+            @test Weighted(P) \ Weighted(Q) isa Diagonal
+            @test Weighted(Q) \ Weighted(Q) isa Diagonal
+
+            @test (w .* Q) \ (w .* P) isa Diagonal
+            @test (w .* P) \ (w .* Q) isa Diagonal
+            @test (w .* Q) \ (w .* Q) isa Diagonal
+
+            @test (w .* Q) \ Weighted(P) isa Diagonal
+            @test (w .* P) \ Weighted(Q) isa Diagonal
+            @test (w .* Q) \ Weighted(Q) isa Diagonal
+            @test Weighted(P) \ (w .* Q) isa Diagonal
+            @test Weighted(Q) \ (w .* P) isa Diagonal
+            @test Weighted(Q) \ (w .* Q) isa Diagonal
         end
     end
 end

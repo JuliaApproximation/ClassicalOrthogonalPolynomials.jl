@@ -1,72 +1,168 @@
-using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, Test
-import ClassicalOrthogonalPolynomials: PiecewiseInterlace
+using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, StaticArrays, Test
+import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid, BroadcastQuasiVector
 
-@testset "Piecewise" begin
-    @testset "two-interval ODE" begin
-        T1,T2 = chebyshevt((-1)..0), chebyshevt(0..1)
-        U1,U2 = chebyshevu((-1)..0), chebyshevu(0..1)
-        T = PiecewiseInterlace(T1, T2)
-        U = PiecewiseInterlace(U1, U2)
-        D = U \ (Derivative(axes(T,1))*T)
-        C = U \ T
+@testset "Interlace" begin
+    @testset "Piecewise" begin
+        @testset "expansion" begin
+            T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
+            T = PiecewiseInterlace(T1, T2)
+            @test T[-0.1,1:2:10] ≈ T1[-0.1,1:5]
+            @test T[0.1,2:2:10] ≈ T2[0.1,1:5]
+            @test T[0.0,1:2:10] ≈ T1[0.0,1:5]
+            @test T[0.0,2:2:10] ≈ T2[0.0,1:5]
 
-        A = BlockVcat(T[-1,:]',
-                        BlockBroadcastArray(vcat,unitblocks(T1[end,:]),-unitblocks(T2[begin,:]))',
-                        D-C)
-        N = 20
-        M = BlockArray(A[Block.(1:N+1), Block.(1:N)])
+            x = axes(T,1)
+            u = T / T \ exp.(x)
+            @test u[-0.1] ≈ exp(-0.1)
+            @test u[0.1] ≈ exp(0.1)
+            @test u[0.] ≈ 2
+        end
 
-        u = M \ [exp(-1); zeros(size(M,1)-1)]
-        x = axes(T,1)
+        @testset "two-interval ODE" begin
+            T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
+            U1,U2 = chebyshevu(-1..0), chebyshevu(0..1)
+            T = PiecewiseInterlace(T1, T2)
+            U = PiecewiseInterlace(U1, U2)
 
-        F = factorize(T[:,Block.(Base.OneTo(N))])
-        @test F \ exp.(x) ≈ (T \ exp.(x))[Block.(1:N)] ≈ u
+            @test copy(T) == T
+
+            D = U \ (Derivative(axes(T,1))*T)
+            C = U \ T
+
+            A = BlockVcat(T[-1,:]',
+                            BlockBroadcastArray(vcat,unitblocks(T1[end,:]),-unitblocks(T2[begin,:]))',
+                            D-C)
+            N = 20
+            M = BlockArray(A[Block.(1:N+1), Block.(1:N)])
+
+            u = M \ [exp(-1); zeros(size(M,1)-1)]
+            x = axes(T,1)
+
+            F = factorize(T[:,Block.(Base.OneTo(N))])
+            @test F \ exp.(x) ≈ (T \ exp.(x))[Block.(1:N)] ≈ u
+        end
+
+        @testset "two-interval p-FEM" begin
+            P1,P2 = jacobi(1,1,-1..0), jacobi(1,1,0..1)
+            W1,W2 = Weighted(P1), Weighted(P2)
+
+            W = PiecewiseInterlace(W1, W2)
+
+            x = axes(W,1)
+            D = Derivative(x)
+            Δ = -((D*W)'*(D*W))
+
+            @test (W'exp.(x))[1:2:10] ≈ (W1'*exp.(axes(W1,1)))[1:5]
+            @test (W'exp.(x))[2:2:10] ≈ (W2'*exp.(axes(W2,1)))[1:5]
+            M = W'W
+
+            # Δ \ (W'exp.(x))
+        end
+
+        @testset "three-interval ODE" begin
+            d = (-1..0),(0..1),(1..2)
+            T = PiecewiseInterlace(chebyshevt.(d)...)
+            U = PiecewiseInterlace(chebyshevu.(d)...)
+
+            D = U \ (Derivative(axes(T,1))*T)
+            C = U \ T
+
+            A = BlockVcat(T[-1,:]',
+                            BlockBroadcastArray(vcat,unitblocks(T.args[1][end,:]),-unitblocks(T.args[2][begin,:]),Zeros((unitblocks(axes(T.args[3],2)),)))',
+                            BlockBroadcastArray(vcat,Zeros((unitblocks(axes(T.args[1],2)),)),unitblocks(T.args[2][end,:]),-unitblocks(T.args[3][begin,:]))',
+                            D-C)
+            N = 20
+            M = BlockArray(A[Block.(1:N+2), Block.(1:N)])
+
+            u = M \ [exp(-1); zeros(size(M,1)-1)]
+            x = axes(T,1)
+
+            F = factorize(T[:,Block.(Base.OneTo(N))])
+            @test F \ exp.(x) ≈ (T \ exp.(x))[Block.(1:N)] ≈ u
+        end
+
+        @testset "plot" begin
+            T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
+            T = PiecewiseInterlace(T1, T2)
+            @test plotgrid(T[:,1:5]) == sort([plotgrid(T1[:,1:3]); plotgrid(T2[:,1:3])])
+        end
     end
 
-    @testset "two-interval Weighted Derivative" begin
-        T1,T2 = chebyshevt((-2)..(-1)), chebyshevt(0..1)
-        U1,U2 = chebyshevu((-2)..(-1)), chebyshevu(0..1)
-        W = PiecewiseInterlace(Weighted(T1), Weighted(T2))
-        U = PiecewiseInterlace(U1, U2)
-        x = axes(W,1)
-        D = Derivative(x)
-        @test_broken U\D*W isa BlockBroadcastArray
-    end
+    @testset "SetindexInterlace" begin
+        @testset "Chebyshev" begin
+            T = ChebyshevT(); U = ChebyshevU();
+            V = SetindexInterlace(SVector(0.0,0.0), T, U)
+            C² = Ultraspherical(2)
+            C³ = Ultraspherical(3)
+            M = SetindexInterlace(zero(SMatrix{2,2,Float64}), T, U, C², C³)
+            x = axes(T,1)
 
-    @testset "two-interval Hilbert" begin
-        T1,T2 = chebyshevt((-2)..(-1)), chebyshevt(0..2)
-        U1,U2 = chebyshevu((-2)..(-1)), chebyshevu(0..2)
-        W = PiecewiseInterlace(Weighted(U1), Weighted(U2))
-        T = PiecewiseInterlace(T1, T2)
-        U = PiecewiseInterlace(U1, U2)
-        x = axes(W,1)
-        H = T \ inv.(x .- x') * W;
+            @test axes(V,1) == x
 
-        @test maximum(BlockArrays.blockcolsupport(H,Block(5))) ≤ Block(50)
+            @testset "evaluation" begin
+                @test V[0.1,1:2:6] == vcat.(T[0.1,1:3],0)
+                @test V[0.1,2:2:6] == vcat.(0,U[0.1,1:3])
+                @test M[0.1,1:4:12] == hvcat.(2, T[0.1,1:3], 0, 0, 0)
+                @test M[0.1,2:4:12] == hvcat.(2, 0, 0, U[0.1,1:3], 0)
+                @test M[0.1,3:4:12] == hvcat.(2, 0, C²[0.1,1:3], 0, 0)
+                @test M[0.1,4:4:12] == hvcat.(2, 0, 0, 0, C³[0.1,1:3])
+            end
 
-        c = W \ broadcast(x -> exp(x)* (0 ≤ x ≤ 2 ? sqrt(2-x)*sqrt(x) : sqrt(-1-x)*sqrt(x+2)), x)
-        @test T[0.5,1:200]'*(H*c)[1:200] ≈ -6.064426633490422
+            @testset "expansion" begin
+                f = broadcast(x -> SVector(1,x),x)
+                c = V[:,Block.(Base.OneTo(5))] \ f
+                @test c[1] ≈ 1
+                @test V[:,1:5] \ f ≈ [1; 0; 0; 0.5; 0]
+                c = V \ f
+                u = V * c
+                @test u[0.1] ≈ f[0.1]
 
-        @testset "inversion" begin
-            H̃ = BlockHcat(Eye((axes(H,1),))[:,Block(1)], H)
-            @test BlockArrays.blockcolsupport(H̃,1) == Block.(1:1)
-            @test BlockArrays.blockcolsupport(H̃,2) == Block.(1:22)
+                F = broadcast(x -> SMatrix{2,2}(1,x,exp(x),cos(x)),x)
+                u = M / M \ F
+                @test u[0.1] ≈ F[0.1]
 
-            UT = U \ T
-            D = U \ Derivative(x) * T
-            V = x -> x^4 - 10x^2
-            V_cfs = T \ V.(x)
-            Vp_cfs_U = D * V_cfs
+                u = V / V \ SVector.(exp.(x), cos.(x))
+                @test u[0.1] ≈ [exp(0.1),cos(0.1)]
+            end
 
-            N = 100
-            Vp_cfs_N = UT[Block.(1:N),Block.(1:N)] \ Vp_cfs_U[Block.(1:N)]
+            @testset "Operators" begin
+                W = SetindexInterlace(SVector(0.0,0.0), U, C²)
+                R = W \ V
+                @test (W * R * (V \ broadcast(x -> SVector(exp(x),cos(x-1)),x)))[0.1] ≈ [exp(0.1),cos(0.1-1)]
+                D = W\Derivative(x)*V
+                @test (W * D * (V \ broadcast(x -> SVector(exp(x),cos(x-1)),x)))[0.1] ≈ [exp(0.1),-sin(0.1-1)]
+            end
+        end
+        @testset "Fourier" begin
+            F = Fourier()
+            V = SetindexInterlace{SVector{2,Float64}}(F, F)
+            θ = axes(V,1)
+            f = broadcast(θ -> SVector(sin.(θ),cos.(θ)),θ)
+            u = V / V \ f
+            @test u[0.1] ≈ [sin(0.1),cos(0.1)]
+        end
+        @testset "Fill" begin
+            d = 10
+            T = ChebyshevT()
+            V = SetindexInterlace(zeros(d), Fill(T,d))
+            x = axes(V,1)
+            V_N = V[:,Block.(Base.OneTo(50))]
+            U_N = V_N / V_N \ broadcast(x -> cos.((1:10) .* x), x)
+            @test U_N[0.1] ≈ cos.((1:10) .* 0.1)
+            U = V / V \ broadcast(x -> cos.((1:10) .* x), x)
+            @test U[0.1] ≈ cos.((1:10) .* 0.1)
+        end
 
-            cμ = H̃[Block.(1:N), Block.(1:N)] \ Vp_cfs_N;
-            c1,c2 = cμ[Block(1)]
-            μ = W[:,Block.(1:N-1)] * cμ[Block.(2:N)]/2;
-
-            # H * μ == Vp(x) + c1 on first interval
-            # H * μ == Vp(x) + c2 on second interval
+        @testset "zero" begin
+            Bˣ = [-1/4 1/4 1/2 1/2; 1/4 -1/4 1/2 1/2; 0 0 -1/4 1/4; 0 0 1/4 -1/4]
+            Bʸ = [1/4 1/4 -1/2 1/2; 1/4 1/4 1/2 -1/2; 0 0 1/4 1/4; 0 0 1/4 1/4]
+            X = z -> Bˣ/z + Bˣ'*z
+            Y = z -> Bʸ/z + Bʸ'*z
+            F = Fourier{ComplexF64}()
+            S = SetindexInterlace(SMatrix{4,4,ComplexF64},fill(F,4^2)...)
+            θ = axes(S,1)
+            XY = S \ BroadcastQuasiVector{eltype(S)}(θ -> (I-X(exp(im*θ))^2)*(I-Y(exp(im*θ))^2), θ)
+            @test iszero(norm(XY))
         end
     end
 end
