@@ -1,9 +1,6 @@
-# This currently takes the weight multiplication operator as input.
-# I will probably change this to take the weight function instead.
 function cholesky_jacobimatrix(w, P::OrthogonalPolynomial)
     W = Symmetric(P \ (w.(axes(P,1)) .* P)) # Compute weight multiplication via Clenshaw
-    bands = CholeskyJacobiBands(W, P) # the cached array only needs to store two bands bc of symmetry
-    return SymTridiagonal(bands[1,:],bands[2,:])
+    return SymTridiagonal(CholeskyJacobiBands(W, P))
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data as two bands
@@ -18,7 +15,12 @@ end
 # Computes the initial data for the Jacobi operator bands
 function CholeskyJacobiBands(W::Symmetric{T}, P::OrthogonalPolynomial) where T
     @assert P isa Normalized
-    U = cholesky(W).U
+    if isposdef(W[1:1000,1:1000]) # temp. workaround for a try-catch LAPACKException bug
+        U = cholesky(W).U
+    else # perturb to obtain positive definiteness
+        U = cholesky(W + 10*eps()*I).U
+    end
+    U = chol.U
     X = jacobimatrix(P)
     dat = zeros(T,2,10)
     for k in 1:10
