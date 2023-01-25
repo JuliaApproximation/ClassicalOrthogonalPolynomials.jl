@@ -326,5 +326,4 @@ include("choleskyQR.jl")
 include("stieltjes.jl")
 include("roots.jl")
 
-
 end # module
