@@ -41,9 +41,9 @@ include("test_ratios.jl")
 include("test_normalized.jl")
 include("test_lanczos.jl")
 include("test_interlace.jl")
+include("test_choleskyQR.jl")
 include("test_stieltjes.jl")
 include("test_roots.jl")
-include("test_choleskyQR.jl")
 
 @testset "Auto-diff" begin
     U = Ultraspherical(1)
