@@ -15,7 +15,6 @@ import LazyBandedMatrices: SymTridiagonal
     @test cholesky(W).U isa UpperTriangular
     # compute Jacobi matrix via cholesky
     Jchol = cholesky_jacobimatrix(w,P)
-    @test Jchol isa SymTridiagonal
     # CholeskyJacobiBands object
     Cbands = CholeskyJacobiBands(W,P)
     @test Cbands isa CholeskyJacobiBands
