@@ -130,7 +130,7 @@ end
 Base.@propagate_inbounds function _clenshaw_next!(n, A::AbstractVector, B::AbstractVector, C::AbstractVector, x::AbstractMatrix, c, bn1::AbstractMatrix{T}, bn2::AbstractMatrix{T}) where T
     # bn2 .= B[n] .* bn1 .- C[n+1] .* bn2
     lmul!(-C[n+1], bn2)
-    BLAS.axpy!(B[n], bn1, bn2)
+    LinearAlgebra.axpy!(B[n], bn1, bn2)
     muladd!(A[n], x, bn1, one(T), bn2)
     view(bn2,band(0)) .+= c[n]
     bn2
@@ -164,7 +164,7 @@ end
 
 Base.@propagate_inbounds function _clenshaw_first!(A, B, C, X, c, bn1, bn2) 
     lmul!(-C[2], bn2)
-    BLAS.axpy!(B[1], bn1, bn2)
+    LinearAlgebra.axpy!(B[1], bn1, bn2)
     muladd!(A[1], X, bn1, one(eltype(bn2)), bn2)
     view(bn2,band(0)) .+= c[1]
     bn2
@@ -316,7 +316,7 @@ function materialize!(M::MatMulVecAdd{<:ClenshawLayout,<:PaddedLayout,<:PaddedLa
     _fill_lmul!(β,y)
     resizedata!(y, last(jkr))
     v = view(paddeddata(y),jkr)
-    BLAS.axpy!(α, Ax, v)
+    LinearAlgebra.axpy!(α, Ax, v)
     y
 end
 
