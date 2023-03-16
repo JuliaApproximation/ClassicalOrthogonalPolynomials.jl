@@ -79,10 +79,16 @@ end
 
 
 ldiv(P::Legendre{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
-function ldiv(::Legendre{V}, f::AbstractQuasiVector) where V
+function adaptivetransform_ldiv(::Legendre{V}, f::AbstractQuasiVector) where V
     T = ChebyshevT{V}()
     [cheb2leg(paddeddata(T \ f)); zeros(V,∞)]
 end
+
+function ldiv(::Legendre{V}, f::AbstractQuasiMatrix) where V
+    T = ChebyshevT{V}()
+    [cheb2leg(paddeddata(T \ f)); zeros(V,∞,size(f,2))]
+end
+
 
 """
     legendre_massmatrix
