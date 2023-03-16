@@ -44,6 +44,10 @@ import QuasiArrays: MulQuasiArray
         P = Legendre()
         x = axes(P,1)
         @test (P \ [exp.(x) cos.(x)])[1:10,1:2] ≈ [P\exp.(x) P\cos.(x)][1:10,:]
+
+        P[:,1:100] \ exp.(x)
+        Pl = ContinuumArrays.plan_grid_transform(P, 1_000_000)
+        P * randn(100)
     end
 
     @testset "operators" begin

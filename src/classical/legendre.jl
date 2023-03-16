@@ -79,14 +79,25 @@ end
 
 
 ldiv(P::Legendre{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
-function adaptivetransform_ldiv(::Legendre{V}, f::AbstractQuasiVector) where V
+function transform_ldiv(::Legendre{V}, f::Union{AbstractQuasiVector,AbstractQuasiMatrix}) where V
     T = ChebyshevT{V}()
-    [cheb2leg(paddeddata(T \ f)); zeros(V,∞)]
+    dat = T \ f
+    pad(cheb2leg(paddeddata(dat)), axes(dat)...)
 end
 
-function ldiv(::Legendre{V}, f::AbstractQuasiMatrix) where V
-    T = ChebyshevT{V}()
-    [cheb2leg(paddeddata(T \ f)); zeros(V,∞,size(f,2))]
+struct LegendreTransformPlan{T, CHEB2LEG, DCT} <: Plan{T}
+    cheb2leg::CHEB2LEG
+    chebtransform::DCT
+end
+
+LegendreTransformPlan(c2l, ct) = LegendreTransformPlan{promote_type(eltype(c2l),eltype(ct)),typeof(c2l),typeof(ct)}(c2l, ct)
+
+*(P::LegendreTransformPlan, x::AbstractArray) = P.cheb2leg*(P.chebtransform*x)
+
+function plan_grid_transform(P::Legendre{T}, szs::NTuple{N,Int}, dims=1:N) where {T,N}
+    arr = Array{T}(undef, szs...)
+    x = grid(P, size(arr,1))
+    x, LegendreTransformPlan(plan_cheb2leg(arr), plan_chebyshevtransform(arr, dims...))
 end
 
 
