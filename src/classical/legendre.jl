@@ -97,7 +97,7 @@ LegendreTransformPlan(c2l, ct) = LegendreTransformPlan{promote_type(eltype(c2l),
 function plan_grid_transform(P::Legendre{T}, szs::NTuple{N,Int}, dims=1:N) where {T,N}
     arr = Array{T}(undef, szs...)
     x = grid(P, size(arr,1))
-    x, LegendreTransformPlan(plan_cheb2leg(arr), plan_chebyshevtransform(arr, dims...))
+    x, LegendreTransformPlan(FastTransforms.plan_th_cheb2leg!(arr, dims), plan_chebyshevtransform(arr, dims))
 end
 
 
