@@ -33,6 +33,9 @@ import DomainSets: ℝ
     @testset "OrthonormalWeighted" begin
         H = Hermite()
         Q = OrthonormalWeighted(H)
+
+        @test Q'Q == Eye(∞)
+
         @testset "evaluation" begin
             x = 0.1
             @test Q[x,1] ≈ exp(-x^2/2)/π^(1/4)
