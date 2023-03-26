@@ -22,6 +22,14 @@ import DomainSets: ℝ
         @test (D*H)[0.1,1:4] ≈ [0,2,8*0.1,24*0.1^2-12]
     end
 
+    @testset "Weighted" begin
+        H = Hermite()
+        W = Weighted(H)
+        x = axes(W,1)
+        D = Derivative(x)
+        @test (D*W)[0.1,1:4] ≈ [-2*0.1, 2-4*0.1^2, 12*0.1 - 8*0.1^3, -4*(3 - 12*0.1^2 + 4*0.1^4)]*exp(-0.1^2)
+    end
+
     @testset "OrthonormalWeighted" begin
         H = Hermite()
         Q = OrthonormalWeighted(H)
