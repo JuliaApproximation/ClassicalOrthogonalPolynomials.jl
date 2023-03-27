@@ -14,6 +14,13 @@ end
 
 sum(::HermiteWeight{T}) where T = sqrt(convert(T, π))
 
+function broadcasted(::typeof(^), H::HermiteWeight, k::Number)
+    x = axes(H,1)
+    exp.((-k) .* x .^2)
+end
+
+broadcasted(::typeof(sqrt), H::HermiteWeight{T}) where T = H .^ (one(T)/2)
+
 struct Hermite{T} <: OrthogonalPolynomial{T} end
 Hermite() = Hermite{Float64}()
 orthogonalityweight(::Hermite{T}) where T = HermiteWeight{T}()
