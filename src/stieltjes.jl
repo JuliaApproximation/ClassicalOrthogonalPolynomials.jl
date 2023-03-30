@@ -58,6 +58,7 @@ associated(::ChebyshevU{T}) where T = ChebyshevU{T}()
 
 
 const StieltjesPoint{T,W<:Number,V,D} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{BroadcastQuasiMatrix{T,typeof(-),Tuple{W,QuasiAdjoint{V,Inclusion{V,D}}}}}}
+const StieltjesMatrix{T,W<:AbstractVector{<:Number},V,D} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{BroadcastQuasiMatrix{T,typeof(-),Tuple{W,QuasiAdjoint{V,Inclusion{V,D}}}}}}
 const LogKernelPoint{T<:Real,C,W<:Number,V,D} = BroadcastQuasiMatrix{T,typeof(log),Tuple{BroadcastQuasiMatrix{T,typeof(abs),Tuple{BroadcastQuasiMatrix{C,typeof(-),Tuple{W,QuasiAdjoint{V,Inclusion{V,D}}}}}}}}
 const ConvKernel{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(-),Tuple{D1,QuasiAdjoint{T,D2}}}
 const Hilbert{T,D1,D2} = BroadcastQuasiMatrix{T,typeof(inv),Tuple{ConvKernel{T,Inclusion{T,D1},Inclusion{T,D2}}}}
@@ -199,6 +200,23 @@ sqrtx2(x::Real) = sign(x)*sqrt(x^2-1)
     z in axes(wP,1) && return  (convert(T,π)*ChebyshevT()[z,2:end])'
     ξ = inv(z + sqrtx2(z))
     transpose(convert(T,π) * ξ.^oneto(∞))
+end
+
+
+@simplify function *(S::StieltjesPoint, P::Legendre)
+    S * Weighted(P)
+end
+
+@simplify function *(S::StieltjesMatrix, P::AbstractQuasiMatrix)
+    z = S.args[1].args[1] # vector of points to eval at
+    x,ns = axes(P)
+    m = length(z)
+    n = length(ns)
+    ret = zeros(n, m) # transpose as we fill column-by-column
+    for j = 1:m
+        ArrayLayouts._copyto!(view(ret,:,j),  transpose(inv.(z[j] .- x') * P))
+    end
+    transpose(ret)
 end
 
 ####

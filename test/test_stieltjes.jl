@@ -128,6 +128,15 @@ end
             @test (inv.(t .- x') * Weighted(T))[1,1:3] ≈ [0,-π,-π]
             @test (inv.(t .- x') * Weighted(U))[1,1:3] ≈ [π/2,-π/2,-π]
         end
+
+        @testset "DimensionMismatch" begin
+            x = Inclusion(0..1)
+            z = 2.0
+            @test_throws DimensionMismatch inv.(z .- x') * Weighted(ChebyshevT())
+            @test_throws DimensionMismatch inv.(z .- x') * Weighted(ChebyshevU())
+            @test_throws DimensionMismatch inv.(z .- x') * ChebyshevTWeight()
+            @test_throws DimensionMismatch inv.(z .- x') * ChebyshevUWeight()
+        end
     end
 
     @testset "Hilbert" begin
@@ -507,3 +516,53 @@ end
     end
 end
 
+
+T = ChebyshevT()
+wT = Weighted(T)
+x = axes(T,1)
+z = range(2, 3; length=100); S = inv.(z .- x'); @time S*wT;
+
+
+
+
+import LazyArrays: resizedata!
+
+P = wT
+# since we build column-by-column its better to construct the transpose of the returned result
+z = S.args[1].args[1] # vector of points to eval at
+x,ns = axes(P)
+m = length(z)
+n = length(ns)
+ret = zeros(n, m) # transpose as we fill column-by-column
+
+# TODO: estimate number of entries based on exact 
+r = minimum(abs, z)
+ξ = inv(r + sqrtx2(r))
+
+import ClassicalOrthogonalPolynomials: sqrtx2
+z = 2.0
+ξ = inv(z + sqrtx2(z))
+ξ
+
+plot(abs.((inv.(2 .- x') * P)[1:100]); yscale=:log10)
+
+recurrencecoefficients(T)
+
+
+b = (5:2:∞) ./ (6:2:∞)
+
+function f(b, N)
+    ret = 0.0
+    @inbounds for k = 1:N
+        ret += b[k]
+    end
+    ret
+end
+
+function g(N)
+    ret = 0.0
+    @inbounds for k = 1:N
+        ret += (2k+3)/(2k+4)
+    end
+    ret
+end
