@@ -517,15 +517,13 @@ end
 end
 
 
+import LazyArrays: resizedata!
+import ClassicalOrthogonalPolynomials: sqrtx2
+
 T = ChebyshevT()
 wT = Weighted(T)
 x = axes(T,1)
-z = range(2, 3; length=100); S = inv.(z .- x'); @time S*wT;
-
-
-
-
-import LazyArrays: resizedata!
+z = range(2, 3; length=10); S = inv.(z .- x'); @time S*wT;
 
 P = wT
 # since we build column-by-column its better to construct the transpose of the returned result
@@ -537,7 +535,16 @@ ret = zeros(n, m) # transpose as we fill column-by-column
 
 # TODO: estimate number of entries based on exact 
 r = minimum(abs, z)
+
+
+
+
+r = 100.0
 ξ = inv(r + sqrtx2(r))
+k = ceil(Int,log(eps())/log(ξ))
+(inv.(r .- x') *P)[k]/(inv.(r .- x') *P)[1]
+
+k*log(ξ) ≤ log(ε)
 
 import ClassicalOrthogonalPolynomials: sqrtx2
 z = 2.0
