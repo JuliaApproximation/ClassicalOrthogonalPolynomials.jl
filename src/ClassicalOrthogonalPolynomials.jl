@@ -322,7 +322,6 @@ include("classical/chebyshev.jl")
 include("classical/ultraspherical.jl")
 include("classical/laguerre.jl")
 include("classical/fourier.jl")
-include("stieltjes.jl")
 include("roots.jl")
 
 end # module
