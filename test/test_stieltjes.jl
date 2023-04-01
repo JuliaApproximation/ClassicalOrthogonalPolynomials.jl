@@ -518,33 +518,84 @@ end
 
 
 import LazyArrays: resizedata!
-import ClassicalOrthogonalPolynomials: sqrtx2
+import ClassicalOrthogonalPolynomials: sqrtx2, _p0
+
+function faststieltjes(S, wP)
+    # since we build column-by-column its better to construct the transpose of the returned result
+    zs = S.args[1].args[1] # vector of points to eval at
+    x,ns = axes(wP)
+    m = length(zs)
+    n = length(ns)
+    P = wP.P
+    w = orthogonalityweight(P)
+    X = jacobimatrix(P)
+    b,a,c = X.dl,X.d,X.du
+
+
+    T = promote_type(eltype(S), eltype(wP))
+    ret = zeros(T, n, m); # transpose as we fill column-by-column
+    r = minimum(abs, zs)
+    ξ = inv(r + sqrtx2(r))
+    n_d = ceil(Int,log(eps())/log(ξ))+1
+    resizedata!(ret, n_d, m)
+    data = ret.data
+    data[1,:] .= -sum(w)*_p0(P)
+
+    ã = similar(data, n_d)
+    tol = 10eps(T)
+
+    @inbounds for j = 1:m
+        # (X'-z*I) \ [μ; zeros(∞)] using LU with no pivot
+        z = zs[j]
+        ã[1] = a[1]-z
+
+        # forward elimination
+        k = 1
+        while abs(data[k,j]) > tol
+            k == n_d && error("reached limit of preallocation, without $(data[k,j])")
+            ℓ = -c[k]/ã[k]
+            ã[k+1] = ℓ*b[k]+a[k]-z
+            data[k+1,j] = ℓ*data[k,j]
+            k += 1
+        end
+
+        data[k,j] /= ã[k]
+
+        # back-sub
+        for k̃ = k-1:-1:1
+            data[k̃,j] = (data[k̃,j] - b[k̃]*data[k̃+1,j])/ã[k̃]
+        end
+    end
+    transpose(ret)
+end
 
 T = ChebyshevT()
 wT = Weighted(T)
 x = axes(T,1)
-z = range(2, 3; length=10); S = inv.(z .- x'); @time S*wT;
+z = range(1.01, 10; length=10_000); S = inv.(z .- x');
+@time faststieltjes(S, wT);
 
-P = wT
-# since we build column-by-column its better to construct the transpose of the returned result
-z = S.args[1].args[1] # vector of points to eval at
-x,ns = axes(P)
-m = length(z)
-n = length(ns)
-ret = zeros(n, m) # transpose as we fill column-by-column
-
-# TODO: estimate number of entries based on exact 
-r = minimum(abs, z)
+z = range(5., 10; length=200_000); S = inv.(z .- x');
+@time faststieltjes(S, wT);
 
 
+@time S*wT;
+j = 1
+
+L,U = lu((X' - z*I)[1:n_d,1:n_d])
 
 
-r = 100.0
-ξ = inv(r + sqrtx2(r))
-k = ceil(Int,log(eps())/log(ξ))
-(inv.(r .- x') *P)[k]/(inv.(r .- x') *P)[1]
+P = Weighted(Legendre())
 
-k*log(ξ) ≤ log(ε)
+r = 1.001
+
+(inv.(r .- x') *P)[k]
+
+/(inv.(r .- x') *P)[1]
+
+π * ξ^k
+
+k*log(ξ) ≤ log(eps())
 
 import ClassicalOrthogonalPolynomials: sqrtx2
 z = 2.0
