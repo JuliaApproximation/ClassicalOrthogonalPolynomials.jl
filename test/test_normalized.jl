@@ -177,6 +177,9 @@ import ContinuumArrays: MappedWeightedBasisLayout
         u = Q * (Q \ exp.(x))
         @test u[0.1] ≈ exp(0.1)
 
+        @test P \ Q isa Diagonal
+        @test Q \ P isa Diagonal
+
         Q = Normalized(jacobi(1/2,0,0..1))
         @testset "Recurrences" begin
             A,B,C = recurrencecoefficients(Q)
