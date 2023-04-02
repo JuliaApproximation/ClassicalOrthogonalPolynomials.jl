@@ -6,7 +6,7 @@ is a quasi-vector representing `exp(-x^2)` on ℝ.
 struct HermiteWeight{T} <: Weight{T} end
 
 HermiteWeight() = HermiteWeight{Float64}()
-axes(::HermiteWeight{T}) where T = (Inclusion(ℝ),)
+axes(::HermiteWeight{T}) where T = (Inclusion{T}(ℝ),)
 function getindex(w::HermiteWeight, x::Number)
     x ∈ axes(w,1) || throw(BoundsError())
     exp(-x^2)
@@ -14,12 +14,19 @@ end
 
 sum(::HermiteWeight{T}) where T = sqrt(convert(T, π))
 
+function broadcasted(::typeof(^), H::HermiteWeight, k::Number)
+    x = axes(H,1)
+    exp.((-k) .* x .^2)
+end
+
+broadcasted(::typeof(sqrt), H::HermiteWeight{T}) where T = H .^ (one(T)/2)
+
 struct Hermite{T} <: OrthogonalPolynomial{T} end
 Hermite() = Hermite{Float64}()
 orthogonalityweight(::Hermite{T}) where T = HermiteWeight{T}()
 
 ==(::Hermite, ::Hermite) = true
-axes(::Hermite{T}) where T = (Inclusion(ℝ), oneto(∞))
+axes(::Hermite{T}) where T = (Inclusion{T}(ℝ), oneto(∞))
 
 """
      hermiteh(n, z)
