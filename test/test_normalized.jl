@@ -12,10 +12,10 @@ import ContinuumArrays: MappedWeightedBasisLayout
             @test MemoryLayout(Q) isa NormalizedOPLayout
             @test (Q\Q) ≡ Eye(∞)
             @test Q == Q
-            @test P ≠ Q
-            @test Q ≠ P
+            @test P ≠ Q
+            @test Q ≠ P
             @test Q ≠ P[:,1:end]
-            @test P[:,1:end] ≠ Q
+            @test P[:,1:end] ≠ Q
         end
 
         @testset "recurrencecoefficients" begin
@@ -87,8 +87,8 @@ import ContinuumArrays: MappedWeightedBasisLayout
             @test_throws BoundsError (Q,R,p) = qr(P)
             @test Q == Normalized(P)
             @test Q ≠ P
-            @test P ≠ Q
-            @test LinearSpline(-1:1) ≠ Q
+            @test P ≠ Q
+            @test LinearSpline(-1:1) ≠ Q
             @test Q ≠ LinearSpline(-1:1)
             @test R[1:10,1:10] == (P\Q)[1:10,1:10]
         end
