@@ -22,7 +22,7 @@ end
 
 # Computes the initial data for the Jacobi operator bands
 function CholeskyJacobiBands(W::Symmetric{T}, P::OrthogonalPolynomial) where T
-    U = cholesky(W + 10*eps()*I).U
+    U = cholesky(W).U
     X = jacobimatrix(P)
     dat = zeros(T,2,10)
     for k in 1:10
@@ -72,15 +72,13 @@ function qr_jacobimatrix(sqrtw::Function, P::OrthogonalPolynomial)
     !(P isa Normalized) && error("Polynomials must be orthonormal.")
     sqrtW = (P \ (sqrtw.(axes(P,1)) .* P)) # Compute weight multiplication via Clenshaw
     bands = QRJacobiBands(sqrtW,P)
-    K = SymTridiagonal(bands[1,:],bands[2,:])
-    return K
+    return SymTridiagonal(bands[1,:],bands[2,:])
 end
 function qr_jacobimatrix(sqrtW::AbstractMatrix, P::OrthogonalPolynomial)
     !(P isa Normalized) && error("Polynomials must be orthonormal.")
     !(sqrtW isa Symmetric) && error("Weight modification matrix must be symmetric.")
     bands = QRJacobiBands(sqrtW,P)
-    K = SymTridiagonal(bands[1,:],bands[2,:])
-    return K
+    return SymTridiagonal(bands[1,:],bands[2,:])
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data as two bands
