@@ -35,7 +35,7 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!
 import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
-    inbounds_getindex, grid, plotgrid, _plotgrid, _grid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
+    grid, plotgrid, _plotgrid, _grid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
     plan_transform, plan_grid_transform, MAX_PLOT_POINTS, MulPlan
@@ -322,7 +322,6 @@ include("classical/chebyshev.jl")
 include("classical/ultraspherical.jl")
 include("classical/laguerre.jl")
 include("classical/fourier.jl")
-include("stieltjes.jl")
 include("roots.jl")
 
 end # module

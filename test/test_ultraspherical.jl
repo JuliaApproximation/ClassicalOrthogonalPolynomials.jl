@@ -68,6 +68,7 @@ import LazyArrays: rowsupport, colsupport
                 @test Ultraspherical(0.5) \ (UltrasphericalWeight(0.0) .* Ultraspherical(0.5)) == Eye(∞)
                 @test Legendre() \ (UltrasphericalWeight(0.0) .* Ultraspherical(0.5)) == Eye(∞)
                 @test (Legendre() \ Ultraspherical(1.5))[1:10,1:10] ≈ inv(Ultraspherical(1.5) \ Legendre())[1:10,1:10]
+                @test UltrasphericalWeight(LegendreWeight()) == UltrasphericalWeight(1/2)
             end
         end
 
