@@ -72,13 +72,15 @@ function qr_jacobimatrix(sqrtw::Function, P::OrthogonalPolynomial)
     !(P isa Normalized) && error("Polynomials must be orthonormal.")
     sqrtW = (P \ (sqrtw.(axes(P,1)) .* P)) # Compute weight multiplication via Clenshaw
     bands = QRJacobiBands(sqrtW,P)
-    return SymTridiagonal(bands[1,:],bands[2,:])
+    K = SymTridiagonal(bands[1,:],bands[2,:])
+    return K
 end
-function qr_jacobimatrix(sqrtW::AbstractMatrix, P::OrthogonalPolynomial)
-    !(P isa Normalized) && error("Polynomials must be orthonormal.")
-    !(sqrtW isa Symmetric) && error("Weight modification matrix must be symmetric.")
+function qr_jacobimatrix(sqrtW::AbstractMatrix, P::OrthogonalPolynomial, checks::Bool = true)
+    checks && !(P isa Normalized) && error("Polynomials must be orthonormal.")
+    checks && !(sqrtW isa Symmetric) && error("Weight modification matrix must be symmetric.")
     bands = QRJacobiBands(sqrtW,P)
-    return SymTridiagonal(bands[1,:],bands[2,:])
+    K = SymTridiagonal(bands[1,:],bands[2,:])
+    return K
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data as two bands
