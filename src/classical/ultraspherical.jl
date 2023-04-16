@@ -11,6 +11,7 @@ end
 
 UltrasphericalWeight{T}(λ) where T = UltrasphericalWeight{T,typeof(λ)}(λ)
 UltrasphericalWeight(λ) = UltrasphericalWeight{float(typeof(λ)),typeof(λ)}(λ)
+UltrasphericalWeight(::LegendreWeight{T}) where T = UltrasphericalWeight(one(T)/2)
 
 ==(a::UltrasphericalWeight, b::UltrasphericalWeight) = a.λ == b.λ
 
