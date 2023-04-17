@@ -1,4 +1,4 @@
-using Test, ClassicalOrthogonalPolynomials, BandedMatrices, LinearAlgebra, LazyArrays, ContinuumArrays, LazyBandedMatrices
+using Test, ClassicalOrthogonalPolynomials, BandedMatrices, LinearAlgebra, LazyArrays, ContinuumArrays, LazyBandedMatrices, InfiniteLinearAlgebra
 import ClassicalOrthogonalPolynomials: CholeskyJacobiBands, cholesky_jacobimatrix, qr_jacobimatrix
 import LazyArrays: AbstractCachedMatrix
 
@@ -81,7 +81,7 @@ end
         end
     end
 
-    @testset "Using Clenshaw with exponential weights" begin
+    @testset "Using Cholesky with exponential weights" begin
         @testset "w(x) = exp(x)" begin
             P = Normalized(Legendre()[affine(0..1,Inclusion(-1..1)),:])
             x = axes(P,1)
@@ -147,10 +147,14 @@ end
         # compute Jacobi matrix via decomp
         Jchol = cholesky_jacobimatrix(wf, P)
         Jqr = qr_jacobimatrix(sqrtwf, P)
+        # use alternative inputs
+        sqrtW = (P \ (sqrtwf.(x) .* P))
+        Jqralt = qr_jacobimatrix(sqrtW, P, false)
         # compute Jacobi matrix via Lanczos
         Jlanc = jacobimatrix(LanczosPolynomial(@.(wf.(x)),Normalized(legendre(0..1))))
         # Comparison with Lanczos
         @test Jchol[1:500,1:500] ≈ Jlanc[1:500,1:500]
         @test Jqr[1:500,1:500] ≈ Jlanc[1:500,1:500]
+        @test Jqralt[1:500,1:500] ≈ Jlanc[1:500,1:500]
     end
 end
