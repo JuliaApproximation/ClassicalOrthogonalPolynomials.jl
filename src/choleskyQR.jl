@@ -6,7 +6,7 @@ orthogonal with respect to `w(x) w_p(x)` where `w_p(x)` is the weight of the pol
 
 The resulting polynomials are orthonormal on the same domain as `P`. The supplied `P` must be normalized. Accepted inputs are `w` as a function or `W` as an infinite matrix representing multiplication with the function `w` on the basis `P`.
 
-An optional bool can be supplied, i.e. `cholesky_jacobimatrix(sqrtw, P, false)` to disable checks of symmetry for the weight and orthonormality for the basis (use with caution).
+An optional bool can be supplied, i.e. `cholesky_jacobimatrix(sqrtw, P, false)` to disable checks of symmetry for the weight multiplication matrix and orthonormality for the basis (use with caution).
 """
 function cholesky_jacobimatrix(w::Function, P::OrthogonalPolynomial, checks::Bool = true)
     checks && !(P isa Normalized) && error("Polynomials must be orthonormal.")
@@ -92,7 +92,7 @@ orthogonal with respect to `w(x) w_p(x)` where `w_p(x)` is the weight of the pol
 
 The resulting polynomials are orthonormal on the same domain as `P`. The supplied `P` must be normalized. Accepted inputs for `sqrtw` are the square root of the weight modification as a function or `sqrtW` as an infinite matrix representing multiplication with the function `sqrt(w)` on the basis `P`.
 
-An optional bool can be supplied, i.e. `qr_jacobimatrix(sqrtw, P, false)` to disable checks of symmetry for the weight and orthonormality for the basis (use with caution).
+An optional bool can be supplied, i.e. `qr_jacobimatrix(sqrtw, P, false)` to disable checks of symmetry for the weight multiplication matrix and orthonormality for the basis (use with caution).
 """
 function qr_jacobimatrix(sqrtw::Function, P::OrthogonalPolynomial, checks::Bool = true)
     checks && !(P isa Normalized) && error("Polynomials must be orthonormal.")
