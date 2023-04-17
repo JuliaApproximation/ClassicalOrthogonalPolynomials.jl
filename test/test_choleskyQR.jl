@@ -2,7 +2,7 @@ using Test, ClassicalOrthogonalPolynomials, BandedMatrices, LinearAlgebra, LazyA
 import ClassicalOrthogonalPolynomials: CholeskyJacobiBands, cholesky_jacobimatrix, qr_jacobimatrix, QRJacobiBands
 import LazyArrays: AbstractCachedMatrix
 
-@testset "Basic properties" begin
+@testset "Cholesky Jacobi Matrix - Basic properties" begin
     # basis
     P = Normalized(legendre(0..1))
     x = axes(P,1)

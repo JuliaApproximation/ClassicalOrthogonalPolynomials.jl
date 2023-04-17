@@ -32,16 +32,15 @@ end
 # Computes the initial data for the Jacobi operator bands
 function CholeskyJacobiBands(W::Symmetric{T}, P::OrthogonalPolynomial) where T
     U = cholesky(W).U
-    bds = bandwidths(U)[2]
     X = jacobimatrix(P)
     dat = zeros(T,2,10)
     UX = U*X
     dat[1,1] = (UX * (U \ [1; zeros(∞)]))[1]
     dat[2,1] = (UX * (U \ [zeros(1); 1; zeros(∞)]))[1]
     @inbounds for k in 2:10
-        yk = view(UX,k,k-1:k+bds+1)
-        dat[1,k] = dot(yk,pad(U[k-1:k,k-1:k] \ [0; 1],length(yk)))
-        dat[2,k] = dot(yk,pad(U[k-1:k+1,k-1:k+1] \ [zeros(2); 1],length(yk)))
+        yk = view(UX,k,k-1:k+1)
+        dat[1,k] = dot(yk[1:2], U[k-1:k,k-1:k] \ [0; 1])
+        dat[2,k] = dot(yk, U[k-1:k+1,k-1:k+1] \ [zeros(2); 1])
     end
     return CholeskyJacobiBands{T}(dat, U, X, 10)
 end
@@ -63,11 +62,10 @@ function resizedata!(K::CholeskyJacobiBands, nm::Integer)
 end
 function cache_filldata!(J::CholeskyJacobiBands, inds::UnitRange{Int})
     UX = J.U*J.X
-    bds = bandwidths(J.U)[2]
     @inbounds for k in inds
-        yk = view(UX,k,k-1:k+bds+1)
-        J.data[1,k] = dot(yk,pad(J.U[k-1:k,k-1:k] \ [0; 1],length(yk)))
-        J.data[2,k] = dot(yk,pad(J.U[k-1:k+1,k-1:k+1] \ [zeros(2); 1],length(yk)))
+        yk = view(UX,k,k-1:k+1)
+        J.data[1,k] = dot(yk[1:2], J.U[k-1:k,k-1:k] \ [0; 1])
+        J.data[2,k] = dot(yk, J.U[k-1:k+1,k-1:k+1] \ [zeros(2); 1])
     end
 end
 
@@ -120,7 +118,6 @@ end
 # Computes the initial data for the Jacobi operator bands
 function QRJacobiBands(sqrtW, P::OrthogonalPolynomial{T}) where T
     U = qr(sqrtW).R
-    bds = bandwidths(U)[2]
     U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U)
     X = jacobimatrix(P)
     UX = U*X
@@ -128,9 +125,9 @@ function QRJacobiBands(sqrtW, P::OrthogonalPolynomial{T}) where T
     dat[1,1] = (UX * (U \ [1; zeros(∞)]))[1]
     dat[2,1] = (UX * (U \ [zeros(1); 1; zeros(∞)]))[1]
     @inbounds for k in 2:10
-        yk = view(UX,k,k-1:k+bds+1)
-        dat[1,k] = dot(yk,pad(U[k-1:k,k-1:k] \ [0; 1],length(yk)))
-        dat[2,k] = dot(yk,pad(U[k-1:k+1,k-1:k+1] \ [zeros(2); 1],length(yk)))
+        yk = view(UX,k,k-1:k+1)
+        dat[1,k] = dot(yk[1:2], U[k-1:k,k-1:k] \ [0; 1])
+        dat[2,k] = dot(yk, U[k-1:k+1,k-1:k+1] \ [zeros(2); 1])
     end
     return QRJacobiBands{T}(dat, UpperTriangular(U), X, 10)
 end
@@ -152,11 +149,10 @@ function resizedata!(K::QRJacobiBands, nm::Integer)
 end
 function cache_filldata!(J::QRJacobiBands, inds::UnitRange{Int})
     UX = J.U*J.X
-    bds = bandwidths(J.U)[2]
     @inbounds for k in inds
-        yk = view(UX,k,k-1:k+bds+1)
-        J.data[1,k] = dot(yk,pad(J.U[k-1:k,k-1:k] \ [0; 1],length(yk)))
-        J.data[2,k] = dot(yk,pad(J.U[k-1:k+1,k-1:k+1] \ [zeros(2); 1],length(yk)))
+        yk = view(UX,k,k-1:k+1)
+        J.data[1,k] = dot(yk[1:2], J.U[k-1:k,k-1:k] \ [0; 1])
+        J.data[2,k] = dot(yk, J.U[k-1:k+1,k-1:k+1] \ [zeros(2); 1])
     end
 end
 
