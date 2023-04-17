@@ -116,7 +116,6 @@ end
             x = axes(P,1)
             J = jacobimatrix(P)
             wf(x) = (1-x)^2*exp(x^2)
-            sqrtwf(x) = (1-x)*exp(x)
             # compute Jacobi matrix via decomp
             Jchol = cholesky_jacobimatrix(wf, P)
             # compute Jacobi matrix via Lanczos
