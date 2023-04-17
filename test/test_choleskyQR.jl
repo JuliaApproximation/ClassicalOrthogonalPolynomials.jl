@@ -1,5 +1,5 @@
 using Test, ClassicalOrthogonalPolynomials, BandedMatrices, LinearAlgebra, LazyArrays, ContinuumArrays, LazyBandedMatrices, InfiniteLinearAlgebra
-import ClassicalOrthogonalPolynomials: CholeskyJacobiBands, cholesky_jacobimatrix, qr_jacobimatrix
+import ClassicalOrthogonalPolynomials: CholeskyJacobiBands, cholesky_jacobimatrix, qr_jacobimatrix, QRJacobiBands
 import LazyArrays: AbstractCachedMatrix
 
 @testset "Basic properties" begin
@@ -14,11 +14,14 @@ import LazyArrays: AbstractCachedMatrix
     @test cholesky(W).U isa UpperTriangular
     # compute Jacobi matrix via cholesky
     Jchol = cholesky_jacobimatrix(w,P)
+    Jcholalt = cholesky_jacobimatrix(W,P)
+    @test Jchol[1:200,1:200] ≈ Jcholalt[1:200,1:200]
     # CholeskyJacobiBands object
     Cbands = CholeskyJacobiBands(W,P)
     @test Cbands isa CholeskyJacobiBands
     @test Cbands isa AbstractCachedMatrix
     @test getindex(Cbands,1,100) == getindex(Cbands,1,1:100)[100]
+    @test getindex(Cbands,2,2) == getindex(Cbands,1:2,1:2)[2,2]
 end
 
 @testset "Comparison with Lanczos and Classical" begin
@@ -138,6 +141,22 @@ end
 end
 
 @testset "QR version" begin
+    @testset "basic properties" begin
+        # basis
+        P = Normalized(legendre(0..1))
+        x = axes(P,1)
+        J = jacobimatrix(P)
+        # example weight
+        sqrtw(x) = (1 - x)
+        sqrtW = Symmetric(P \ (sqrtw.(x) .* P))
+        # bands test
+        QRbands = QRJacobiBands(sqrtW,P)
+        @test QRbands isa QRJacobiBands
+        @test QRbands isa AbstractCachedMatrix
+        @test getindex(QRbands,1,100) == getindex(QRbands,1,1:100)[100]
+        @test getindex(QRbands,2,2) == getindex(QRbands,1:2,1:2)[2,2]
+    end
+
     @testset "QR case, w(x) = (1-x)^2" begin
         P = Normalized(legendre(0..1))
         x = axes(P,1)
