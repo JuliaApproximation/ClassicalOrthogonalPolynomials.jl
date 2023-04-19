@@ -131,7 +131,7 @@ import LazyArrays: AbstractCachedMatrix
             Jqr = qr_jacobimatrix(sqrtwf, P)
             # use alternative inputs
             sqrtW = (P \ (sqrtwf.(x) .* P))
-            Jqralt = qr_jacobimatrix(sqrtW, P, false)
+            Jqralt = qr_jacobimatrix(sqrtW, P)
             # compute Jacobi matrix via Lanczos
             Jlanc = jacobimatrix(LanczosPolynomial(@.(wf.(x)),Normalized(legendre(0..1))))
             # Comparison with Lanczos
