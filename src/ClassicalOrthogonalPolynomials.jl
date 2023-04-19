@@ -100,8 +100,8 @@ __sum(::MappedOPLayout, A, dims) = __sum(MappedBasisLayout(), A, dims)
 ContinuumArrays.transform_ldiv_if_columns(L::Ldiv{MappedOPLayout,Lay}, ax::OneTo) where Lay = ContinuumArrays.transform_ldiv_if_columns(Ldiv{MappedBasisLayout,Lay}(L.A,L.B), ax)
 ContinuumArrays.transform_ldiv_if_columns(L::Ldiv{MappedOPLayout,ApplyLayout{typeof(hcat)}}, ax::OneTo) = ContinuumArrays.transform_ldiv_if_columns(Ldiv{MappedBasisLayout,UnknownLayout}(L.A,L.B), ax)
 
-_equals(::AbstractOPLayout, ::AbstractWeightedBasisLayout, _, _) = false # Weighedt-Legendre doesn't exist
-_equals(::AbstractWeightedBasisLayout, ::AbstractOPLayout, _, _) = false # Weighedt-Legendre doesn't exist
+_equals(::AbstractOPLayout, ::AbstractWeightedBasisLayout, _, _) = false # Weighted-Legendre doesn't exist
+_equals(::AbstractWeightedBasisLayout, ::AbstractOPLayout, _, _) = false # Weighted-Legendre doesn't exist
 
 _equals(::WeightedOPLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP) == unweighted(wQ)
 _equals(::WeightedOPLayout, ::WeightedBasisLayout, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
@@ -322,6 +322,7 @@ include("classical/chebyshev.jl")
 include("classical/ultraspherical.jl")
 include("classical/laguerre.jl")
 include("classical/fourier.jl")
+include("choleskyQR.jl")
 include("roots.jl")
 
 end # module
