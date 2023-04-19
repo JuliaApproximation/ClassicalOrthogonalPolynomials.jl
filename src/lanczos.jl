@@ -157,7 +157,7 @@ struct LanczosPolynomial{T,Weight,Basis} <: OrthogonalPolynomial{T}
 end
 
 function LanczosPolynomial(w_in::AbstractQuasiVector, P::AbstractQuasiMatrix)
-    Q = normalize(P)
+    Q = normalized(P)
     wQ = weighted(Q)
     w = wQ * (wQ \ w_in) # expand weight in basis
     LanczosPolynomial(w, Q, LanczosData(w, Q))

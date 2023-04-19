@@ -145,11 +145,15 @@ import LazyArrays: AbstractCachedMatrix
         P = Legendre()
         x = axes(P,1)
         Q = OrthogonalPolynomial(1 .- x)
-        @test Q[0.1,1] ≈ 1
-        @test Q[0.1,1:10] ≈ Normalized(Jacobi(1,0))[0.1,1:10]*sqrt(sum(JacobiWeight(1,0)))
+        Q̃ = Normalized(Jacobi(1,0))
+        @test Q[0.1,1] ≈ 1/sqrt(2)
+        @test Q[0.1,1:10] ≈ Q̃[0.1,1:10]
         # AWESOME, thanks TSGUT!!
-        @test Q[0.1,10_000] ≈ Normalized(Jacobi(1,0))[0.1,10_000]*sqrt(sum(JacobiWeight(1,0)))
+        @test Q[0.1,10_000] ≈ Q̃[0.1,10_000]
 
-        P \ Q
+        R = P \ Q
+        @test inv(R[1:10,1:10]) ≈ (Q̃ \ P)[1:10,1:10]
+
+        Q \ P
     end
 end

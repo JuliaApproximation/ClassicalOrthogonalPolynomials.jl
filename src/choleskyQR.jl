@@ -1,14 +1,17 @@
 """
-Represent an Orthogonal polynomial which has a conversion operator to P, that is, Q = P * R.
+Represent an Orthogonal polynomial which has a conversion operator from P, that is, Q = P * inv(U).
 """
-struct ConvertedOrthogonalPolynomial{T, WW<:AbstractQuasiVector{T}, XX, RR, PP} <: OrthogonalPolynomial{T}
+struct ConvertedOrthogonalPolynomial{T, WW<:AbstractQuasiVector{T}, XX, UU, PP} <: OrthogonalPolynomial{T}
     weight::WW
     X::XX # jacobimatrix
-    R::RR # conversion to P
+    U::UU # conversion to P
     P::PP
 end
 
+_p0(Q::ConvertedOrthogonalPolynomial) = _p0(Q.P)
+
 axes(Q::ConvertedOrthogonalPolynomial) = axes(Q.P)
+MemoryLayout(::Type{<:ConvertedOrthogonalPolynomial}) = ConvertedOPLayout()
 jacobimatrix(Q::ConvertedOrthogonalPolynomial) = Q.X
 
 ==(A::ConvertedOrthogonalPolynomial, B::ConvertedOrthogonalPolynomial) = A.w == B.w
@@ -19,7 +22,7 @@ jacobimatrix(Q::ConvertedOrthogonalPolynomial) = Q.X
 
 
 # transform to P * U if needed for differentiation, etc.
-arguments(::ApplyLayout{typeof(*)}, Q::ConvertedOrthogonalPolynomial) = Q.P, Q.R
+arguments(::ApplyLayout{typeof(*)}, Q::ConvertedOrthogonalPolynomial) = Q.P, ApplyArray(inv, Q.U)
 
 OrthogonalPolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w, orthogonalpolynomial(singularities(w)))
 function OrthogonalPolynomial(w::AbstractQuasiVector, P::AbstractQuasiMatrix)

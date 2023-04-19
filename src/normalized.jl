@@ -31,9 +31,9 @@ isnormalized(P) = P == normalized(P)
 
 represents OPs that are of the form P * R where P is another family of OPs and R is upper-triangular.
 """
-abstract type AbstractConvertedOPLayout{LAY<:AbstractBasisLayout} <: AbstractOPLayout end
-struct ConvertedOPLayout{LAY<:AbstractBasisLayout} <: AbstractConvertedOPLayout{LAY} end
-struct NormalizedOPLayout{LAY<:AbstractBasisLayout} <: AbstractConvertedOPLayout{LAY} end
+abstract type AbstractConvertedOPLayout <: AbstractOPLayout end
+struct ConvertedOPLayout <: AbstractConvertedOPLayout end
+struct NormalizedOPLayout{LAY<:AbstractBasisLayout} <: AbstractConvertedOPLayout end
 
 MemoryLayout(::Type{<:Normalized{<:Any, OPs}}) where OPs = NormalizedOPLayout{typeof(MemoryLayout(OPs))}()
 
