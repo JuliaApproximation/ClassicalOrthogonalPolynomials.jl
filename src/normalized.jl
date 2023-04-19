@@ -24,8 +24,16 @@ end
 Normalized(P::AbstractQuasiMatrix{T}) where T = Normalized(P, normalizationconstant(P))
 Normalized(Q::Normalized) = Q
 normalized(P) = Normalized(P)
+isnormalized(P) = P == normalized(P)
 
-struct NormalizedOPLayout{LAY<:AbstractBasisLayout} <: AbstractOPLayout end
+"""
+    AbstractConvertedOPLayout
+
+represents OPs that are of the form P * R where P is another family of OPs and R is upper-triangular.
+"""
+abstract type AbstractConvertedOPLayout{LAY<:AbstractBasisLayout} <: AbstractOPLayout end
+struct ConvertedOPLayout{LAY<:AbstractBasisLayout} <: AbstractConvertedOPLayout{LAY} end
+struct NormalizedOPLayout{LAY<:AbstractBasisLayout} <: AbstractConvertedOPLayout{LAY} end
 
 MemoryLayout(::Type{<:Normalized{<:Any, OPs}}) where OPs = NormalizedOPLayout{typeof(MemoryLayout(OPs))}()
 
@@ -108,27 +116,28 @@ _mul_arguments(Q::QuasiAdjoint{<:Any,<:Normalized}) = arguments(ApplyLayout{type
 @inline _normalized_ldiv(An, C, Bn) = An \ (C * Bn)
 @inline _normalized_ldiv(An, C::Eye{T}, Bn) where T = FillArrays.SquareEye{promote_type(eltype(An),T,eltype(Bn))}(ℵ₀)
 @inline copy(L::Ldiv{<:NormalizedOPLayout,<:NormalizedOPLayout}) = _normalized_ldiv(Diagonal(L.A.scaling), L.A.P \ L.B.P, Diagonal(L.B.scaling))
-@inline copy(L::Ldiv{Lay,<:NormalizedOPLayout}) where Lay = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedOPLayout,Lay}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedOPLayout,Lay,<:Any,<:AbstractQuasiVector}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-@inline copy(L::Ldiv{Lay,<:NormalizedOPLayout}) where Lay<:AbstractBasisLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedOPLayout,Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-@inline copy(L::Ldiv{Lay,<:NormalizedOPLayout}) where Lay<:AbstractLazyLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedOPLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedOPLayout,Lay,<:Any,<:AbstractQuasiVector}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-@inline copy(L::Ldiv{ApplyLayout{typeof(*)},<:NormalizedOPLayout}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:AbstractConvertedOPLayout,<:AbstractConvertedOPLayout}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{Lay,<:AbstractConvertedOPLayout}) where Lay = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:AbstractConvertedOPLayout,Lay}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
+@inline copy(L::Ldiv{<:AbstractConvertedOPLayout,Lay,<:Any,<:AbstractQuasiVector}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
+@inline copy(L::Ldiv{Lay,<:AbstractConvertedOPLayout}) where Lay<:AbstractBasisLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:AbstractConvertedOPLayout,Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
+@inline copy(L::Ldiv{Lay,<:AbstractConvertedOPLayout}) where Lay<:AbstractLazyLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:AbstractConvertedOPLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
+@inline copy(L::Ldiv{<:AbstractConvertedOPLayout,Lay,<:Any,<:AbstractQuasiVector}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
+@inline copy(L::Ldiv{ApplyLayout{typeof(*)},<:AbstractConvertedOPLayout}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
 for Lay in (:(ApplyLayout{typeof(*)}),:(BroadcastLayout{typeof(+)}),:(BroadcastLayout{typeof(-)}))
     @eval begin
-        @inline copy(L::Ldiv{<:NormalizedOPLayout,$Lay}) = copy(Ldiv{ApplyLayout{typeof(*)},$Lay}(L.A, L.B))
-        @inline copy(L::Ldiv{<:NormalizedOPLayout,$Lay,<:Any,<:AbstractQuasiVector}) = copy(Ldiv{ApplyLayout{typeof(*)},$Lay}(L.A, L.B))
+        @inline copy(L::Ldiv{<:AbstractConvertedOPLayout,$Lay}) = copy(Ldiv{ApplyLayout{typeof(*)},$Lay}(L.A, L.B))
+        @inline copy(L::Ldiv{<:AbstractConvertedOPLayout,$Lay,<:Any,<:AbstractQuasiVector}) = copy(Ldiv{ApplyLayout{typeof(*)},$Lay}(L.A, L.B))
     end
 end
 
-copy(L::Ldiv{Lay,<:NormalizedOPLayout}) where Lay<:MappedBasisLayouts = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{Lay,<:AbstractConvertedOPLayout}) where Lay<:MappedBasisLayouts = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
 
 # want to use special re-expansion routines without expanding Normalized basis
-@inline copy(L::Ldiv{<:NormalizedOPLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
-@inline copy(L::Ldiv{<:NormalizedOPLayout,BroadcastLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:AbstractConvertedOPLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:AbstractConvertedOPLayout,BroadcastLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{BasisLayout,BroadcastLayout{typeof(*)}}(L.A, L.B))
 
 # take out diagonal scaling for Weighted(::Normalized)
 function _norm_expand_ldiv(A, w_B)
@@ -136,8 +145,8 @@ function _norm_expand_ldiv(A, w_B)
     B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
     (A \ (w .* B̃)) * D
 end
-copy(L::Ldiv{<:NormalizedOPLayout,<:WeightedBasisLayout{<:NormalizedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
-copy(L::Ldiv{OPLayout,<:WeightedBasisLayout{<:NormalizedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
+copy(L::Ldiv{<:AbstractConvertedOPLayout,<:WeightedBasisLayout{<:AbstractConvertedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
+copy(L::Ldiv{OPLayout,<:WeightedBasisLayout{<:AbstractConvertedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
 
 ###
 # show
@@ -175,14 +184,14 @@ ContinuumArrays.unweighted(wP::AbstractWeighted) = wP.P
 # copy(L::Ldiv{WeightedOPLayout,<:ExpansionLayout}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
 # copy(L::Ldiv{WeightedOPLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{UnknownLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
 
-copy(L::Ldiv{<:WeightedOPLayout{<:NormalizedOPLayout},Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
-copy(L::Ldiv{Lay,<:WeightedOPLayout{<:NormalizedOPLayout}}) where Lay<:AbstractBasisLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
-copy(L::Ldiv{<:WeightedOPLayout{<:NormalizedOPLayout},<:WeightedOPLayout{<:NormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
-copy(L::Ldiv{<:WeightedBasisLayout{<:NormalizedOPLayout},Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
-copy(L::Ldiv{Lay,<:WeightedBasisLayout{<:NormalizedOPLayout}}) where Lay<:AbstractBasisLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
-copy(L::Ldiv{<:WeightedBasisLayout{<:NormalizedOPLayout},<:WeightedBasisLayout{<:NormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
-copy(L::Ldiv{<:WeightedOPLayout{<:NormalizedOPLayout},<:WeightedBasisLayout{<:NormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
-copy(L::Ldiv{<:WeightedBasisLayout{<:NormalizedOPLayout},<:WeightedOPLayout{<:NormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{<:WeightedOPLayout{<:AbstractConvertedOPLayout},Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
+copy(L::Ldiv{Lay,<:WeightedOPLayout{<:AbstractConvertedOPLayout}}) where Lay<:AbstractBasisLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{<:WeightedOPLayout{<:AbstractConvertedOPLayout},<:WeightedOPLayout{<:AbstractConvertedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{<:WeightedBasisLayout{<:AbstractConvertedOPLayout},Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
+copy(L::Ldiv{Lay,<:WeightedBasisLayout{<:AbstractConvertedOPLayout}}) where Lay<:AbstractBasisLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{<:WeightedBasisLayout{<:AbstractConvertedOPLayout},<:WeightedBasisLayout{<:AbstractConvertedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{<:WeightedOPLayout{<:AbstractConvertedOPLayout},<:WeightedBasisLayout{<:AbstractConvertedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{<:WeightedBasisLayout{<:AbstractConvertedOPLayout},<:WeightedOPLayout{<:AbstractConvertedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
 
 
 # function layout_broadcasted(::ExpansionLayout{WeightedOPLayout}, ::OPLayout, ::typeof(*), a, P)
@@ -291,7 +300,7 @@ mul(Ac::QuasiAdjoint{<:Any, Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQua
 
 summary(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
 
-__sum(::NormalizedOPLayout, A, dims) = __sum(ApplyLayout{typeof(*)}(), A, dims)
+__sum(::AbstractConvertedOPLayout, A, dims) = __sum(ApplyLayout{typeof(*)}(), A, dims)
 function __sum(::WeightedOPLayout, A, dims)
     @assert dims == 1
     Hcat(sum(weight(A)), Zeros{eltype(A)}(1,∞))

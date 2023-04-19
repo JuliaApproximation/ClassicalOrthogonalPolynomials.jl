@@ -230,6 +230,7 @@ include("clenshaw.jl")
 include("ratios.jl")
 include("normalized.jl")
 include("lanczos.jl")
+include("choleskyQR.jl")
 
 function _tritrunc(_, X, n)
     c,a,b = subdiagonaldata(X),diagonaldata(X),supdiagonaldata(X)
@@ -322,7 +323,6 @@ include("classical/chebyshev.jl")
 include("classical/ultraspherical.jl")
 include("classical/laguerre.jl")
 include("classical/fourier.jl")
-include("choleskyQR.jl")
 include("roots.jl")
 
 end # module
