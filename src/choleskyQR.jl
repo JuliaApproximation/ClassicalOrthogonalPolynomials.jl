@@ -53,11 +53,8 @@ size(::CholeskyJacobiBands) = (ℵ₀,) # Stored as an infinite cached vector
 function resizedata!(K::CholeskyJacobiBands, nm::Integer)
     νμ = K.datasize
     if nm > νμ
-        olddata = copy(K.data)
-        K.data = similar(K.data, nm)
-        K.data[axes(olddata)...] = olddata
-        inds = νμ:nm
-        cache_filldata!(K, inds)
+        resize!(K.data,nm)
+        cache_filldata!(K, νμ:nm)
         K.datasize = nm
     end
     K
@@ -142,11 +139,8 @@ size(::QRJacobiBands) = (ℵ₀,) # Stored as an infinite cached vector
 function resizedata!(K::QRJacobiBands, nm::Integer)
     νμ = K.datasize
     if nm > νμ
-        olddata = copy(K.data)
-        K.data = similar(K.data, nm)
-        K.data[axes(olddata)...] = olddata
-        inds = νμ:nm
-        cache_filldata!(K, inds)
+        resize!(K.data,nm)
+        cache_filldata!(K, νμ:nm)
         K.datasize = nm
     end
     K
