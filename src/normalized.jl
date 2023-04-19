@@ -218,6 +218,11 @@ weight(Q::OrthonormalWeighted) = sqrt.(orthogonalityweight(Q.P))
 
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
 
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:OrthonormalWeighted}, B::OrthonormalWeighted)
+    @assert parent(Ac).P == B.P
+    Eye{promote_type(eltype(Ac),eltype(B))}(∞)
+end
+
 
 
 """

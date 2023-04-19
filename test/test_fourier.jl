@@ -6,6 +6,20 @@ import QuasiArrays: MulQuasiArray
 
 @testset "Fourier" begin
     @testset "ShuffledR2HC" begin
+        n = 5
+        θ = range(0,2π; length=n+1)[1:end-1]
+        p = ShuffledR2HC{Float64}(n)
+        @test p * one.(θ) ≈ [1; zeros(4)]
+        @test p * sin.(θ) ≈ [0; 1; zeros(3)]
+        @test p * cos.(θ) ≈ [zeros(2); 1; zeros(2)]
+
+        @test p \ [1; zeros(4)] ≈ ones(5)
+        @test p \ [0; 1; zeros(3)] ≈ sin.(θ)
+        @test p \ [zeros(2); 1; zeros(2)] ≈ cos.(θ)
+
+        ret = randn(5)
+        @test p \ (p * ret) ≈ p * (p \ ret) ≈ ret
+
         ret = randn(3,5)
         p = ShuffledR2HC{Float64}(size(ret,1))
         P = ShuffledR2HC{Float64}(size(ret),1)
@@ -14,12 +28,14 @@ import QuasiArrays: MulQuasiArray
         for k = 1:size(ret,2)
             @test (P * ret)[:,k] ≈ p * ret[:,k]
         end
+        @test P \ (P*ret) ≈ P*(P\ret) ≈ ret
 
         p = ShuffledR2HC{Float64}(size(ret,2))
         P = ShuffledR2HC{Float64}(size(ret),2)
         for k = 1:size(ret,1)
             @test (P * ret)[k,:] ≈ p * ret[k,:]
         end
+        @test P \ (P*ret) ≈ P*(P\ret) ≈ ret
     end
     
     @testset "Evaluation" begin

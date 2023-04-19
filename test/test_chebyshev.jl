@@ -121,6 +121,18 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
             @test U[0.1,:] ≈ cos.(0.1 * (0:1000))
             @test U[[0.1,0.2],:] ≈ [cos.(0.1 * (0:1000)'); cos.(0.2 * (0:1000)')]
 
+            # plan_transform for rect
+
+            X = randn(10, 11)
+            F1 = plan_transform(T, X, 1)
+            p1 = plan_transform(T, X[:,1])
+            @test F1*X ≈ hcat([p1 * X[:,j] for j = 1:size(X,2)]...)
+            F2 = plan_transform(T, X, 2)
+            p2 = plan_transform(T, X[1,:])
+            @test F2*X ≈ vcat([(p2 * X[k,:])' for k = 1:size(X,1)]...)
+            F = plan_transform(T, X)
+            @test F*X ≈ F2*(F1*X)
+
             # support tensors but for grids
             X = randn(150, 2, 2)
             F = plan_transform(T, X, 1)

@@ -2,8 +2,7 @@
 transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
     adaptivetransform_ldiv(A, f)
 
-pad(c::AbstractVector{T}, ax::Union{OneTo,OneToInf}) where T = [c; Zeros(length(ax)-length(c))]
-pad(c, ax...) = PaddedArray(c, ax)
+
 
 padchop!(cfs, tol, ax...) = pad(chop!(cfs, tol), ax...)
 padchop(cfs, tol, ax...) = pad(chop(cfs, tol), ax...)

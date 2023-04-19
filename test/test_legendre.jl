@@ -40,6 +40,24 @@ import QuasiArrays: MulQuasiArray
         end
     end
 
+    @testset "expansion" begin
+        P = Legendre()
+        x = axes(P,1)
+        @test (P \ [exp.(x) cos.(x)])[1:10,1:2] ≈ [P\exp.(x) P\cos.(x)][1:10,:]
+
+        # plan_transform for rect
+
+        X = randn(10, 11)
+        F1 = plan_transform(P, X, 1)
+        p1 = plan_transform(P, X[:,1])
+        @test F1*X ≈ hcat([p1 * X[:,j] for j = 1:size(X,2)]...)
+        F2 = plan_transform(P, X, 2)
+        p2 = plan_transform(P, X[1,:])
+        @test F2*X ≈ vcat([(p2 * X[k,:])' for k = 1:size(X,1)]...)
+        F = plan_transform(P, X)
+        @test F*X ≈ F2*(F1*X)
+    end
+
     @testset "operators" begin
         P = Legendre()
         P̃ = Jacobi(0.0,0.0)

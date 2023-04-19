@@ -12,10 +12,10 @@ import ContinuumArrays: MappedWeightedBasisLayout
             @test MemoryLayout(Q) isa NormalizedOPLayout
             @test (Q\Q) ≡ Eye(∞)
             @test Q == Q
-            @test P ≠ Q
-            @test Q ≠ P
+            @test P ≠ Q
+            @test Q ≠ P
             @test Q ≠ P[:,1:end]
-            @test P[:,1:end] ≠ Q
+            @test P[:,1:end] ≠ Q
         end
 
         @testset "recurrencecoefficients" begin
@@ -84,7 +84,12 @@ import ContinuumArrays: MappedWeightedBasisLayout
         @testset "qr" begin
             P = Legendre()
             Q,R = qr(P)
-            @test Q == Normalized(Legendre())
+            @test_throws BoundsError (Q,R,p) = qr(P)
+            @test Q == Normalized(P)
+            @test Q ≠ P
+            @test P ≠ Q
+            @test LinearSpline(-1:1) ≠ Q
+            @test Q ≠ LinearSpline(-1:1)
             @test R[1:10,1:10] == (P\Q)[1:10,1:10]
         end
     end
@@ -123,6 +128,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
             x = axes(f,1)
             w = Q * (Q \ (1 .- x.^2));
             @test w[0.1] ≈ (1-0.1^2) ≈ w[[0.1]][1]
+            @test (Q \ [(1 .- x.^2) x])[1:4,:] ≈ [(Q\w)[1:4] (Q\x)[1:4]]
         end
 
         @testset "Conversion" begin
@@ -170,6 +176,9 @@ import ContinuumArrays: MappedWeightedBasisLayout
         @test u[0.1] ≈ exp(0.1)
         u = Q * (Q \ exp.(x))
         @test u[0.1] ≈ exp(0.1)
+
+        @test P \ Q isa Diagonal
+        @test Q \ P isa Diagonal
 
         Q = Normalized(jacobi(1/2,0,0..1))
         @testset "Recurrences" begin

@@ -69,8 +69,8 @@ julia> associatedlegendre(2)[0.1,1:10]
 ## p-Finite Element Method
 
 The language of quasi-arrays gives a natural framework for constructing p-finite element methods. The convention
-is that adjoint-products are understood as inner products over the axes with uniform weight. Thus to solve Poisson's equation
-using its weak formulation with Dirichlet conditions we can expand in a weighted Jacobi basis:
+is that adjoint-products are understood as inner products over the axes with uniform weight. To solve Poisson's equation
+using its weak formulation with Dirichlet conditions we can thus expand in a weighted Jacobi basis:
 ```julia
 julia> P¹¹ = Jacobi(1.0,1.0); # Quasi-matrix of Jacobi polynomials
 
@@ -99,5 +99,15 @@ julia> Δ = (D*S)'*(D*S) # weak laplacian corresponding to inner products of wei
   ⋅        ⋅     ⋅        ⋅        ⋅        ⋅        ⋅        ⋅         
  ⋮                                         ⋮                         ⋱  
 ```
+
+## Related Packages
+
+**[HarmonicOrthogonalPolynomials.jl](https://github.com/JuliaApproximation/HarmonicOrthogonalPolynomials.jl)**: adds support for spherical harmonic expansions and harmonic polynomials in balls.
+
+**[MultivariateOrthogonalPolynomials.jl](https://github.com/JuliaApproximation/MultivariateOrthogonalPolynomials.jl)**: adds support for multivariate orthogonal polynomials on disks, spheres, triangles, and other simple geometries
+
+**[SemiclassicalOrthogonalPolynomials.jl](https://github.com/JuliaApproximation/SemiclassicalOrthogonalPolynomials.jl)**: adds support for semiclassical orthogonal polynomials such as Semiclassical Jacobi polynomials with weights `x^a * (1-x)^b * (t-x)^c`.
+
+**[PiecewiseOrthogonalPolynomials.jl](https://github.com/JuliaApproximation/PiecewiseOrthogonalPolynomials.jl)**: adds support for piecewise orthogonal polynomials which can be used in p-FEM.
 
 

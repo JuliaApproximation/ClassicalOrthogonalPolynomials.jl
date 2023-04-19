@@ -22,10 +22,24 @@ import DomainSets: ℝ
         @test (D*H)[0.1,1:4] ≈ [0,2,8*0.1,24*0.1^2-12]
     end
 
-    @testset "OrthonormalWeighted" begin
+    @testset "Weighted" begin
         H = Hermite()
-        Q = OrthonormalWeighted(H)
+        W = Weighted(H)
+        x = axes(W,1)
+        D = Derivative(x)
+        @test (D*W)[0.1,1:4] ≈ [-2*0.1, 2-4*0.1^2, 12*0.1 - 8*0.1^3, -4*(3 - 12*0.1^2 + 4*0.1^4)]*exp(-0.1^2)
+    end
+
+    @testset "OrthonormalWeighted" begin
+        @testset "orthogonality" begin
+            H = Hermite()
+            Q = OrthonormalWeighted(H)
+            @test Q'Q == Eye(∞)
+        end
+
         @testset "evaluation" begin
+            H = Hermite()
+            Q = OrthonormalWeighted(H)
             x = 0.1
             @test Q[x,1] ≈ exp(-x^2/2)/π^(1/4)
             @test Q[x,2] ≈ 2x*exp(-x^2/2)/(sqrt(2)π^(1/4))
@@ -35,6 +49,8 @@ import DomainSets: ℝ
         end
         
         @testset "Differentiation" begin
+            H = Hermite()
+            Q = OrthonormalWeighted(H)
             x = axes(Q,1)
             D = Derivative(x)
             D¹ = Q \ (D * Q)
@@ -42,6 +58,11 @@ import DomainSets: ℝ
             D² = Q \ (D^2 * Q)
             X = Q \ (x .* Q)
             @test (D² - X^2)[1:10,1:10] ≈ -Diagonal(1:2:19)
+        end
+
+        @testset "BigFloat" begin
+            Q = OrthonormalWeighted(Hermite{BigFloat}())
+            @test Q[40.0, 1] ≈ exp(-big(40)^2/2) * big(π)^(-1/4)
         end
     end
 end
