@@ -53,7 +53,6 @@ function cholesky_jacobimatrix(w::AbstractQuasiVector, P)
 end
 function cholesky_jacobimatrix(W::AbstractMatrix, Q)
     isnormalized(Q) || error("Polynomials must be orthonormal")
-    issymmetric(W) || error("Weight modification matrix must be symmetric.")
     U = cholesky(W).U
     X = jacobimatrix(Q)
     UX = ApplyArray(*,U,X)
@@ -132,9 +131,7 @@ function qr_jacobimatrix(sqrtw::Function, P)
 end
 function qr_jacobimatrix(sqrtW::AbstractMatrix, Q)
     isnormalized(Q) || error("Polynomials must be orthonormal")
-    issymmetric(sqrtW) || error("Weight modification matrix must be symmetric.")
-    K = SymTridiagonal(QRJacobiBand{:dv}(sqrtW,Q),QRJacobiBand{:ev}(sqrtW,Q))
-    return K
+    SymTridiagonal(QRJacobiBand{:dv}(sqrtW,Q),QRJacobiBand{:ev}(sqrtW,Q))
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data in cached bands
