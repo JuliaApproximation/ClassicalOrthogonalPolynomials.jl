@@ -154,6 +154,11 @@ import LazyArrays: AbstractCachedMatrix
         R = P \ Q
         @test inv(R[1:10,1:10]) ≈ (Q̃ \ P)[1:10,1:10]
 
-        Q \ P
+        R = Q \ P
+        @test bandwidths(R) == (0,1)
+        @test R[1:10,1:10] ≈ (Q̃ \ P)[1:10,1:10]
+
+        # need to fix InfiniteLinearAlgebra to add AdaptiveBandedLayout
+        @test_broken R[1:10,1:10] isa BandedMatrix
     end
 end
