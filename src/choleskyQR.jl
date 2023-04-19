@@ -83,15 +83,6 @@ function cache_filldata!(J::CholeskyJacobiBands{:ev, T}, inds::UnitRange{Int}) w
     end
 end
 
-function getindex(K::CholeskyJacobiBands, j::Int)
-    resizedata!(K, j)
-    K.data[j]
-end
-function getindex(K::CholeskyJacobiBands, j::UnitRange{Int})
-    resizedata!(K, maximum(j))
-    K.data[j]
-end
-
 
 """
 qr_jacobimatrix(sqrtw, P)
@@ -179,13 +170,4 @@ function cache_filldata!(J::QRJacobiBands{:ev, T}, inds::UnitRange{Int}) where T
     @inbounds for k in inds
         J.data[k] = dot(view(J.UX,k,k-1:k+1), J.U[k-1:k+1,k-1:k+1] \ ek)
     end
-end
-
-function getindex(K::QRJacobiBands, j::Int)
-    resizedata!(K, j)
-    K.data[j]
-end
-function getindex(K::QRJacobiBands, j::UnitRange{Int})
-    resizedata!(K, maximum(j))
-    K.data[j]
 end

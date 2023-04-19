@@ -117,7 +117,7 @@ import LazyArrays: AbstractCachedMatrix
     end
 end
 
-@testset "QR version" begin
+@testset "Comparison of QR with Lanczos" begin
     @testset "QR case, w(x) = (1-x)^2" begin
         P = Normalized(legendre(0..1))
         x = axes(P,1)
