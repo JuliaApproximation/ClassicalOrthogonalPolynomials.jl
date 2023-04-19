@@ -131,7 +131,7 @@ function qr_jacobimatrix(sqrtw::Function, P)
     return qr_jacobimatrix(sqrtW, Q)
 end
 function qr_jacobimatrix(sqrtW::AbstractMatrix, Q)
-    isnormalized(P) || error("Polynomials must be orthonormal")
+    isnormalized(Q) || error("Polynomials must be orthonormal")
     issymmetric(sqrtW) || error("Weight modification matrix must be symmetric.")
     K = SymTridiagonal(QRJacobiBand{:dv}(sqrtW,Q),QRJacobiBand{:ev}(sqrtW,Q))
     return K
