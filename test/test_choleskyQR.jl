@@ -146,6 +146,13 @@ import LazyArrays: AbstractCachedMatrix
         x = axes(P,1)
         Q = OrthogonalPolynomial(1 .- x)
         Q̃ = Normalized(Jacobi(1,0))
+
+        @test Q == Q
+        @test P ≠ Q
+        @test Q ≠ P
+        @test Q == Q̃
+        @test Q̃ == Q
+        
         @test Q[0.1,1] ≈ 1/sqrt(2)
         @test Q[0.1,1:10] ≈ Q̃[0.1,1:10]
         # AWESOME, thanks TSGUT!!

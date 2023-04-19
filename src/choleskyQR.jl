@@ -1,7 +1,7 @@
 """
 Represent an Orthogonal polynomial which has a conversion operator from P, that is, Q = P * inv(U).
 """
-struct ConvertedOrthogonalPolynomial{T, WW<:AbstractQuasiVector{T}, XX, UU, PP} <: OrthogonalPolynomial{T}
+struct ConvertedOrthogonalPolynomial{T, WW<:AbstractQuasiVector{T}, XX, UU, PP} <: OrthonormalPolynomial{T}
     weight::WW
     X::XX # jacobimatrix
     U::UU # conversion to P
@@ -13,12 +13,7 @@ _p0(Q::ConvertedOrthogonalPolynomial) = _p0(Q.P)
 axes(Q::ConvertedOrthogonalPolynomial) = axes(Q.P)
 MemoryLayout(::Type{<:ConvertedOrthogonalPolynomial}) = ConvertedOPLayout()
 jacobimatrix(Q::ConvertedOrthogonalPolynomial) = Q.X
-
-==(A::ConvertedOrthogonalPolynomial, B::ConvertedOrthogonalPolynomial) = A.w == B.w
-==(::ConvertedOrthogonalPolynomial, ::OrthogonalPolynomial) = false # TODO: fix
-==(::OrthogonalPolynomial, ::ConvertedOrthogonalPolynomial) = false # TODO: fix
-==(::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, ::ConvertedOrthogonalPolynomial) = false # TODO: fix
-==(::ConvertedOrthogonalPolynomial, ::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}) = false # TODO: fix
+orthogonalityweight(Q::ConvertedOrthogonalPolynomial) = Q.weight
 
 
 # transform to P * U if needed for differentiation, etc.

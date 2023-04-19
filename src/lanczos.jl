@@ -218,7 +218,7 @@ function ldiv(Qn::SubQuasiArray{<:Any,2,<:LanczosPolynomial,<:Tuple{<:Inclusion,
     LanczosConversion(Q.data)[jr,jr] \ (Q.P[:,jr] \ C)
 end
 
-struct LanczosLayout <: AbstractConvertedOPLayout end
+struct LanczosLayout <: AbstractNormalizedOPLayout end
 
 MemoryLayout(::Type{<:LanczosPolynomial}) = LanczosLayout()
 arguments(::ApplyLayout{typeof(*)}, Q::LanczosPolynomial) = Q.P, LanczosConversion(Q.data)
