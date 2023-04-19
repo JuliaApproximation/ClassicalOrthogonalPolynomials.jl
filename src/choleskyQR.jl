@@ -8,17 +8,28 @@ struct ConvertedOrthogonalPolynomial{T, WW<:AbstractQuasiVector{T}, XX, RR, PP} 
     P::PP
 end
 
+axes(Q::ConvertedOrthogonalPolynomial) = axes(Q.P)
+jacobimatrix(Q::ConvertedOrthogonalPolynomial) = Q.X
+
+==(A::ConvertedOrthogonalPolynomial, B::ConvertedOrthogonalPolynomial) = A.w == B.w
+==(::ConvertedOrthogonalPolynomial, ::OrthogonalPolynomial) = false # TODO: fix
+==(::OrthogonalPolynomial, ::ConvertedOrthogonalPolynomial) = false # TODO: fix
+==(::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, ::ConvertedOrthogonalPolynomial) = false # TODO: fix
+==(::ConvertedOrthogonalPolynomial, ::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}) = false # TODO: fix
+
+
 # transform to P * U if needed for differentiation, etc.
 arguments(::ApplyLayout{typeof(*)}, Q::ConvertedOrthogonalPolynomial) = Q.P, Q.R
 
-# also change all the NormalizedOPLayout
-@inline copy(L::Ldiv{Lay,<: AbstractConvertedOPLayout}) where Lay = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
-
-OrthogonalPolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w, orthonormalpolynomial(singularities(w)))
+OrthogonalPolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w, orthogonalpolynomial(singularities(w)))
 function OrthogonalPolynomial(w::AbstractQuasiVector, P::AbstractQuasiMatrix)
-    X = cholesky_jacobimatrix(w, P)
-    ConvertedOrthogonalPolynomial(w, X, X.dv.U, P)
+    Q = normalized(P)
+    X = cholesky_jacobimatrix(w, Q)
+    ConvertedOrthogonalPolynomial(w, X, X.dv.U, Q)
 end
+
+orthogonalpolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w)
+orthogonalpolynomial(w::SubQuasiArray) = orthogonalpolynomial(parent(w))[parentindices(w)[1],:]
 
 
 

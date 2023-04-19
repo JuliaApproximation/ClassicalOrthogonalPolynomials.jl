@@ -144,6 +144,12 @@ import LazyArrays: AbstractCachedMatrix
     @testset "ConvertedOP" begin
         P = Legendre()
         x = axes(P,1)
-        Q = OrthogonalPolynomial(2 .- x)
+        Q = OrthogonalPolynomial(1 .- x)
+        @test Q[0.1,1] ≈ 1
+        @test Q[0.1,1:10] ≈ Normalized(Jacobi(1,0))[0.1,1:10]*sqrt(sum(JacobiWeight(1,0)))
+        # AWESOME, thanks TSGUT!!
+        @test Q[0.1,10_000] ≈ Normalized(Jacobi(1,0))[0.1,10_000]*sqrt(sum(JacobiWeight(1,0)))
+
+        P \ Q
     end
 end

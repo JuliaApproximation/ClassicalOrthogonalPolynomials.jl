@@ -163,7 +163,7 @@ function LanczosPolynomial(w_in::AbstractQuasiVector, P::AbstractQuasiMatrix)
     LanczosPolynomial(w, Q, LanczosData(w, Q))
 end
 
-LanczosPolynomial(w::AbstractQuasiVector) = LanczosPolynomial(w, orthonormalpolynomial(singularities(w)))
+LanczosPolynomial(w::AbstractQuasiVector) = LanczosPolynomial(w, normalized(orthogonalpolynomial(singularities(w))))
 
 ==(A::LanczosPolynomial, B::LanczosPolynomial) = A.w == B.w
 ==(::LanczosPolynomial, ::OrthogonalPolynomial) = false # TODO: fix
@@ -172,16 +172,7 @@ LanczosPolynomial(w::AbstractQuasiVector) = LanczosPolynomial(w, orthonormalpoly
 ==(::LanczosPolynomial, ::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}) = false # TODO: fix
 
 
-normalize(Q::LanczosPolynomial) = Q
-normalize(Q::AbstractQuasiMatrix) = Normalized(Q)
-
-OrthogonalPolynomial(w::AbstractQuasiVector) = LanczosPolynomial(w)
-orthogonalpolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w)
-orthogonalpolynomial(w::SubQuasiArray) = orthogonalpolynomial(parent(w))[parentindices(w)[1],:]
-orthonormalpolynomial(w::AbstractQuasiVector) = normalize(orthogonalpolynomial(w))
-
-
-
+normalized(Q::LanczosPolynomial) = Q
 
 orthogonalityweight(Q::LanczosPolynomial) = Q.w
 
@@ -227,17 +218,11 @@ function ldiv(Qn::SubQuasiArray{<:Any,2,<:LanczosPolynomial,<:Tuple{<:Inclusion,
     LanczosConversion(Q.data)[jr,jr] \ (Q.P[:,jr] \ C)
 end
 
-struct LanczosLayout <: AbstractOPLayout end
+struct LanczosLayout <: AbstractConvertedOPLayout end
 
 MemoryLayout(::Type{<:LanczosPolynomial}) = LanczosLayout()
 arguments(::ApplyLayout{typeof(*)}, Q::LanczosPolynomial) = Q.P, LanczosConversion(Q.data)
-copy(L::Ldiv{LanczosLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
-copy(L::Ldiv{LanczosLayout,Lay}) where Lay<:BroadcastLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A,L.B))
-copy(L::Ldiv{LanczosLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{ApplyLayout{typeof(*)},BroadcastLayout{typeof(*)}}(L.A,L.B))
-copy(L::Ldiv{LanczosLayout,BroadcastLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{ApplyLayout{typeof(*)},BroadcastLayout{typeof(*)}}(L.A,L.B))
-copy(L::Ldiv{LanczosLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
-copy(L::Ldiv{LanczosLayout,ApplyLayout{typeof(*)},<:Any,<:AbstractQuasiVector}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
-copy(L::Ldiv{LanczosLayout,<:ExpansionLayout}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
+
 LazyArrays._mul_arguments(Q::LanczosPolynomial) = arguments(ApplyLayout{typeof(*)}(), Q)
 LazyArrays._mul_arguments(Q::QuasiAdjoint{<:Any,<:LanczosPolynomial}) = arguments(ApplyLayout{typeof(*)}(), Q)
 

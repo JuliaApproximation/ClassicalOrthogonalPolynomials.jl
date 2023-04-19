@@ -47,7 +47,7 @@ import FastGaussQuadrature: jacobimoment
 import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray, block, blockindex, BlockSlice, blockvec
 import BandedMatrices: bandwidths
 
-export OrthogonalPolynomial, Normalized, orthonormalpolynomial, LanczosPolynomial,
+export OrthogonalPolynomial, Normalized, LanczosPolynomial,
             Hermite, Jacobi, Legendre, Chebyshev, ChebyshevT, ChebyshevU, ChebyshevInterval, Ultraspherical, Fourier, Laurent, Laguerre,
             HermiteWeight, JacobiWeight, ChebyshevWeight, ChebyshevGrid, ChebyshevTWeight, ChebyshevUWeight, UltrasphericalWeight, LegendreWeight, LaguerreWeight,
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
