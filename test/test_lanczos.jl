@@ -6,7 +6,13 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         P = Legendre();
         w = P * [1; zeros(∞)];
         Q = LanczosPolynomial(w);
+        X = jacobimatrix(Q);
         @test Q.data.W[1:10,1:10] isa BandedMatrix
+        @test size(X) === (ℵ₀,ℵ₀) # make sure size uses ℵ₀ instead of ∞ 
+        # test taking integer powers of jacobi matrix
+        @test (X*X)[1:100,1:100] ≈ (X^2)[1:100,1:100]
+        @test (X*X*X)[1:100,1:100] ≈ (X^3)[1:100,1:100]
+        @test (X*X*X*X)[1:100,1:100] ≈ (X^4)[1:100,1:100]
 
         Q̃ = Normalized(P);
         A,B,C = recurrencecoefficients(Q);
@@ -177,6 +183,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
             U = LanczosPolynomial(y, P₊)
             @test P₊ ≠ U
             R = P₊ \ U
+            @test size(R) === (ℵ₀,ℵ₀)
             @test U[0.1,5] ≈ (P₊ * R * [zeros(4); 1; zeros(∞)])[0.1]
         end
     end

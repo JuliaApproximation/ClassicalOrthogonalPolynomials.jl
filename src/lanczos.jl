@@ -68,7 +68,7 @@ struct LanczosConversion{T} <: LayoutMatrix{T}
     data::LanczosData{T}
 end
 
-size(::LanczosConversion) = (∞,∞)
+size(::LanczosConversion) = (ℵ₀,ℵ₀)
 copy(R::LanczosConversion) = R
 
 Base.permutedims(R::LanczosConversion{<:Number}) = transpose(R)
@@ -128,7 +128,7 @@ struct LanczosJacobiBand{T} <: LazyVector{T}
     diag::Symbol
 end
 
-size(P::LanczosJacobiBand) = (∞,)
+size(P::LanczosJacobiBand) = (ℵ₀,)
 resizedata!(A::LanczosJacobiBand, n) = resizedata!(A.data, n)
 
 
