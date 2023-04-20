@@ -1,26 +1,61 @@
 """
+Represent an Orthogonal polynomial which has a conversion operator from P, that is, Q = P * inv(U).
+"""
+struct ConvertedOrthogonalPolynomial{T, WW<:AbstractQuasiVector{T}, XX, UU, PP} <: OrthonormalPolynomial{T}
+    weight::WW
+    X::XX # jacobimatrix
+    U::UU # conversion to P
+    P::PP
+end
+
+_p0(Q::ConvertedOrthogonalPolynomial) = _p0(Q.P)
+
+axes(Q::ConvertedOrthogonalPolynomial) = axes(Q.P)
+MemoryLayout(::Type{<:ConvertedOrthogonalPolynomial}) = ConvertedOPLayout()
+jacobimatrix(Q::ConvertedOrthogonalPolynomial) = Q.X
+orthogonalityweight(Q::ConvertedOrthogonalPolynomial) = Q.weight
+
+
+# transform to P * U if needed for differentiation, etc.
+arguments(::ApplyLayout{typeof(*)}, Q::ConvertedOrthogonalPolynomial) = Q.P, ApplyArray(inv, Q.U)
+
+OrthogonalPolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w, orthogonalpolynomial(singularities(w)))
+function OrthogonalPolynomial(w::AbstractQuasiVector, P::AbstractQuasiMatrix)
+    Q = normalized(P)
+    X = cholesky_jacobimatrix(w, Q)
+    ConvertedOrthogonalPolynomial(w, X, X.dv.U, Q)
+end
+
+orthogonalpolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w)
+orthogonalpolynomial(w::SubQuasiArray) = orthogonalpolynomial(parent(w))[parentindices(w)[1],:]
+
+
+
+"""
 cholesky_jacobimatrix(w, P)
 
 returns the Jacobi matrix `X` associated to a quasi-matrix of polynomials
 orthogonal with respect to `w(x) w_p(x)` where `w_p(x)` is the weight of the polynomials in `P`.
 
 The resulting polynomials are orthonormal on the same domain as `P`. The supplied `P` must be normalized. Accepted inputs are `w` as a function or `W` as an infinite matrix representing multiplication with the function `w` on the basis `P`.
-
-An optional bool can be supplied, i.e. `cholesky_jacobimatrix(sqrtw, P, false)` to disable checks of symmetry for the weight multiplication matrix and orthonormality for the basis (use with caution).
 """
-function cholesky_jacobimatrix(w::Function, P::OrthogonalPolynomial, checks::Bool = true)
-    checks && !(P isa Normalized) && error("Polynomials must be orthonormal.")
-    W = Symmetric(P \ (w.(axes(P,1)) .* P)) # Compute weight multiplication via Clenshaw
-    return cholesky_jacobimatrix(W, P, false)     # At this point checks already passed or were entered as false, no need to recheck
+cholesky_jacobimatrix(w::Function, P) = cholesky_jacobimatrix(w.(axes(P,1)), P)
+
+function cholesky_jacobimatrix(w::AbstractQuasiVector, P)
+    Q = normalized(P)
+    W = Symmetric(Q \ (w .* Q)) # Compute weight multiplication via Clenshaw
+    return cholesky_jacobimatrix(W, Q)
 end
-function cholesky_jacobimatrix(W::AbstractMatrix, P::OrthogonalPolynomial, checks::Bool = true)
-    checks && !(P isa Normalized) && error("Polynomials must be orthonormal.")
-    checks && !(W isa Symmetric) && error("Weight modification matrix must be symmetric.")
-    return SymTridiagonal(CholeskyJacobiBands{:dv}(W,P),CholeskyJacobiBands{:ev}(W,P))
+function cholesky_jacobimatrix(W::AbstractMatrix, Q)
+    isnormalized(Q) || error("Polynomials must be orthonormal")
+    U = cholesky(W).U
+    X = jacobimatrix(Q)
+    UX = ApplyArray(*,U,X)
+    return SymTridiagonal(CholeskyJacobiBand{:dv}(U, UX),CholeskyJacobiBand{:ev}(U, UX))
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data in cached bands
-mutable struct CholeskyJacobiBands{dv,T} <: AbstractCachedVector{T}
+mutable struct CholeskyJacobiBand{dv,T} <: AbstractCachedVector{T}
     data::Vector{T}       # store band entries, :dv for diagonal, :ev for off-diagonal
     U::UpperTriangular{T} # store upper triangular conversion matrix (needed to extend available entries)
     UX::ApplyArray{T}     # store U*X, where X is the Jacobi matrix of the original P (needed to extend available entries)
@@ -28,29 +63,23 @@ mutable struct CholeskyJacobiBands{dv,T} <: AbstractCachedVector{T}
 end
 
 # Computes the initial data for the Jacobi operator bands
-function CholeskyJacobiBands{:dv}(W, P::OrthogonalPolynomial{T}) where T
-    U = cholesky(W).U
-    X = jacobimatrix(P)
-    UX = ApplyArray(*,U,X)
+function CholeskyJacobiBand{:dv}(U::AbstractMatrix{T}, UX) where T
     dv = zeros(T,2) # compute a length 2 vector on first go
     dv[1] = dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
-    return CholeskyJacobiBands{:dv,T}(dv, U, UX, 2)
+    return CholeskyJacobiBand{:dv,T}(dv, U, UX, 2)
 end
-function CholeskyJacobiBands{:ev}(W, P::OrthogonalPolynomial{T}) where T
-    U = cholesky(W).U
-    X = jacobimatrix(P)
-    UX = ApplyArray(*,U,X)
+function CholeskyJacobiBand{:ev}(U::AbstractMatrix{T}, UX) where T
     ev = zeros(T,2) # compute a length 2 vector on first go
     ev[1] = dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[2] = dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
-    return CholeskyJacobiBands{:ev,T}(ev, U, UX, 2)
+    return CholeskyJacobiBand{:ev,T}(ev, U, UX, 2)
 end
 
-size(::CholeskyJacobiBands) = (ℵ₀,) # Stored as an infinite cached vector
+size(::CholeskyJacobiBand) = (ℵ₀,) # Stored as an infinite cached vector
 
 # Resize and filling functions for cached implementation
-function resizedata!(K::CholeskyJacobiBands, nm::Integer)
+function resizedata!(K::CholeskyJacobiBand, nm::Integer)
     νμ = K.datasize
     if nm > νμ
         resize!(K.data,nm)
@@ -59,7 +88,7 @@ function resizedata!(K::CholeskyJacobiBands, nm::Integer)
     end
     K
 end
-function cache_filldata!(J::CholeskyJacobiBands{:dv,T}, inds::UnitRange{Int}) where T
+function cache_filldata!(J::CholeskyJacobiBand{:dv,T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
     getindex(J.U,inds[end]+1,inds[end]+1)
     getindex(J.UX,inds[end]+1,inds[end]+1)
@@ -69,7 +98,7 @@ function cache_filldata!(J::CholeskyJacobiBands{:dv,T}, inds::UnitRange{Int}) wh
         J.data[k] = dot(view(J.UX,k,k-1:k), J.U[k-1:k,k-1:k] \ ek)
     end
 end
-function cache_filldata!(J::CholeskyJacobiBands{:ev, T}, inds::UnitRange{Int}) where T
+function cache_filldata!(J::CholeskyJacobiBand{:ev, T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
     getindex(J.U,inds[end]+1,inds[end]+1)
     getindex(J.UX,inds[end]+1,inds[end]+1)
@@ -88,23 +117,20 @@ returns the Jacobi matrix `X` associated to a quasi-matrix of polynomials
 orthogonal with respect to `w(x) w_p(x)` where `w_p(x)` is the weight of the polynomials in `P`.
 
 The resulting polynomials are orthonormal on the same domain as `P`. The supplied `P` must be normalized. Accepted inputs for `sqrtw` are the square root of the weight modification as a function or `sqrtW` as an infinite matrix representing multiplication with the function `sqrt(w)` on the basis `P`.
-
-An optional bool can be supplied, i.e. `qr_jacobimatrix(sqrtw, P, false)` to disable checks of symmetry for the weight multiplication matrix and orthonormality for the basis (use with caution).
 """
-function qr_jacobimatrix(sqrtw::Function, P::OrthogonalPolynomial, checks::Bool = true)
-    checks && !(P isa Normalized) && error("Polynomials must be orthonormal.")
-    sqrtW = (P \ (sqrtw.(axes(P,1)) .* P))  # Compute weight multiplication via Clenshaw
-    return qr_jacobimatrix(sqrtW, P, false) # At this point checks already passed or were entered as false, no need to recheck
+function qr_jacobimatrix(sqrtw::Function, P)
+    Q = normalized(P)
+    x = axes(P,1)
+    sqrtW = (Q \ (sqrtw.(x) .* Q))  # Compute weight multiplication via Clenshaw
+    return qr_jacobimatrix(sqrtW, Q)
 end
-function qr_jacobimatrix(sqrtW::AbstractMatrix, P::OrthogonalPolynomial, checks::Bool = true)
-    checks && !(P isa Normalized) && error("Polynomials must be orthonormal.")
-    checks && !(sqrtW isa Symmetric) && error("Weight modification matrix must be symmetric.")
-    K = SymTridiagonal(QRJacobiBands{:dv}(sqrtW,P),QRJacobiBands{:ev}(sqrtW,P))
-    return K
+function qr_jacobimatrix(sqrtW::AbstractMatrix, Q)
+    isnormalized(Q) || error("Polynomials must be orthonormal")
+    SymTridiagonal(QRJacobiBand{:dv}(sqrtW,Q),QRJacobiBand{:ev}(sqrtW,Q))
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data in cached bands
-mutable struct QRJacobiBands{dv,T} <: AbstractCachedVector{T}
+mutable struct QRJacobiBand{dv,T} <: AbstractCachedVector{T}
     data::Vector{T}       # store band entries, :dv for diagonal, :ev for off-diagonal
     U::ApplyArray{T}      # store upper triangular conversion matrix (needed to extend available entries)
     UX::ApplyArray{T}     # store U*X, where X is the Jacobi matrix of the original P (needed to extend available entries)
@@ -112,7 +138,7 @@ mutable struct QRJacobiBands{dv,T} <: AbstractCachedVector{T}
 end
 
 # Computes the initial data for the Jacobi operator bands
-function QRJacobiBands{:dv}(sqrtW, P::OrthogonalPolynomial{T}) where T
+function QRJacobiBand{:dv}(sqrtW, P::OrthogonalPolynomial{T}) where T
     U = qr(sqrtW).R
     U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U)
     X = jacobimatrix(P)
@@ -120,9 +146,9 @@ function QRJacobiBands{:dv}(sqrtW, P::OrthogonalPolynomial{T}) where T
     dv = zeros(T,2) # compute a length 2 vector on first go
     dv[1] = dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
-    return QRJacobiBands{:dv,T}(dv, U, UX, 2)
+    return QRJacobiBand{:dv,T}(dv, U, UX, 2)
 end
-function QRJacobiBands{:ev}(sqrtW, P::OrthogonalPolynomial{T}) where T
+function QRJacobiBand{:ev}(sqrtW, P::OrthogonalPolynomial{T}) where T
     U = qr(sqrtW).R
     U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U)
     X = jacobimatrix(P)
@@ -130,13 +156,13 @@ function QRJacobiBands{:ev}(sqrtW, P::OrthogonalPolynomial{T}) where T
     ev = zeros(T,2) # compute a length 2 vector on first go
     ev[1] = dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[2] = dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
-    return QRJacobiBands{:ev,T}(ev, U, UX, 2)
+    return QRJacobiBand{:ev,T}(ev, U, UX, 2)
 end
 
-size(::QRJacobiBands) = (ℵ₀,) # Stored as an infinite cached vector
+size(::QRJacobiBand) = (ℵ₀,) # Stored as an infinite cached vector
 
 # Resize and filling functions for cached implementation
-function resizedata!(K::QRJacobiBands, nm::Integer)
+function resizedata!(K::QRJacobiBand, nm::Integer)
     νμ = K.datasize
     if nm > νμ
         resize!(K.data,nm)
@@ -145,7 +171,7 @@ function resizedata!(K::QRJacobiBands, nm::Integer)
     end
     K
 end
-function cache_filldata!(J::QRJacobiBands{:dv,T}, inds::UnitRange{Int}) where T
+function cache_filldata!(J::QRJacobiBand{:dv,T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
     getindex(J.U,inds[end]+1,inds[end]+1)
     getindex(J.UX,inds[end]+1,inds[end]+1)
@@ -155,7 +181,7 @@ function cache_filldata!(J::QRJacobiBands{:dv,T}, inds::UnitRange{Int}) where T
         J.data[k] = dot(view(J.UX,k,k-1:k), J.U[k-1:k,k-1:k] \ ek)
     end
 end
-function cache_filldata!(J::QRJacobiBands{:ev, T}, inds::UnitRange{Int}) where T
+function cache_filldata!(J::QRJacobiBand{:ev, T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
     getindex(J.U,inds[end]+1,inds[end]+1)
     getindex(J.UX,inds[end]+1,inds[end]+1)

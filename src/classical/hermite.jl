@@ -7,6 +7,8 @@ struct HermiteWeight{T} <: Weight{T} end
 
 HermiteWeight() = HermiteWeight{Float64}()
 axes(::HermiteWeight{T}) where T = (Inclusion{T}(ℝ),)
+==(::HermiteWeight, ::HermiteWeight) = true
+
 function getindex(w::HermiteWeight, x::Number)
     x ∈ axes(w,1) || throw(BoundsError())
     exp(-x^2)

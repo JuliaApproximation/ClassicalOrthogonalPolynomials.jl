@@ -3,6 +3,14 @@ abstract type AbstractJacobiWeight{T} <: Weight{T} end
 axes(::AbstractJacobiWeight{T}) where T = (Inclusion(ChebyshevInterval{T}()),)
 
 ==(w::AbstractJacobiWeight, v::AbstractJacobiWeight) = w.a == v.a && w.b == v.b
+function ==(a::AffineQuasiVector, w::AbstractJacobiWeight)
+    axes(a,1) == axes(w,1) || return false
+    iszero(w.a) && iszero(w.b) && return iszero(a.A) && return iszero(a.b)
+    isone(w.a) && iszero(w.b) && return isone(-a.A) && return isone(a.b)
+    iszero(w.a) && isone(w.b) && return isone(a.A) && return isone(a.b)
+    return false
+end
+==(w::AbstractJacobiWeight, a::AffineQuasiVector) = a == w
 
 broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(*), w::AbstractJacobiWeight, v::AbstractJacobiWeight) =
     JacobiWeight(w.a + v.a, w.b + v.b)

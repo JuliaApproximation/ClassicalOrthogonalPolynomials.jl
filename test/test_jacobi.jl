@@ -11,6 +11,12 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test LegendreWeight() .* w == w .* LegendreWeight() == w
         @test ChebyshevWeight() .* w == w .* ChebyshevWeight() == JacobiWeight(a-1/2,b-1/2)
         @test summary(w) == "(1-x)^0.1 * (1+x)^0.2 on -1..1"
+
+        x = axes(w,1)
+        @test 0 * (1 .+ x) == LegendreWeight()
+        @test 1 .+ x == JacobiWeight(0,1)
+        @test 1 .- x == JacobiWeight(1,0)
+        @test x .- 1 ≠ JacobiWeight(1,0)
     end
 
     @testset "basics" begin
