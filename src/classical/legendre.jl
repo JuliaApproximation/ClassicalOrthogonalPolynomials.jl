@@ -49,6 +49,8 @@ weighted(P::SubQuasiArray{<:Any,2,<:Normalized{<:Any,<:Legendre}}) = P
 
 legendre() = Legendre()
 legendre(d::AbstractInterval{T}) where T = Legendre{float(T)}()[affine(d,ChebyshevInterval{T}()), :]
+legendre(d::ChebyshevInterval{T}) where T = Legendre{float(T)}()
+legendre(d::Inclusion) = legendre(d.domain)
 
 """
      legendrep(n, z)
