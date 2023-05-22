@@ -143,44 +143,42 @@ end
 # Computes the initial data for the Jacobi operator bands
 function QRJacobiBand{:dv,:Q}(sqrtW, P::OrthogonalPolynomial{T}) where T
     F = qr(sqrtW)
-    bds = bandwidths(F.R)[2]÷2
+    b = 3+bandwidths(F.R)[2]÷2
     X = jacobimatrix(P)
         # we fill 2 entries on the first run
     dv = zeros(T,2)
         # fill first entry (special case)
-    M = X[1:bds+3,1:bds+3]
-    v = I + tril(F.factors[1:bds+3,1:bds+3],-1)
-    H = I-F.τ[1]*v[:,1]*v[:,1]'
+    M = X[1:b,1:b]
+    getindex(F.factors,b,b) # pre-fill cached array
+    v = I + tril(F.factors[1:b,1:b],-1)
+    H = I - F.τ[1]*v[:,1]*v[:,1]'
     M = H*M*H
     dv[1] = M[1,1]
         # fill second entry
-    n = 2
-    v = I + tril(F.factors[n-1:n+bds+1,n-1:n+bds+1],-1)
-    H = I-F.τ[2]*v[:,2]*v[:,2]'
+    H = I - F.τ[2]*v[:,2]*v[:,2]'
     K = H*M*H
-    M = Matrix(jacobimatrix(P)[n:n+bds+2,n:n+bds+2])
+    M = Matrix(X[2:b+1,2:b+1])
     M[1:end-1,1:end-1] = K[2:end,2:end]
     dv[2] = M[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
     return QRJacobiBand{:dv,:Q,T}(dv, F, M, P, 2)
 end
 function QRJacobiBand{:ev,:Q}(sqrtW, P::OrthogonalPolynomial{T}) where T
     F = qr(sqrtW)
-    bds = bandwidths(F.R)[2]÷2
+    b = 3+bandwidths(F.factors)[2]÷2
     X = jacobimatrix(P)
         # we fill 1 entry on the first run
     dv = zeros(T,1)
         # first step does not produce entries for the off-diagonal band (special case)
-    M = X[1:bds+3,1:bds+3]
-    v = I + tril(F.factors[1:bds+3,1:bds+3],-1)
-    H = I-F.τ[1]*v[:,1]*v[:,1]'
+    M = X[1:b,1:b]
+    getindex(F.factors,b,b) # pre-fill cached array
+    v = (I + tril(F.factors[1:b,1:b],-1))
+    H = I - F.τ[1]*v[:,1]*v[:,1]'
     M = H*M*H
         # fill first off-diagonal entry
-    n = 2
-    v = I + tril(F.factors[n-1:n+bds+1,n-1:n+bds+1],-1)
-    H = I-F.τ[2]*v[:,2]*v[:,2]'
+    H = I - F.τ[2]*v[:,2]*v[:,2]'
     K = H*M*H
-    dv[1] = K[1,2]*sign(F.R[1,1])*sign(F.R[2,2]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
-    M = Matrix(jacobimatrix(P)[n:n+bds+2,n:n+bds+2])
+    dv[1] = K[1,2]*sign(F.R[1,1]*F.R[2,2]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
+    M = Matrix(X[2:b+1,2:b+1])
     M[1:end-1,1:end-1] = K[2:end,2:end]
     return QRJacobiBand{:ev,:Q,T}(dv, F, M, P, 1)
 end
@@ -218,38 +216,47 @@ function resizedata!(K::QRJacobiBand, nm::Integer)
     K
 end
 function cache_filldata!(J::QRJacobiBand{:dv,:Q,T}, inds::UnitRange{Int}) where T
-    bds = bandwidths(J.U.R)[2]÷2
+    b = 1+bandwidths(J.U.factors)[2]÷2
     # pre-fill cached arrays to avoid excessive cost from expansion in loop
-    m = inds[end]
-    X = jacobimatrix(J.P)[1:m+bds+3,1:m+bds+3]
-    getindex(J.U.factors,m+bds+1,m+bds+1)
+    m, jj = inds[end], inds[2:end]
+    X = jacobimatrix(J.P)[1:m+b+2,1:m+b+2]
+    getindex(J.U.factors,m+b,m+b)
     getindex(J.U.τ,m)
-    @inbounds for n in inds[2:end]
-        v = I + tril(J.U.factors[n-1:n+bds+1,n-1:n+bds+1],-1)
-        H = I-J.U.τ[n]*v[:,2]*v[:,2]'
-        K = H*J.UX*H
-        J.UX = Matrix(X[n:n+bds+2,n:n+bds+2])
-        J.UX[1:end-1,1:end-1] = K[2:end,2:end]
-        J.data[n] = J.UX[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
+    M = J.UX
+    τ = J.U.τ
+    F = J.U.factors
+    dv = J.data
+    @inbounds for n in jj
+        v = (I + tril(F[n-1:n+b,n-1:n+b],-1))[:,2]
+        H = I-τ[n]*v*v'
+        K = H*M*H
+        M = Matrix(X[n:n+b+1,n:n+b+1])
+        M[1:end-1,1:end-1] = K[2:end,2:end]
+        dv[n] = M[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
     end
+    J.UX = M
+    J.data[jj] = dv[jj]
 end
 function cache_filldata!(J::QRJacobiBand{:ev,:Q,T}, inds::UnitRange{Int}) where T
-    bds = bandwidths(J.U.R)[2]÷2
+    m, jj = 1+inds[end], inds[2:end]
+    b = bandwidths(J.U.factors)[2]÷2
     # pre-fill cached arrays to avoid excessive cost from expansion in loop
-    m = inds[end]
-    X = jacobimatrix(J.P)[1:m+bds+3,1:m+bds+3]
-    getindex(J.U.factors,m+bds+1,m+bds+1)
-    getindex(J.U.R,m+1,m+1)
-    getindex(J.U.τ,m+1)
+    X = jacobimatrix(J.P)[1:m+b+2,1:m+b+2]
+    getindex(J.U.factors,m+b,m+b)
+    getindex(J.U.R,m,m)
+    getindex(J.U.τ,m)
+    M, τ, F, dv = J.UX, J.U.τ, J.U.factors, J.data
     D = sign.(view(J.U.R,band(0)).*view(J.U.R,band(0))[2:end])
-    @inbounds for n in inds[2:end]
-        v = I + tril(J.U.factors[n:n+bds+2,n:n+bds+2],-1)
-        H = I-J.U.τ[n+1]*v[:,2]*v[:,2]'
-        K = H*J.UX*H
-        J.data[n] = K[1,2]*D[n] # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
-        J.UX = Matrix(X[n+1:n+bds+3,n+1:n+bds+3])
-        J.UX[1:end-1,1:end-1] = K[2:end,2:end]
+    @inbounds for n in jj
+        v = (I + tril(F[n:n+b+2,n:n+b+2],-1))[:,2]
+        H = I - τ[n+1]*v*v'
+        K = H*M*H
+        dv[n] = K[1,2]
+        M = Matrix(X[n+1:n+b+3,n+1:n+b+3])
+        M[1:end-1,1:end-1] = K[2:end,2:end]
     end
+    J.UX = M
+    J.data[jj] = dv[jj].*D[jj] # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
 end
 function cache_filldata!(J::QRJacobiBand{:dv,:R,T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
@@ -258,9 +265,11 @@ function cache_filldata!(J::QRJacobiBand{:dv,:R,T}, inds::UnitRange{Int}) where 
     getindex(J.UX,m,m)
 
     ek = [zero(T); one(T)]
+    dv, UX, U = J.data, J.UX, J.U
     @inbounds for k in inds
-        J.data[k] = dot(view(J.UX,k,k-1:k), J.U[k-1:k,k-1:k] \ ek)
+        dv[k] = dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
     end
+    J.data[inds] = dv[inds]
 end
 function cache_filldata!(J::QRJacobiBand{:ev,:R, T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
@@ -269,7 +278,9 @@ function cache_filldata!(J::QRJacobiBand{:ev,:R, T}, inds::UnitRange{Int}) where
     getindex(J.UX,m,m)
 
     ek = [zeros(T,2); one(T)]
+    dv, UX, U = J.data, J.UX, J.U
     @inbounds for k in inds
-        J.data[k] = dot(view(J.UX,k,k-1:k+1), J.U[k-1:k+1,k-1:k+1] \ ek)
+        dv[k] = dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
     end
+    J.data[inds] = dv[inds]
 end
