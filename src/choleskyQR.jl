@@ -35,7 +35,7 @@ orthogonalpolynomial(w::SubQuasiArray) = orthogonalpolynomial(parent(w))[parenti
 cholesky_jacobimatrix(w, P)
 
 returns the Jacobi matrix `X` associated to a quasi-matrix of polynomials
-orthogonal with respect to `w(x) w_p(x)` where `w_p(x)` is the weight of the polynomials in `P`.
+orthogonal with respect to `w(x) w_p(x)` where `w_p(x)` is the weight of the polynomials in `P` by computing a Cholesky decomposition of the weight modification.
 
 The resulting polynomials are orthonormal on the same domain as `P`. The supplied `P` must be normalized. Accepted inputs are `w` as a function or `W` as an infinite matrix representing multiplication with the function `w` on the basis `P`.
 """
@@ -114,49 +114,95 @@ end
 qr_jacobimatrix(sqrtw, P)
 
 returns the Jacobi matrix `X` associated to a quasi-matrix of polynomials
-orthogonal with respect to `w(x) w_p(x)` where `w_p(x)` is the weight of the polynomials in `P`.
+orthogonal with respect to `w(x) w_p(x)` where `w_p(x)` is the weight of the polynomials in `P` by computing a QR decomposition of the square root weight modification.
 
 The resulting polynomials are orthonormal on the same domain as `P`. The supplied `P` must be normalized. Accepted inputs for `sqrtw` are the square root of the weight modification as a function or `sqrtW` as an infinite matrix representing multiplication with the function `sqrt(w)` on the basis `P`.
+
+The underlying QR approach allows two methods, one which uses the Q matrix and one which uses the R matrix. To change between methods, an optional argument :Q or :R may be supplied. The default is to use the Q method.
 """
-function qr_jacobimatrix(sqrtw::Function, P)
+function qr_jacobimatrix(sqrtw::Function, P, method = :Q)
     Q = normalized(P)
     x = axes(P,1)
     sqrtW = (Q \ (sqrtw.(x) .* Q))  # Compute weight multiplication via Clenshaw
-    return qr_jacobimatrix(sqrtW, Q)
+    return qr_jacobimatrix(sqrtW, Q, method)
 end
-function qr_jacobimatrix(sqrtW::AbstractMatrix, Q)
+function qr_jacobimatrix(sqrtW::AbstractMatrix, Q, method = :Q)
     isnormalized(Q) || error("Polynomials must be orthonormal")
-    SymTridiagonal(QRJacobiBand{:dv}(sqrtW,Q),QRJacobiBand{:ev}(sqrtW,Q))
+    SymTridiagonal(QRJacobiBand{:dv,method}(sqrtW,Q),QRJacobiBand{:ev,method}(sqrtW,Q))
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data in cached bands
-mutable struct QRJacobiBand{dv,T} <: AbstractCachedVector{T}
-    data::Vector{T}       # store band entries, :dv for diagonal, :ev for off-diagonal
-    U::ApplyArray{T}      # store upper triangular conversion matrix (needed to extend available entries)
-    UX::ApplyArray{T}     # store U*X, where X is the Jacobi matrix of the original P (needed to extend available entries)
-    datasize::Int         # size of so-far computed block 
+mutable struct QRJacobiBand{dv,method,T} <: AbstractCachedVector{T}
+    data::Vector{T}             # store band entries, :dv for diagonal, :ev for off-diagonal
+    U                           # store conversion, Q method: stores QR object. R method: only stores R.
+    UX::AbstractMatrix{T}       # Auxilliary matrix. Q method: stores in-progress incomplete modification. R method: stores U*X for efficiency.
+    P::OrthogonalPolynomial{T}  # Remember original polynomials
+    datasize::Int               # size of so-far computed block
 end
 
 # Computes the initial data for the Jacobi operator bands
-function QRJacobiBand{:dv}(sqrtW, P::OrthogonalPolynomial{T}) where T
+function QRJacobiBand{:dv,:Q}(sqrtW, P::OrthogonalPolynomial{T}) where T
+    F = qr(sqrtW)
+    bds = bandwidths(F.R)[2]÷2
+    X = jacobimatrix(P)
+        # we fill 2 entries on the first run
+    dv = zeros(T,2)
+        # fill first entry (special case)
+    M = X[1:bds+3,1:bds+3]
+    v = I + tril(F.factors[1:bds+3,1:bds+3],-1)
+    H = I-F.τ[1]*v[:,1]*v[:,1]'
+    M = H*M*H
+    dv[1] = M[1,1]
+        # fill second entry
+    n = 2
+    v = I + tril(F.factors[n-1:n+bds+1,n-1:n+bds+1],-1)
+    H = I-F.τ[2]*v[:,2]*v[:,2]'
+    K = H*M*H
+    M = Matrix(jacobimatrix(P)[n:n+bds+2,n:n+bds+2])
+    M[1:end-1,1:end-1] = K[2:end,2:end]
+    dv[2] = M[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
+    return QRJacobiBand{:dv,:Q,T}(dv, F, M, P, 2)
+end
+function QRJacobiBand{:ev,:Q}(sqrtW, P::OrthogonalPolynomial{T}) where T
+    F = qr(sqrtW)
+    bds = bandwidths(F.R)[2]÷2
+    X = jacobimatrix(P)
+        # we fill 1 entry on the first run
+    dv = zeros(T,1)
+        # first step does not produce entries for the off-diagonal band (special case)
+    M = X[1:bds+3,1:bds+3]
+    v = I + tril(F.factors[1:bds+3,1:bds+3],-1)
+    H = I-F.τ[1]*v[:,1]*v[:,1]'
+    M = H*M*H
+        # fill first off-diagonal entry
+    n = 2
+    v = I + tril(F.factors[n-1:n+bds+1,n-1:n+bds+1],-1)
+    H = I-F.τ[2]*v[:,2]*v[:,2]'
+    K = H*M*H
+    dv[1] = K[1,2]*sign(F.R[1,1])*sign(F.R[2,2]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
+    M = Matrix(jacobimatrix(P)[n:n+bds+2,n:n+bds+2])
+    M[1:end-1,1:end-1] = K[2:end,2:end]
+    return QRJacobiBand{:ev,:Q,T}(dv, F, M, P, 1)
+end
+function QRJacobiBand{:dv,:R}(sqrtW, P::OrthogonalPolynomial{T}) where T
     U = qr(sqrtW).R
-    U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U)
+    U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U)  # QR decomposition does not force positive diagonals on R by default
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
     dv = zeros(T,2) # compute a length 2 vector on first go
     dv[1] = dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
-    return QRJacobiBand{:dv,T}(dv, U, UX, 2)
+    return QRJacobiBand{:dv,:R,T}(dv, U, UX, P, 2)
 end
-function QRJacobiBand{:ev}(sqrtW, P::OrthogonalPolynomial{T}) where T
+function QRJacobiBand{:ev,:R}(sqrtW, P::OrthogonalPolynomial{T}) where T
     U = qr(sqrtW).R
-    U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U)
+    U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U) # QR decomposition does not force positive diagonals on R by default
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
     ev = zeros(T,2) # compute a length 2 vector on first go
     ev[1] = dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[2] = dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
-    return QRJacobiBand{:ev,T}(ev, U, UX, 2)
+    return QRJacobiBand{:ev,:R,T}(ev, U, UX, P, 2)
 end
 
 size(::QRJacobiBand) = (ℵ₀,) # Stored as an infinite cached vector
@@ -171,7 +217,29 @@ function resizedata!(K::QRJacobiBand, nm::Integer)
     end
     K
 end
-function cache_filldata!(J::QRJacobiBand{:dv,T}, inds::UnitRange{Int}) where T
+function cache_filldata!(J::QRJacobiBand{:dv,:Q,T}, inds::UnitRange{Int}) where T
+    bds = bandwidths(J.U.R)[2]÷2
+    @inbounds for n in inds[2:end]
+        v = I + tril(J.U.factors[n-1:n+bds+1,n-1:n+bds+1],-1)
+        H = I-J.U.τ[n]*v[:,2]*v[:,2]'
+        K = H*J.UX*H
+        J.UX = Matrix(jacobimatrix(J.P)[n:n+bds+2,n:n+bds+2])
+        J.UX[1:end-1,1:end-1] = K[2:end,2:end]
+        J.data[n] = J.UX[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
+    end
+end
+function cache_filldata!(J::QRJacobiBand{:ev,:Q,T}, inds::UnitRange{Int}) where T
+    bds = bandwidths(J.U.R)[2]÷2
+    @inbounds for n in inds[2:end]
+        v = I + tril(J.U.factors[n:n+bds+2,n:n+bds+2],-1)
+        H = I-J.U.τ[n+1]*v[:,2]*v[:,2]'
+        K = H*J.UX*H
+        J.data[n] = K[1,2]*sign(J.U.R[n,n])*sign(J.U.R[n+1,n+1]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
+        J.UX = Matrix(jacobimatrix(J.P)[n+1:n+bds+3,n+1:n+bds+3])
+        J.UX[1:end-1,1:end-1] = K[2:end,2:end]
+    end
+end
+function cache_filldata!(J::QRJacobiBand{:dv,:R,T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
     getindex(J.U,inds[end]+1,inds[end]+1)
     getindex(J.UX,inds[end]+1,inds[end]+1)
@@ -181,7 +249,7 @@ function cache_filldata!(J::QRJacobiBand{:dv,T}, inds::UnitRange{Int}) where T
         J.data[k] = dot(view(J.UX,k,k-1:k), J.U[k-1:k,k-1:k] \ ek)
     end
 end
-function cache_filldata!(J::QRJacobiBand{:ev, T}, inds::UnitRange{Int}) where T
+function cache_filldata!(J::QRJacobiBand{:ev,:R, T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
     getindex(J.U,inds[end]+1,inds[end]+1)
     getindex(J.UX,inds[end]+1,inds[end]+1)
