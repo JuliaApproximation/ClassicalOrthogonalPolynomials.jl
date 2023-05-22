@@ -219,30 +219,43 @@ function resizedata!(K::QRJacobiBand, nm::Integer)
 end
 function cache_filldata!(J::QRJacobiBand{:dv,:Q,T}, inds::UnitRange{Int}) where T
     bds = bandwidths(J.U.R)[2]÷2
+    # pre-fill cached arrays to avoid excessive cost from expansion in loop
+    m = inds[end]
+    X = jacobimatrix(J.P)[1:m+bds+3,1:m+bds+3]
+    getindex(J.U.factors,m+bds+1,m+bds+1)
+    getindex(J.U.τ,m)
     @inbounds for n in inds[2:end]
         v = I + tril(J.U.factors[n-1:n+bds+1,n-1:n+bds+1],-1)
         H = I-J.U.τ[n]*v[:,2]*v[:,2]'
         K = H*J.UX*H
-        J.UX = Matrix(jacobimatrix(J.P)[n:n+bds+2,n:n+bds+2])
+        J.UX = Matrix(X[n:n+bds+2,n:n+bds+2])
         J.UX[1:end-1,1:end-1] = K[2:end,2:end]
         J.data[n] = J.UX[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
     end
 end
 function cache_filldata!(J::QRJacobiBand{:ev,:Q,T}, inds::UnitRange{Int}) where T
     bds = bandwidths(J.U.R)[2]÷2
+    # pre-fill cached arrays to avoid excessive cost from expansion in loop
+    m = inds[end]
+    X = jacobimatrix(J.P)[1:m+bds+3,1:m+bds+3]
+    getindex(J.U.factors,m+bds+1,m+bds+1)
+    getindex(J.U.R,m+1,m+1)
+    getindex(J.U.τ,m+1)
+    D = sign.(view(J.U.R,band(0)).*view(J.U.R,band(0))[2:end])
     @inbounds for n in inds[2:end]
         v = I + tril(J.U.factors[n:n+bds+2,n:n+bds+2],-1)
         H = I-J.U.τ[n+1]*v[:,2]*v[:,2]'
         K = H*J.UX*H
-        J.data[n] = K[1,2]*sign(J.U.R[n,n])*sign(J.U.R[n+1,n+1]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
-        J.UX = Matrix(jacobimatrix(J.P)[n+1:n+bds+3,n+1:n+bds+3])
+        J.data[n] = K[1,2]*D[n] # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
+        J.UX = Matrix(X[n+1:n+bds+3,n+1:n+bds+3])
         J.UX[1:end-1,1:end-1] = K[2:end,2:end]
     end
 end
 function cache_filldata!(J::QRJacobiBand{:dv,:R,T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
-    getindex(J.U,inds[end]+1,inds[end]+1)
-    getindex(J.UX,inds[end]+1,inds[end]+1)
+    m = inds[end]+1
+    getindex(J.U,m,m)
+    getindex(J.UX,m,m)
 
     ek = [zero(T); one(T)]
     @inbounds for k in inds
@@ -251,8 +264,9 @@ function cache_filldata!(J::QRJacobiBand{:dv,:R,T}, inds::UnitRange{Int}) where 
 end
 function cache_filldata!(J::QRJacobiBand{:ev,:R, T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
-    getindex(J.U,inds[end]+1,inds[end]+1)
-    getindex(J.UX,inds[end]+1,inds[end]+1)
+    m = inds[end]+1
+    getindex(J.U,m,m)
+    getindex(J.UX,m,m)
 
     ek = [zeros(T,2); one(T)]
     @inbounds for k in inds
