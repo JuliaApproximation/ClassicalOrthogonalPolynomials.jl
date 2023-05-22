@@ -163,7 +163,7 @@ import LazyArrays: AbstractCachedMatrix
             @test JqrQalt[1:10,1:10] ≈ Jclass[1:10,1:10]
             @test JqrRalt[1:10,1:10] ≈ Jclass[1:10,1:10]
         end
-        @testset "QR case, w(x) = (1+x)^2*(1-x)^4" begin
+        @testset "QR case, w(x) = (x)^2*(1-x)^4" begin
             P = Normalized(legendre(0..1))
             x = axes(P,1)
             J = jacobimatrix(P)
