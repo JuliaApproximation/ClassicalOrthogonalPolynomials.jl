@@ -150,12 +150,13 @@ function QRJacobiBand{:dv,:Q}(F, P::OrthogonalPolynomial{T}) where T
         # fill first entry (special case)
     M = X[1:b,1:b]
     getindex(F.factors,b,b) # pre-fill cached array
-    v = I + tril(F.factors[1:b,1:b],-1)
-    H = I - F.τ[1]*v[:,1]*v[:,1]'
+    v = [one(T);F.factors[1:b,1][2:end]]
+    H = I - F.τ[1]*v*v'
     M = H*M*H
     dv[1] = M[1,1]
         # fill second entry
-    H = I - F.τ[2]*v[:,2]*v[:,2]'
+    v = [zero(T);one(T);F.factors[1:b,2][3:end]]
+    H = I - F.τ[2]*v*v'
     K = H*M*H
     M = Matrix(X[2:b+1,2:b+1])
     M[1:end-1,1:end-1] = K[2:end,2:end]
@@ -170,11 +171,12 @@ function QRJacobiBand{:ev,:Q}(F, P::OrthogonalPolynomial{T}) where T
         # first step does not produce entries for the off-diagonal band (special case)
     M = X[1:b,1:b]
     getindex(F.factors,b,b) # pre-fill cached array
-    v = (I + tril(F.factors[1:b,1:b],-1))
-    H = I - F.τ[1]*v[:,1]*v[:,1]'
+    v = [one(T);F.factors[1:b,1][2:end]]
+    H = I - F.τ[1]*v*v'
     M = H*M*H
         # fill first off-diagonal entry
-    H = I - F.τ[2]*v[:,2]*v[:,2]'
+    v = [zero(T);one(T);F.factors[1:b,2][3:end]]
+    H = I - F.τ[2]*v*v'
     K = H*M*H
     dv[1] = K[1,2]*sign(F.R[1,1]*F.R[2,2]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
     M = Matrix(X[2:b+1,2:b+1])
@@ -226,7 +228,7 @@ function cache_filldata!(J::QRJacobiBand{:dv,:Q,T}, inds::UnitRange{Int}) where 
     F = J.U.factors
     dv = J.data
     @inbounds for n in jj
-        v = (I + tril(F[n-1:n+b,n-1:n+b],-1))[:,2]
+        v = [zero(T);one(T);F[n-1:n+b,n][3:end]]
         H = I-τ[n]*v*v'
         K = H*M*H
         M = Matrix(X[n:n+b+1,n:n+b+1])
@@ -247,7 +249,7 @@ function cache_filldata!(J::QRJacobiBand{:ev,:Q,T}, inds::UnitRange{Int}) where 
     M, τ, F, dv = J.UX, J.U.τ, J.U.factors, J.data
     D = sign.(view(J.U.R,band(0)).*view(J.U.R,band(0))[2:end])
     @inbounds for n in jj
-        v = (I + tril(F[n:n+b+2,n:n+b+2],-1))[:,2]
+        v = [zero(T);one(T);F[n:n+b+2,n+1][3:end]]
         H = I - τ[n+1]*v*v'
         K = H*M*H
         dv[n] = K[1,2]
