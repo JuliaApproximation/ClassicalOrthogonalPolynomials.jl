@@ -128,7 +128,8 @@ function qr_jacobimatrix(sqrtw::Function, P, method = :Q)
 end
 function qr_jacobimatrix(sqrtW::AbstractMatrix, Q, method = :Q)
     isnormalized(Q) || error("Polynomials must be orthonormal")
-    SymTridiagonal(QRJacobiBand{:dv,method}(sqrtW,Q),QRJacobiBand{:ev,method}(sqrtW,Q))
+    F = qr(sqrtW)
+    SymTridiagonal(QRJacobiBand{:dv,method}(F,Q),QRJacobiBand{:ev,method}(F,Q))
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data in cached bands
@@ -141,8 +142,7 @@ mutable struct QRJacobiBand{dv,method,T} <: AbstractCachedVector{T}
 end
 
 # Computes the initial data for the Jacobi operator bands
-function QRJacobiBand{:dv,:Q}(sqrtW, P::OrthogonalPolynomial{T}) where T
-    F = qr(sqrtW)
+function QRJacobiBand{:dv,:Q}(F, P::OrthogonalPolynomial{T}) where T
     b = 3+bandwidths(F.R)[2]÷2
     X = jacobimatrix(P)
         # we fill 2 entries on the first run
@@ -162,8 +162,7 @@ function QRJacobiBand{:dv,:Q}(sqrtW, P::OrthogonalPolynomial{T}) where T
     dv[2] = M[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
     return QRJacobiBand{:dv,:Q,T}(dv, F, M, P, 2)
 end
-function QRJacobiBand{:ev,:Q}(sqrtW, P::OrthogonalPolynomial{T}) where T
-    F = qr(sqrtW)
+function QRJacobiBand{:ev,:Q}(F, P::OrthogonalPolynomial{T}) where T
     b = 3+bandwidths(F.factors)[2]÷2
     X = jacobimatrix(P)
         # we fill 1 entry on the first run
@@ -182,8 +181,8 @@ function QRJacobiBand{:ev,:Q}(sqrtW, P::OrthogonalPolynomial{T}) where T
     M[1:end-1,1:end-1] = K[2:end,2:end]
     return QRJacobiBand{:ev,:Q,T}(dv, F, M, P, 1)
 end
-function QRJacobiBand{:dv,:R}(sqrtW, P::OrthogonalPolynomial{T}) where T
-    U = qr(sqrtW).R
+function QRJacobiBand{:dv,:R}(F, P::OrthogonalPolynomial{T}) where T
+    U = F.R
     U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U)  # QR decomposition does not force positive diagonals on R by default
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
@@ -192,8 +191,8 @@ function QRJacobiBand{:dv,:R}(sqrtW, P::OrthogonalPolynomial{T}) where T
     dv[2] = dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     return QRJacobiBand{:dv,:R,T}(dv, U, UX, P, 2)
 end
-function QRJacobiBand{:ev,:R}(sqrtW, P::OrthogonalPolynomial{T}) where T
-    U = qr(sqrtW).R
+function QRJacobiBand{:ev,:R}(F, P::OrthogonalPolynomial{T}) where T
+    U = F.R
     U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U) # QR decomposition does not force positive diagonals on R by default
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
