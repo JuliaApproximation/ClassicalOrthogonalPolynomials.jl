@@ -148,20 +148,20 @@ function QRJacobiBand{:dv,:Q}(F, P::OrthogonalPolynomial{T}) where T
         # we fill 2 entries on the first run
     dv = zeros(T,2)
         # fill first entry (special case)
-    M = X[1:b,1:b]
-    getindex(F.factors,b,b) # pre-fill cached array
-    v = [one(T);F.factors[1:b,1][2:end]]
-    H = I - F.τ[1]*v*v'
-    M = H*M*H
+    M = Matrix(X[1:b,1:b])
+    resizedata!(F.factors,b,b)
+    v = [one(T);F.factors[2:b,1]]
+    M .= M .- F.τ[1] .*  v .* (v'M)
+    M .= M .- F.τ[1] .*  (M*v) .* v'
     dv[1] = M[1,1]
         # fill second entry
-    v = [zero(T);one(T);F.factors[1:b,2][3:end]]
-    H = I - F.τ[2]*v*v'
-    K = H*M*H
-    M = Matrix(X[2:b+1,2:b+1])
-    M[1:end-1,1:end-1] = K[2:end,2:end]
-    dv[2] = M[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
-    return QRJacobiBand{:dv,:Q,T}(dv, F, M, P, 2)
+    v = [zero(T);one(T);F.factors[3:b,2]]
+    M .= M .- F.τ[2] .*  v .* (v'M)
+    M .= M .- F.τ[2] .*  (M*v) .* v'
+    K = Matrix(X[2:b+1,2:b+1])
+    K[1:end-1,1:end-1] = M[2:end,2:end]
+    dv[2] = K[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
+    return QRJacobiBand{:dv,:Q,T}(dv, F, K, P, 2)
 end
 function QRJacobiBand{:ev,:Q}(F, P::OrthogonalPolynomial{T}) where T
     b = 3+bandwidths(F.factors)[2]÷2
@@ -169,19 +169,22 @@ function QRJacobiBand{:ev,:Q}(F, P::OrthogonalPolynomial{T}) where T
         # we fill 1 entry on the first run
     dv = zeros(T,1)
         # first step does not produce entries for the off-diagonal band (special case)
-    M = X[1:b,1:b]
-resizedata!(F.factors,b,b)
-    v = [one(T);F.factors[1:b,1][2:end]]
-    H = I - F.τ[1]*v*v'
-    M = H*M*H
+    M = Matrix(X[1:b,1:b])
+    resizedata!(F.factors,b,b)
+    v = [one(T);F.factors[2:b,1]]
+    w = similar(v)
+    M .= M .- F.τ[1] .*  v .* (v'M)
+    M .= M .- F.τ[1] .*  (M*v) .* v'
+    #H = I - F.τ[1]*v*v'
+    #M = H*M*H
         # fill first off-diagonal entry
-    v = [zero(T);one(T);F.factors[1:b,2][3:end]]
-    H = I - F.τ[2]*v*v'
-    K = H*M*H
-    dv[1] = K[1,2]*sign(F.R[1,1]*F.R[2,2]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
-    M = Matrix(X[2:b+1,2:b+1])
-    M[1:end-1,1:end-1] = K[2:end,2:end]
-    return QRJacobiBand{:ev,:Q,T}(dv, F, M, P, 1)
+    v = [zero(T);one(T);F.factors[3:b,2]]
+    M .= M .- F.τ[2] .*  v .* (v'M)
+    M .= M .- F.τ[2] .*  (M*v) .* v'
+    dv[1] = M[1,2]*sign(F.R[1,1]*F.R[2,2]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
+    K = Matrix(X[2:b+1,2:b+1])
+    K[1:end-1,1:end-1] = M[2:end,2:end]
+    return QRJacobiBand{:ev,:Q,T}(dv, F, K, P, 1)
 end
 function QRJacobiBand{:dv,:R}(F, P::OrthogonalPolynomial{T}) where T
     U = F.R
@@ -189,8 +192,8 @@ function QRJacobiBand{:dv,:R}(F, P::OrthogonalPolynomial{T}) where T
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
     dv = zeros(T,2) # compute a length 2 vector on first go
-    dv[1] = dot(view(UX,1,1), U[1,1] \ [one(T)])
-    dv[2] = dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
+    @inbounds dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
+    @inbounds dv[2] = dot(view(UX,2,1:2), [-U[1,2]/U[1,1],one(T)]./U[2,2]) # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     return QRJacobiBand{:dv,:R,T}(dv, U, UX, P, 2)
 end
 function QRJacobiBand{:ev,:R}(F, P::OrthogonalPolynomial{T}) where T
@@ -199,8 +202,8 @@ function QRJacobiBand{:ev,:R}(F, P::OrthogonalPolynomial{T}) where T
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
     ev = zeros(T,2) # compute a length 2 vector on first go
-    ev[1] = dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
-    ev[2] = dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
+    @inbounds ev[1] = dot(view(UX,1,1:2), [-U[1,2]/U[1,1],one(T)]./U[2,2]) # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
+    @inbounds ev[2] = dot(view(UX,2,1:3), [-U[1,3]*U[2,2]+U[1,2]*U[2,3]/(U[1,1]*U[2,2]),-U[2,3]/U[2,2],one(T)]./U[3,3]) # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
     return QRJacobiBand{:ev,:R,T}(ev, U, UX, P, 2)
 end
 
@@ -221,22 +224,22 @@ function cache_filldata!(J::QRJacobiBand{:dv,:Q,T}, inds::UnitRange{Int}) where 
     # pre-fill cached arrays to avoid excessive cost from expansion in loop
     m, jj = inds[end], inds[2:end]
     X = jacobimatrix(J.P)[1:m+b+2,1:m+b+2]
-    getindex(J.U.factors,m+b,m+b)
-    getindex(J.U.τ,m)
-    M = J.UX
-    τ = J.U.τ
-    F = J.U.factors
-    dv = J.data
+    resizedata!(J.U.factors,m+b,m+b)
+    resizedata!(J.U.τ,m)
+    K, τ, F, dv = J.UX, J.U.τ, J.U.factors, J.data
+    v = Vector{T}(undef,b+3)
+    M = Matrix{T}(undef,b+3,b+3)
     @inbounds for n in jj
-        v = [zero(T);one(T);F[n-1:n+b,n][3:end]]
-        H = I-τ[n]*v*v'
-        K = H*M*H
+        v = [zero(T);one(T);F[n+1:n+b,n]]
+        K .= K .- τ[n] .*  v .* (v'K)
+        K .= K .- τ[n] .*  (K*v) .* v'
         M = Matrix(X[n:n+b+1,n:n+b+1])
-        M[1:end-1,1:end-1] = K[2:end,2:end]
+        M[1:end-1,1:end-1] .= K[2:end,2:end]
         dv[n] = M[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
+        K .= M
     end
     J.UX = M
-    J.data[jj] = dv[jj]
+    J.data[jj] .= dv[jj]
 end
 function cache_filldata!(J::QRJacobiBand{:ev,:Q,T}, inds::UnitRange{Int}) where T
     m, jj = 1+inds[end], inds[2:end]
@@ -246,42 +249,45 @@ function cache_filldata!(J::QRJacobiBand{:ev,:Q,T}, inds::UnitRange{Int}) where 
     resizedata!(J.U.factors,m+b,m+b)
     resizedata!(J.U.R,m,m)
     resizedata!(J.U.τ,m)
-    M, τ, F, dv = J.UX, J.U.τ, J.U.factors, J.data
+    K, τ, F, dv = J.UX, J.U.τ, J.U.factors, J.data
     D = sign.(view(J.U.R,band(0)).*view(J.U.R,band(0))[2:end])
+    v = Vector{T}(undef,b+3)
+    M = Matrix{T}(undef,b+3,b+3)
     @inbounds for n in jj
-        v = [zero(T);one(T);F[n:n+b+2,n+1][3:end]]
-        H = I - τ[n+1]*v*v'
-        K = H*M*H
+        v .= [zero(T);one(T);F[n+2:n+b+2,n+1]]
+        K .= K .- τ[n+1] .*  v .* (v'K)
+        K .= K .- τ[n+1] .*  (K*v) .* v'
         dv[n] = K[1,2]
-        M = Matrix(X[n+1:n+b+3,n+1:n+b+3])
-        M[1:end-1,1:end-1] = K[2:end,2:end]
+        M .= Matrix(X[n+1:n+b+3,n+1:n+b+3])
+        M[1:end-1,1:end-1] .= K[2:end,2:end]
+        K .= M
     end
     J.UX = M
-    J.data[jj] = dv[jj].*D[jj] # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
+    J.data[jj] .= dv[jj].*D[jj] # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
 end
 function cache_filldata!(J::QRJacobiBand{:dv,:R,T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
     m = inds[end]+1
-    getindex(J.U,m,m)
-    getindex(J.UX,m,m)
+    resizedata!(J.U,m,m)
+    resizedata!(J.UX,m,m)
 
-    ek = [zero(T); one(T)]
     dv, UX, U = J.data, J.UX, J.U
     @inbounds for k in inds
-        dv[k] = dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
+        # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
+        dv[k] = dot(view(UX,k,k-1:k), [-U[k-1,k]/U[k-1,k-1],one(T)]./U[k,k]) 
     end
     J.data[inds] = dv[inds]
 end
 function cache_filldata!(J::QRJacobiBand{:ev,:R, T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
     m = inds[end]+1
-    getindex(J.U,m,m)
-    getindex(J.UX,m,m)
+    resizedata!(J.U,m,m)
+    resizedata!(J.UX,m,m)
 
-    ek = [zeros(T,2); one(T)]
     dv, UX, U = J.data, J.UX, J.U
     @inbounds for k in inds
-        dv[k] = dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
+        # this is dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
+        dv[k] = dot(view(UX,k,k-1:k+1), [(-U[k-1,k+1]*U[k,k]+U[k-1,k]*U[k,k+1])/(U[k-1,k-1]*U[k,k]), -U[k,k+1]/U[k,k], one(T)]./U[k+1,k+1])
     end
     J.data[inds] = dv[inds]
 end
