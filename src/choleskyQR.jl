@@ -244,7 +244,7 @@ function cache_filldata!(J::QRJacobiBand{:ev,:Q,T}, inds::UnitRange{Int}) where 
     # pre-fill cached arrays to avoid excessive cost from expansion in loop
     X = jacobimatrix(J.P)[1:m+b+2,1:m+b+2]
     resizedata!(J.U.factors,m+b,m+b)
-    getindex(J.U.R,m,m)
+    resizedata!(J.U.R,m,m)
     getindex(J.U.τ,m)
     M, τ, F, dv = J.UX, J.U.τ, J.U.factors, J.data
     D = sign.(view(J.U.R,band(0)).*view(J.U.R,band(0))[2:end])
