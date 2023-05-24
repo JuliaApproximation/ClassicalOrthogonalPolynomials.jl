@@ -65,14 +65,14 @@ end
 # Computes the initial data for the Jacobi operator bands
 function CholeskyJacobiBand{:dv}(U::AbstractMatrix{T}, UX) where T
     dv = zeros(T,2) # compute a length 2 vector on first go
-    dv[1] = dot(view(UX,1,1), U[1,1] \ [one(T)])
-    dv[2] = dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
+    dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
+    dv[2] = dot(view(UX,2,1:2), [-U[1,2]/U[1,1],one(T)]./U[2,2]) # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     return CholeskyJacobiBand{:dv,T}(dv, U, UX, 2)
 end
 function CholeskyJacobiBand{:ev}(U::AbstractMatrix{T}, UX) where T
     ev = zeros(T,2) # compute a length 2 vector on first go
-    ev[1] = dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
-    ev[2] = dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
+    ev[1] = dot(view(UX,1,1:2), [-U[1,2]/U[1,1],one(T)]./U[2,2]) # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
+    ev[2] = dot(view(UX,2,1:3), [-U[1,3]/U[1,1]+U[1,2]*U[2,3]/(U[1,1]*U[2,2]),-U[2,3]/U[2,2],one(T)]./U[3,3]) # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
     return CholeskyJacobiBand{:ev,T}(ev, U, UX, 2)
 end
 
@@ -90,23 +90,27 @@ function resizedata!(K::CholeskyJacobiBand, nm::Integer)
 end
 function cache_filldata!(J::CholeskyJacobiBand{:dv,T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
-    getindex(J.U,inds[end]+1,inds[end]+1)
-    getindex(J.UX,inds[end]+1,inds[end]+1)
+    resizedata!(J.U,inds[end]+1,inds[end]+1)
+    resizedata!(J.UX,inds[end]+1,inds[end]+1)
 
-    ek = [zero(T); one(T)]
+    dv, UX, U = J.data, J.UX, J.U
     @inbounds for k in inds
-        J.data[k] = dot(view(J.UX,k,k-1:k), J.U[k-1:k,k-1:k] \ ek)
+        # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
+        dv[k] = dot(view(UX,k,k-1:k), [-U[k-1,k]/U[k-1,k-1],one(T)]./U[k,k]) 
     end
+    J.data[inds] .= dv[inds]
 end
 function cache_filldata!(J::CholeskyJacobiBand{:ev, T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
-    getindex(J.U,inds[end]+1,inds[end]+1)
-    getindex(J.UX,inds[end]+1,inds[end]+1)
+    resizedata!(J.U,inds[end]+1,inds[end]+1)
+    resizedata!(J.UX,inds[end]+1,inds[end]+1)
 
-    ek = [zeros(T,2); one(T)]
+    dv, UX, U = J.data, J.UX, J.U
     @inbounds for k in inds
-        J.data[k] = dot(view(J.UX,k,k-1:k+1), J.U[k-1:k+1,k-1:k+1] \ ek)
+        # this is dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
+        dv[k] = dot(view(UX,k,k-1:k+1), [(-U[k-1,k+1])/(U[k-1,k-1])+(U[k-1,k]*U[k,k+1])/(U[k-1,k-1]*U[k,k]), -U[k,k+1]/U[k,k], one(T)]./U[k+1,k+1])
     end
+    J.data[inds] .= dv[inds]
 end
 
 
@@ -175,8 +179,6 @@ function QRJacobiBand{:ev,:Q}(F, P::OrthogonalPolynomial{T}) where T
     w = similar(v)
     M .= M .- F.τ[1] .*  v .* (v'M)
     M .= M .- F.τ[1] .*  (M*v) .* v'
-    #H = I - F.τ[1]*v*v'
-    #M = H*M*H
         # fill first off-diagonal entry
     v = [zero(T);one(T);F.factors[3:b,2]]
     M .= M .- F.τ[2] .*  v .* (v'M)
@@ -192,8 +194,8 @@ function QRJacobiBand{:dv,:R}(F, P::OrthogonalPolynomial{T}) where T
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
     dv = zeros(T,2) # compute a length 2 vector on first go
-    @inbounds dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
-    @inbounds dv[2] = dot(view(UX,2,1:2), [-U[1,2]/U[1,1],one(T)]./U[2,2]) # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
+    dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
+    dv[2] = dot(view(UX,2,1:2), [-U[1,2]/U[1,1],one(T)]./U[2,2]) # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     return QRJacobiBand{:dv,:R,T}(dv, U, UX, P, 2)
 end
 function QRJacobiBand{:ev,:R}(F, P::OrthogonalPolynomial{T}) where T
@@ -202,8 +204,8 @@ function QRJacobiBand{:ev,:R}(F, P::OrthogonalPolynomial{T}) where T
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
     ev = zeros(T,2) # compute a length 2 vector on first go
-    @inbounds ev[1] = dot(view(UX,1,1:2), [-U[1,2]/U[1,1],one(T)]./U[2,2]) # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
-    @inbounds ev[2] = dot(view(UX,2,1:3), [-U[1,3]*U[2,2]+U[1,2]*U[2,3]/(U[1,1]*U[2,2]),-U[2,3]/U[2,2],one(T)]./U[3,3]) # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
+    ev[1] = dot(view(UX,1,1:2), [-U[1,2]/U[1,1],one(T)]./U[2,2]) # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
+    ev[2] = dot(view(UX,2,1:3), [(-U[1,3]/U[1,1])+U[1,2]*U[2,3]/(U[1,1]*U[2,2]),-U[2,3]/U[2,2],one(T)]./U[3,3]) # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
     return QRJacobiBand{:ev,:R,T}(ev, U, UX, P, 2)
 end
 
@@ -287,7 +289,7 @@ function cache_filldata!(J::QRJacobiBand{:ev,:R, T}, inds::UnitRange{Int}) where
     dv, UX, U = J.data, J.UX, J.U
     @inbounds for k in inds
         # this is dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
-        dv[k] = dot(view(UX,k,k-1:k+1), [(-U[k-1,k+1]*U[k,k]+U[k-1,k]*U[k,k+1])/(U[k-1,k-1]*U[k,k]), -U[k,k+1]/U[k,k], one(T)]./U[k+1,k+1])
+        dv[k] = dot(view(UX,k,k-1:k+1), [-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]), -U[k,k+1]/U[k,k], one(T)]./U[k+1,k+1])
     end
     J.data[inds] = dv[inds]
 end

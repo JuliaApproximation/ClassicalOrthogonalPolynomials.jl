@@ -213,6 +213,3 @@ import LazyArrays: AbstractCachedMatrix
         @test_broken R[1:10,1:10] isa BandedMatrix
     end
 end
-
-
-
