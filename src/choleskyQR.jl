@@ -243,7 +243,7 @@ function cache_filldata!(J::QRJacobiBand{:ev,:Q,T}, inds::UnitRange{Int}) where 
     b = bandwidths(J.U.factors)[2]÷2
     # pre-fill cached arrays to avoid excessive cost from expansion in loop
     X = jacobimatrix(J.P)[1:m+b+2,1:m+b+2]
-    getindex(J.U.factors,m+b,m+b)
+    resizedata!(J.U.factors,m+b,m+b)
     getindex(J.U.R,m,m)
     getindex(J.U.τ,m)
     M, τ, F, dv = J.UX, J.U.τ, J.U.factors, J.data
