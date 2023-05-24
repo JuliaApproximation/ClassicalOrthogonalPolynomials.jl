@@ -170,7 +170,7 @@ function QRJacobiBand{:ev,:Q}(F, P::OrthogonalPolynomial{T}) where T
     dv = zeros(T,1)
         # first step does not produce entries for the off-diagonal band (special case)
     M = X[1:b,1:b]
-    getindex(F.factors,b,b) # pre-fill cached array
+resizedata!(F.factors,b,b)
     v = [one(T);F.factors[1:b,1][2:end]]
     H = I - F.τ[1]*v*v'
     M = H*M*H
