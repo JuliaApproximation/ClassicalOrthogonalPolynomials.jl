@@ -182,6 +182,11 @@ import LazyArrays: AbstractCachedMatrix
             @test JqrR[1:10,1:10] ≈ Jclass[1:10,1:10]
             @test JqrQalt[1:10,1:10] ≈ Jclass[1:10,1:10]
             @test JqrRalt[1:10,1:10] ≈ Jclass[1:10,1:10]
+            # test consistency of resizing in succession
+            F = qr_jacobimatrix(sqrtwf, P);
+            @test JqrQ[1:5,1:5] ≈ F[1:5,1:5]
+            @test JqrQ[1:20,1:20] ≈ F[1:20,1:20]
+            @test JqrQ[50:70,50:70] ≈ F[50:70,50:70]
         end
     end
 
