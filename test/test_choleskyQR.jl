@@ -1,6 +1,6 @@
 using Test, ClassicalOrthogonalPolynomials, BandedMatrices, LinearAlgebra, LazyArrays, ContinuumArrays, LazyBandedMatrices, InfiniteLinearAlgebra
 import ClassicalOrthogonalPolynomials: cholesky_jacobimatrix, qr_jacobimatrix
-import LazyArrays: AbstractCachedMatrix
+import LazyArrays: AbstractCachedMatrix, resizedata!
 
 
 @testset "CholeskyQR" begin
