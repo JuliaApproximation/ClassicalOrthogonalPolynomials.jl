@@ -145,6 +145,14 @@ mutable struct QRJacobiBand{dv,method,T} <: AbstractCachedVector{T}
     datasize::Int               # size of so-far computed block
 end
 
+# computes H*M*H in-place, overwriting K
+function doublehouseholderapply!(M, τ, v, w)
+    mul!(w, M, v)  # M is symmetric
+    M .= M .- τ .* v .* w'
+    mul!(w, M, v)
+    M .= M .- τ .* w .* v'
+end
+
 # Computes the initial data for the Jacobi operator bands
 function QRJacobiBand{:dv,:Q}(F, P::OrthogonalPolynomial{T}) where T
     b = 3+bandwidths(F.R)[2]÷2
@@ -154,16 +162,13 @@ function QRJacobiBand{:dv,:Q}(F, P::OrthogonalPolynomial{T}) where T
         # fill first entry (special case)
     M = Matrix(X[1:b,1:b])
     resizedata!(F.factors,b,b)
-    v = [one(T);F.factors[2:b,1]]
-    M .= M .- F.τ[1] .*  v .* (v'M)
-    M .= M .- F.τ[1] .*  (M*v) .* v'
+    w = Vector{T}(undef, b)
+    doublehouseholderapply!(M,F.τ[1],[one(T);F.factors[2:b,1]],w)
     dv[1] = M[1,1]
         # fill second entry
-    v = [zero(T);one(T);F.factors[3:b,2]]
-    M .= M .- F.τ[2] .*  v .* (v'M)
-    M .= M .- F.τ[2] .*  (M*v) .* v'
+    doublehouseholderapply!(M,F.τ[2],[zero(T);one(T);F.factors[3:b,2]],w)
     K = Matrix(X[2:b+1,2:b+1])
-    K[1:end-1,1:end-1] = M[2:end,2:end]
+    K[1:end-1,1:end-1] .= view(M,2:b,2:b)
     dv[2] = K[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
     return QRJacobiBand{:dv,:Q,T}(dv, F, K, P, 2)
 end
@@ -175,17 +180,13 @@ function QRJacobiBand{:ev,:Q}(F, P::OrthogonalPolynomial{T}) where T
         # first step does not produce entries for the off-diagonal band (special case)
     M = Matrix(X[1:b,1:b])
     resizedata!(F.factors,b,b)
-    v = [one(T);F.factors[2:b,1]]
-    w = similar(v)
-    M .= M .- F.τ[1] .*  v .* (v'M)
-    M .= M .- F.τ[1] .*  (M*v) .* v'
+    w = Vector{T}(undef, b)
+    doublehouseholderapply!(M,F.τ[1],[one(T);F.factors[2:b,1]],w)
         # fill first off-diagonal entry
-    v = [zero(T);one(T);F.factors[3:b,2]]
-    M .= M .- F.τ[2] .*  v .* (v'M)
-    M .= M .- F.τ[2] .*  (M*v) .* v'
+    doublehouseholderapply!(M,F.τ[2],[zero(T);one(T);F.factors[3:b,2]],w)
     dv[1] = M[1,2]*sign(F.R[1,1]*F.R[2,2]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
     K = Matrix(X[2:b+1,2:b+1])
-    K[1:end-1,1:end-1] = M[2:end,2:end]
+    K[1:end-1,1:end-1] .= view(M,2:b,2:b)
     return QRJacobiBand{:ev,:Q,T}(dv, F, K, P, 1)
 end
 function QRJacobiBand{:dv,:R}(F, P::OrthogonalPolynomial{T}) where T
@@ -229,13 +230,11 @@ function cache_filldata!(J::QRJacobiBand{:dv,:Q,T}, inds::UnitRange{Int}) where 
     resizedata!(J.U.factors,m+b,m+b)
     resizedata!(J.U.τ,m)
     K, τ, F, dv = J.UX, J.U.τ, J.U.factors, J.data
-    v = Vector{T}(undef,b+2)
+    w = Vector{T}(undef,b+2)
     M = Matrix{T}(undef,b+2,b+2)
     @inbounds for n in jj
-        v = [zero(T);one(T);F[n+1:n+b,n]]
-        K .= K .- τ[n] .*  v .* (v'K)
-        K .= K .- τ[n] .*  (K*v) .* v'
-        M = Matrix(X[n:n+b+1,n:n+b+1])
+        doublehouseholderapply!(K,τ[n],[zero(T);one(T);F[n+1:n+b,n]],w)
+        M .= view(X,n:n+b+1,n:n+b+1)
         M[1:end-1,1:end-1] .= view(K,2:b+2,2:b+2)
         dv[n] = M[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
         K .= M
@@ -253,14 +252,12 @@ function cache_filldata!(J::QRJacobiBand{:ev,:Q,T}, inds::UnitRange{Int}) where 
     resizedata!(J.U.τ,m)
     K, τ, F, dv = J.UX, J.U.τ, J.U.factors, J.data
     D = sign.(view(J.U.R,band(0)).*view(J.U.R,band(0))[2:end])
-    v = Vector{T}(undef,b+3)
+    w = Vector{T}(undef,b+3)
     M = Matrix{T}(undef,b+3,b+3)
     @inbounds for n in jj
-        v .= [zero(T);one(T);F[n+2:n+b+2,n+1]]
-        K .= K .- τ[n+1] .*  v .* (v'K)
-        K .= K .- τ[n+1] .*  (K*v) .* v'
+        doublehouseholderapply!(K,τ[n+1],[zero(T);one(T);F[n+2:n+b+2,n+1]],w)
         dv[n] = K[1,2]
-        M .= Matrix(X[n+1:n+b+3,n+1:n+b+3])
+        M .= view(X,n+1:n+b+3,n+1:n+b+3)
         M[1:end-1,1:end-1] .= view(K,2:b+3,2:b+3)
         K .= M
     end
