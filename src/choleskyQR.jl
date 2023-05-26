@@ -141,7 +141,7 @@ mutable struct QRJacobiBand{dv,method,T} <: AbstractCachedVector{T}
     data::Vector{T}             # store band entries, :dv for diagonal, :ev for off-diagonal
     U                           # store conversion, Q method: stores QR object. R method: only stores R.
     UX::AbstractMatrix{T}       # Auxilliary matrix. Q method: stores in-progress incomplete modification. R method: stores U*X for efficiency.
-    P::OrthogonalPolynomial{T}  # Remember original polynomials
+    P                           # Remember original polynomials
     datasize::Int               # size of so-far computed block
 end
 
@@ -276,7 +276,7 @@ function cache_filldata!(J::QRJacobiBand{:dv,:R,T}, inds::UnitRange{Int}) where 
     dv, UX, U = J.data, J.UX, J.U
     @inbounds for k in inds
         # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
-        dv[k] = dot(view(UX,k,k-1:k), [-U[k-1,k]/U[k-1,k-1],one(T)]./U[k,k]) 
+        dv[k] = -U[k-1,k]*UX[k,k-1]/(U[k-1,k-1]*U[k,k])+UX[k,k]./U[k,k]
     end
     J.data[inds] = dv[inds]
 end
@@ -289,7 +289,7 @@ function cache_filldata!(J::QRJacobiBand{:ev,:R, T}, inds::UnitRange{Int}) where
     dv, UX, U = J.data, J.UX, J.U
     @inbounds for k in inds
         # this is dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
-        dv[k] = dot(view(UX,k,k-1:k+1), [-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]), -U[k,k+1]/U[k,k], one(T)]./U[k+1,k+1])
+        dv[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  
     end
     J.data[inds] = dv[inds]
 end
