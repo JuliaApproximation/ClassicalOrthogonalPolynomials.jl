@@ -229,14 +229,15 @@ function cache_filldata!(J::QRJacobiBand{:dv,:Q,T}, inds::UnitRange{Int}) where 
     resizedata!(J.U.factors,m+b,m+b)
     resizedata!(J.U.τ,m)
     K, τ, F, dv = J.UX, J.U.τ, J.U.factors, J.data
-    v = Vector{T}(undef,b+3)
-    M = Matrix{T}(undef,b+3,b+3)
+    v = Vector{T}(undef,b+2)
+    M = Matrix{T}(undef,b+2,b+2)
     @inbounds for n in jj
         v = [zero(T);one(T);F[n+1:n+b,n]]
         K .= K .- τ[n] .*  v .* (v'K)
         K .= K .- τ[n] .*  (K*v) .* v'
         M = Matrix(X[n:n+b+1,n:n+b+1])
-        M[1:end-1,1:end-1] .= K[2:end,2:end]
+        display(b+3)
+        M[1:end-1,1:end-1] .= view(K,2:b+2,2:b+2)
         dv[n] = M[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
         K .= M
     end
@@ -261,7 +262,7 @@ function cache_filldata!(J::QRJacobiBand{:ev,:Q,T}, inds::UnitRange{Int}) where 
         K .= K .- τ[n+1] .*  (K*v) .* v'
         dv[n] = K[1,2]
         M .= Matrix(X[n+1:n+b+3,n+1:n+b+3])
-        M[1:end-1,1:end-1] .= K[2:end,2:end]
+        M[1:end-1,1:end-1] .= view(K,2:b+3,2:b+3)
         K .= M
     end
     J.UX = M
