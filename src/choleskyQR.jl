@@ -195,7 +195,7 @@ function QRJacobiBand{:dv,:R}(F, P::OrthogonalPolynomial{T}) where T
     UX = ApplyArray(*,U,X)
     dv = zeros(T,2) # compute a length 2 vector on first go
     dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
-    dv[2] = dot(view(UX,2,1:2), [-U[1,2]/U[1,1],one(T)]./U[2,2]) # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
+    dv[2] = -U[1,2]*UX[2,1]/(U[1,1]*U[2,2])+UX[2,2]/U[2,2] # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     return QRJacobiBand{:dv,:R,T}(dv, U, UX, P, 2)
 end
 function QRJacobiBand{:ev,:R}(F, P::OrthogonalPolynomial{T}) where T
@@ -204,8 +204,8 @@ function QRJacobiBand{:ev,:R}(F, P::OrthogonalPolynomial{T}) where T
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
     ev = zeros(T,2) # compute a length 2 vector on first go
-    ev[1] = dot(view(UX,1,1:2), [-U[1,2]/U[1,1],one(T)]./U[2,2]) # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
-    ev[2] = dot(view(UX,2,1:3), [(-U[1,3]/U[1,1])+U[1,2]*U[2,3]/(U[1,1]*U[2,2]),-U[2,3]/U[2,2],one(T)]./U[3,3]) # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
+    ev[1] = -UX[1,1]*U[1,2]/(U[1,1]*U[2,2])+UX[1,2]/U[2,2] # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
+    ev[2] = UX[2,1]*(-U[1,3]/U[1,1])+U[1,2]*U[2,3]/(U[1,1]*U[2,2])/U[3,3]-UX[2,2]*U[2,3]/(U[2,2]*U[3,3])+UX[2,3]/U[3,3] # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
     return QRJacobiBand{:ev,:R,T}(ev, U, UX, P, 2)
 end
 
@@ -236,7 +236,6 @@ function cache_filldata!(J::QRJacobiBand{:dv,:Q,T}, inds::UnitRange{Int}) where 
         K .= K .- τ[n] .*  v .* (v'K)
         K .= K .- τ[n] .*  (K*v) .* v'
         M = Matrix(X[n:n+b+1,n:n+b+1])
-        display(b+3)
         M[1:end-1,1:end-1] .= view(K,2:b+2,2:b+2)
         dv[n] = M[1,1] # sign correction due to QR not guaranteeing positive diagonal for R not needed on diagonals since contributions cancel
         K .= M
