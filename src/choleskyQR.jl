@@ -206,7 +206,7 @@ function QRJacobiBand{:ev,:R}(F, P::OrthogonalPolynomial{T}) where T
     UX = ApplyArray(*,U,X)
     ev = zeros(T,2) # compute a length 2 vector on first go
     ev[1] = -UX[1,1]*U[1,2]/(U[1,1]*U[2,2])+UX[1,2]/U[2,2] # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
-    ev[2] = UX[2,1]*(-U[1,3]/U[1,1])+U[1,2]*U[2,3]/(U[1,1]*U[2,2])/U[3,3]-UX[2,2]*U[2,3]/(U[2,2]*U[3,3])+UX[2,3]/U[3,3] # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
+    ev[2] = UX[2,1]/U[3,3]*(-U[1,3]/U[1,1]+U[1,2]*U[2,3]/(U[1,1]*U[2,2]))+UX[2,2]/U[3,3]*(-U[2,3]/U[2,2])+UX[2,3]/U[3,3] # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
     return QRJacobiBand{:ev,:R,T}(ev, U, UX, P, 2)
 end
 
