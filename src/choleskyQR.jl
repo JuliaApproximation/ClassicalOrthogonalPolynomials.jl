@@ -145,11 +145,11 @@ mutable struct QRJacobiData{method,T} <: AbstractMatrix{T}
 end
 
 # computes H*M*H in-place, overwriting K
-function doublehouseholderapply!(M, τ, v, w)
-    mul!(w, M, v)  # M is symmetric
-    M .= M .- τ .* v .* w'
-    mul!(w, M, v)
-    M .= M .- τ .* w .* v'
+function doublehouseholderapply!(M::AbstractMatrix{T}, τ::T, v, w) where T
+    mul!(w, M, [zero(T);one(T);v])  # M is symmetric
+    M .= M .- τ .* [zero(T);one(T);v] .* w'
+    mul!(w, M, [zero(T);one(T);v])
+    M .= M .- τ .* w .* [zero(T);one(T);v]'
 end
 
 # Computes the initial data for the Jacobi operator bands
@@ -163,10 +163,15 @@ function QRJacobiData{:Q,T}(F, P) where T
     M = Matrix(X[1:b,1:b])
     resizedata!(F.factors,b,b)
     w = Vector{T}(undef, b)
-    doublehouseholderapply!(M,F.τ[1],[one(T);F.factors[2:b,1]],w)
+    # special case for first entry double Householder product
+    v = [one(T);view(F.factors,2:b,1)]
+    mul!(w, M, v)  # M is symmetric
+    M .= M .- F.τ[1] .* v .* w'
+    mul!(w, M, v)
+    M .= M .- F.τ[1] .* w .* v'
     dv[1] = M[1,1]
         # fill second entry
-    doublehouseholderapply!(M,F.τ[2],[zero(T);one(T);F.factors[3:b,2]],w)
+    doublehouseholderapply!(M,F.τ[2],view(F.factors,3:b,2),w)
     ev[1] = M[1,2]*sign(F.R[1,1]*F.R[2,2]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
     K = Matrix(X[2:b+1,2:b+1])
     K[1:end-1,1:end-1] .= view(M,2:b,2:b)
@@ -221,13 +226,12 @@ function _fillqrbanddata!(J::QRJacobiData{:Q,T}, inds::UnitRange{Int}) where T
     M = Matrix{T}(undef,b+3,b+3)
     @inbounds for n in jj
         dv[n] = K[1,1] # no sign correction needed on diagonal entry due to cancellation
-        doublehouseholderapply!(K,τ[n+1],[zero(T);one(T);F[n+2:n+b+2,n+1]],w)
+        doublehouseholderapply!(K,τ[n+1],view(F,n+2:n+b+2,n+1),w)
         ev[n] = K[1,2]*D[n] # contains sign correction from QR not forcing positive diagonals
         M .= view(X,n+1:n+b+3,n+1:n+b+3)
         M[1:end-1,1:end-1] .= view(K,2:b+3,2:b+3)
         K .= M
     end
-    J.UX = M
 end
 
 function _fillqrbanddata!(J::QRJacobiData{:R,T}, inds::UnitRange{Int}) where T
