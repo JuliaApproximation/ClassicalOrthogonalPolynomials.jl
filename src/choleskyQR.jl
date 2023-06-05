@@ -105,7 +105,7 @@ function _fillcholeskybanddata!(J::CholeskyJacobiData{T}, inds::UnitRange{Int}) 
     dv, ev, UX, U = J.dv, J.ev, J.UX, J.U
     @inbounds for k in inds
         # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
-        dv[k] = -U[k-1,k]*UX[k,k-1]/(U[k-1,k-1]*U[k,k])+UX[k,k]./U[k,k]
+        dv[k] = -U[k-1,k]*UX[k,k-1]/(U[k-1,k-1]*U[k,k])+UX[k,k]/U[k,k]
         ev[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  
     end
     J.dv[inds] .= dv[inds]
