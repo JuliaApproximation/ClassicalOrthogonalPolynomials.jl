@@ -108,8 +108,6 @@ function _fillcholeskybanddata!(J::CholeskyJacobiData{T}, inds::UnitRange{Int}) 
         dv[k] = -U[k-1,k]*UX[k,k-1]/(U[k-1,k-1]*U[k,k])+UX[k,k]/U[k,k]
         ev[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  
     end
-    J.dv[inds] .= dv[inds]
-    J.ev[inds] .= ev[inds]
 end
 
 
@@ -224,14 +222,12 @@ function _fillqrbanddata!(J::QRJacobiData{:Q,T}, inds::UnitRange{Int}) where T
     @inbounds for n in jj
         dv[n] = K[1,1] # no sign correction needed on diagonal entry due to cancellation
         doublehouseholderapply!(K,τ[n+1],[zero(T);one(T);F[n+2:n+b+2,n+1]],w)
-        ev[n] = K[1,2]
+        ev[n] = K[1,2]*D[n] # contains sign correction from QR not forcing positive diagonals
         M .= view(X,n+1:n+b+3,n+1:n+b+3)
         M[1:end-1,1:end-1] .= view(K,2:b+3,2:b+3)
         K .= M
     end
     J.UX = M
-    J.dv[jj] .= dv[jj]
-    J.ev[jj] .= ev[jj].*D[jj] # contains sign correction from QR not forcing positive diagonals
 end
 
 function _fillqrbanddata!(J::QRJacobiData{:R,T}, inds::UnitRange{Int}) where T
@@ -245,6 +241,4 @@ function _fillqrbanddata!(J::QRJacobiData{:R,T}, inds::UnitRange{Int}) where T
         dv[k] = -U[k-1,k]*UX[k,k-1]/(U[k-1,k-1]*U[k,k])+UX[k,k]./U[k,k] # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
         ev[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  # this is dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
     end
-    J.dv[inds] = dv[inds]
-    J.ev[inds] = ev[inds]
 end
