@@ -144,7 +144,7 @@ mutable struct QRJacobiData{method,T} <: AbstractMatrix{T}
     datasize::Int         # size of so-far computed block 
 end
 
-# computes H*M*H in-place, overwriting K
+# computes H*M*H in-place, overwriting M
 function doublehouseholderapply!(M::AbstractMatrix{T}, τ::T, v, w) where T
     k = [zero(T);one(T);v]
     mul!(w, M, k)  # M is symmetric
