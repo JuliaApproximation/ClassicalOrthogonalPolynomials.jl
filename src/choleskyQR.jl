@@ -146,10 +146,11 @@ end
 
 # computes H*M*H in-place, overwriting K
 function doublehouseholderapply!(M::AbstractMatrix{T}, τ::T, v, w) where T
-    mul!(w, M, [zero(T);one(T);v])  # M is symmetric
-    M .= M .- τ .* [zero(T);one(T);v] .* w'
-    mul!(w, M, [zero(T);one(T);v])
-    M .= M .- τ .* w .* [zero(T);one(T);v]'
+    k = [zero(T);one(T);v]
+    mul!(w, M, k)  # M is symmetric
+    M .= M .- τ .* k .* w'
+    mul!(w, M, k)
+    M .= M .- τ .* w .* k'
 end
 
 # Computes the initial data for the Jacobi operator bands
