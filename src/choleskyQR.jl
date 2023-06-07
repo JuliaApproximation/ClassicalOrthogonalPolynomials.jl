@@ -144,6 +144,18 @@ mutable struct QRJacobiData{method,T} <: AbstractMatrix{T}
     datasize::Int         # size of so-far computed block 
 end
 
+@inline function inplaceHouseholder!(x::AbstractVector, τ::Number, A::AbstractVecOrMat)
+    m, n = size(A, 1), size(A, 2)
+    m == 0 && return A
+    @inbounds for j = 1:n
+        Aj, xj = view(A, 2:m, j), view(x, 2:m)
+        vAj = conj(τ)*(A[1, j] + dot(xj, Aj))
+        A[1, j] -= vAj
+        axpy!(-vAj, xj, Aj)
+    end
+    return A
+end
+
 # Computes the initial data for the Jacobi operator bands
 function QRJacobiData{:Q,T}(F, P) where T
     b = 3+bandwidths(F.R)[2]÷2
@@ -156,16 +168,16 @@ function QRJacobiData{:Q,T}(F, P) where T
     resizedata!(F.factors,b,b)
     # special case for first entry double Householder product
     v = view(F.factors,1:b,1)
-    reflectorApply!(v, F.τ[1], M)
-    reflectorApply!(v, F.τ[1], M')
+    inplaceHouseholder!(v, F.τ[1], M)
+    inplaceHouseholder!(v, F.τ[1], M')
     dv[1] = M[1,1]
         # fill second entry
     # computes H*M*H in-place, overwriting M
     v = view(F.factors,2:b,2)
-    reflectorApply!(v, F.τ[2], view(M,1,2:b))
+    inplaceHouseholder!(v, F.τ[2], view(M,1,2:b))
     M[1,2:b] .= view(M,1,2:b) # symmetric matrix, avoid recomputation
-    reflectorApply!(v, F.τ[2], view(M,2:b,2:b))
-    reflectorApply!(v, F.τ[2], view(M,2:b,2:b)')
+    inplaceHouseholder!(v, F.τ[2], view(M,2:b,2:b))
+    inplaceHouseholder!(v, F.τ[2], view(M,2:b,2:b)')
     ev[1] = M[1,2]*sign(F.R[1,1]*F.R[2,2]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
     K = Matrix(X[2:b+1,2:b+1])
     K[1:end-1,1:end-1] .= view(M,2:b,2:b)
@@ -221,10 +233,10 @@ function _fillqrbanddata!(J::QRJacobiData{:Q,T}, inds::UnitRange{Int}) where T
         dv[n] = K[1,1] # no sign correction needed on diagonal entry due to cancellation
         # doublehouseholderapply!(K,τ[n+1],view(F,n+2:n+b+2,n+1),w)
         v = view(F,n+1:n+b+2,n+1)
-        reflectorApply!(v, τ[n+1], view(K,1,2:b+3))
+        inplaceHouseholder!(v, τ[n+1], view(K,1,2:b+3))
         M[1,2:b+3] .= view(M,1,2:b+3) # symmetric matrix, avoid recomputation
-        reflectorApply!(v, τ[n+1], view(K,2:b+3,2:b+3))
-        reflectorApply!(v, τ[n+1], view(K,2:b+3,2:b+3)')
+        inplaceHouseholder!(v, τ[n+1], view(K,2:b+3,2:b+3))
+        inplaceHouseholder!(v, τ[n+1], view(K,2:b+3,2:b+3)')
         ev[n] = K[1,2]*D[n] # contains sign correction from QR not forcing positive diagonals
         M .= view(X,n+1:n+b+3,n+1:n+b+3)
         M[1:end-1,1:end-1] .= view(K,2:b+3,2:b+3)

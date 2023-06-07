@@ -21,7 +21,7 @@ import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjoint
 import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
                         subdiagonaldata, diagonaldata, supdiagonaldata, mul, rowsupport, colsupport
 import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1, AbstractLazyBandedLayout
-import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot, mul!, reflectorApply!
+import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot, mul!
 import BandedMatrices: AbstractBandedLayout, AbstractBandedMatrix, _BandedMatrix, bandeddata
 import FillArrays: AbstractFill, getindex_value, SquareEye
 import DomainSets: components
