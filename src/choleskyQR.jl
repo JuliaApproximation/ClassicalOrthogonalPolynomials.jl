@@ -163,7 +163,7 @@ function QRJacobiData{:Q,T}(F, P) where T
     # computes H*M*H in-place, overwriting M
     v = view(F.factors,2:b,2)
     reflectorApply!(v, F.τ[2], view(M,1,2:b))
-    reflectorApply!(v, F.τ[2], view(M,2:b,1))
+    M[1,2:b] .= view(M,1,2:b) # symmetric matrix, avoid recomputation
     reflectorApply!(v, F.τ[2], view(M,2:b,2:b))
     reflectorApply!(v, F.τ[2], view(M,2:b,2:b)')
     ev[1] = M[1,2]*sign(F.R[1,1]*F.R[2,2]) # includes possible correction for sign (only needed in off-diagonal case), since the QR decomposition does not guarantee positive diagonal on R
@@ -222,7 +222,7 @@ function _fillqrbanddata!(J::QRJacobiData{:Q,T}, inds::UnitRange{Int}) where T
         # doublehouseholderapply!(K,τ[n+1],view(F,n+2:n+b+2,n+1),w)
         v = view(F,n+1:n+b+2,n+1)
         reflectorApply!(v, τ[n+1], view(K,1,2:b+3))
-        reflectorApply!(v, τ[n+1], view(K,2:b+3,1))
+        M[1,2:b+3] .= view(M,1,2:b+3) # symmetric matrix, avoid recomputation
         reflectorApply!(v, τ[n+1], view(K,2:b+3,2:b+3))
         reflectorApply!(v, τ[n+1], view(K,2:b+3,2:b+3)')
         ev[n] = K[1,2]*D[n] # contains sign correction from QR not forcing positive diagonals
