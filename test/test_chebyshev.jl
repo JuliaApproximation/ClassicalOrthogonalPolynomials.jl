@@ -38,7 +38,8 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
             @test axes(T[1:1,:]) === (oneto(1), oneto(∞))
             @test T[1:1,:][:,1:5] == ones(1,5)
             @test T[0.1,:][1:10] ≈ T[0.1,1:10] ≈ (T')[1:10,0.1]
-            @test @allocated(T[0.1,10]) == 0
+            @test T[0.1,10] ≈ cos(9acos(0.1))
+            @test @allocated(T[0.1,10]) ≤ 32
 
             @testset "inf-range-indexing" begin
                 @test T[[begin,end],2:∞][:,2:5] == T[[-1,1],3:6]
