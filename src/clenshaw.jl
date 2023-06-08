@@ -14,6 +14,7 @@ _p0(A) = one(eltype(A))
 function initiateforwardrecurrence(N, A, B, C, x, μ)
     T = promote_type(eltype(A), eltype(B), eltype(C), typeof(x))
     p0 = convert(T, μ)
+    N == 0 && return zero(T), p0
     p1 = convert(T, muladd(A[1],x,B[1])*p0)
     @inbounds for n = 2:N
         p1,p0 = _forwardrecurrence_next(n, A, B, C, x, p0, p1),p1
@@ -69,7 +70,11 @@ end
 getindex(P::OrthogonalPolynomial, x::Number, n::AbstractVector) = layout_getindex(P, x, n)
 getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractVector) = layout_getindex(P, x, n)
 getindex(P::SubArray{<:Any,1,<:OrthogonalPolynomial}, x::AbstractVector) = layout_getindex(P, x)
-getindex(P::OrthogonalPolynomial, x::Number, n::Number) = P[x,oneto(n)][end]
+Base.@propagate_inbounds function getindex(P::OrthogonalPolynomial, x::Number, n::Number)
+    @boundscheck checkbounds(P, x, n)
+    Base.unsafe_getindex(P, x, n)
+end
+
 
 unsafe_layout_getindex(A...) = sub_materialize(Base.unsafe_view(A...))
 
@@ -79,7 +84,7 @@ Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::AbstractVector) = Ba
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n)))[:,n]
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::Number) = Base.unsafe_getindex(P, x, 1:n)[:,end]
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, ::Colon) = Base.unsafe_getindex(P, x, axes(P,2))
-Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::Number) = Base.unsafe_getindex(P,x,oneto(n))[end]
+Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::Number) = initiateforwardrecurrence(n-1, recurrencecoefficients(P)..., x, _p0(P))[end]
 
 getindex(P::OrthogonalPolynomial, x::Number, jr::AbstractInfUnitRange{Int}) = view(P, x, jr)
 getindex(P::OrthogonalPolynomial, x::AbstractVector, jr::AbstractInfUnitRange{Int}) = view(P, x, jr)
