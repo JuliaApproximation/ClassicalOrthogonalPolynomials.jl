@@ -39,6 +39,8 @@ singularities(::Inclusion{T,<:AbstractInterval}) where T = LegendreWeight{T}()
 singularities(d::Inclusion{T,<:Interval}) where T = LegendreWeight{T}()[affine(d,ChebyshevInterval{T}())]
 singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
 
+_basis(::LegendreWeight{T}) where T = Legendre{T}()
+
 struct Legendre{T} <: AbstractJacobi{T} end
 Legendre() = Legendre{Float64}()
 
@@ -169,8 +171,10 @@ _sum(p::SubQuasiArray{T,1,Legendre{T},<:Tuple{Inclusion,Int}}, ::Colon) where T 
 # dot
 ###
 
-_dot(::Inclusion{<:Any,<:ChebyshevInterval}, a, b) = _dot(singularities(a), singularities(b), a, b)
-function _dot(::LegendreWeight, ::LegendreWeight, a, b)
-    P = Legendre{promote_type(eltype(a),eltype(b))}()
-    dot(P\a, (massmatrix(P) * (P\b)))
+_dot(::Inclusion{<:Any,<:ChebyshevInterval}, a, b) = __dot(MemoryLayout(a), MemoryLayout(b), a, b)
+function __dot(::ExpansionLayout, ::ExpansionLayout, a, b)
+    P,c = basis(a),coefficients(a)
+    Q,d = basis(b),coefficients(b)
+    c' * (P'Q) * d
 end
+__dot(_, _, a, b) = dot(expand(a), expand(b))

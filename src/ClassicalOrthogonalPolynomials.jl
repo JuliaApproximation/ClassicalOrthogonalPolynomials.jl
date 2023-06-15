@@ -169,6 +169,8 @@ singularities(::ExpansionLayout, f) = singularities(basis(f))
 
 singularities(S::SubQuasiArray) = singularities(parent(S))[parentindices(S)[1]]
 
+basis(lay, v, ax::Inclusion{<:Any,<:AbstractInterval}) = _basis(singularities(v))
+
 struct NoSingularities end
 
 singularities(::Number) = NoSingularities()

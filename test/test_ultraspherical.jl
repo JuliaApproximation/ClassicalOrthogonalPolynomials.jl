@@ -145,4 +145,9 @@ import LazyArrays: rowsupport, colsupport
         c = [1; 2; 3; zeros(BigFloat,∞)]
         @test C³[big(1)/10,:]'*(C³ \ U) * c ≈ U[big(1)/10,:]'c
     end
+
+    @testset "show" begin
+        @test stringmime("text/plain",UltrasphericalWeight(1)) == "UltrasphericalWeight(1)"
+        @test stringmime("text/plain",Ultraspherical(1)) == "Ultraspherical(1)"
+    end
 end
