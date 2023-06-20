@@ -167,7 +167,8 @@ singularities(::WeightedOPLayout, a) = singularities(weight(a))
 singularities(w) = singularities(MemoryLayout(w), w)
 singularities(::ExpansionLayout, f) = singularities(basis(f))
 
-singularities(S::SubQuasiArray) = singularities(parent(S))[parentindices(S)[1]]
+singularitiesview(w, ::Inclusion) = w # for now just assume it doesn't change
+singularities(S::SubQuasiArray) = singularitiesview(singularities(parent(S)), parentindices(S)[1])
 
 basis(lay, v, ax::Inclusion{<:Any,<:AbstractInterval}) = _basis(singularities(v))
 
