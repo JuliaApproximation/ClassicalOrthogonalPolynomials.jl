@@ -40,6 +40,7 @@ singularities(d::Inclusion{T,<:Interval}) where T = LegendreWeight{T}()[affine(d
 singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
 
 _basis(::LegendreWeight{T}) where T = Legendre{T}()
+_basis(v::SubQuasiArray) = view(_basis(parent(v)), parentindices(v)[1], :)
 
 struct Legendre{T} <: AbstractJacobi{T} end
 Legendre() = Legendre{Float64}()
@@ -171,7 +172,7 @@ _sum(p::SubQuasiArray{T,1,Legendre{T},<:Tuple{Inclusion,Int}}, ::Colon) where T 
 # dot
 ###
 
-_dot(::Inclusion{<:Any,<:ChebyshevInterval}, a, b) = __dot(MemoryLayout(a), MemoryLayout(b), a, b)
+_dot(::Inclusion{<:Any,<:AbstractInterval}, a, b) = __dot(MemoryLayout(a), MemoryLayout(b), a, b)
 function __dot(::ExpansionLayout, ::ExpansionLayout, a, b)
     P,c = basis(a),coefficients(a)
     Q,d = basis(b),coefficients(b)

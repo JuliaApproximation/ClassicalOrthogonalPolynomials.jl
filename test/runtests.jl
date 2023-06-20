@@ -59,15 +59,13 @@ include("test_roots.jl")
 end
 
 @testset "basis" begin
-     x = Inclusion(ChebyshevInterval())
-     @test sum(x) == 2.0
-     sum(x .^ 2)
-     sum(exp.(x))
-     @test dot(x, x) ≈ 2/3
-     dot(x.^2, x.^2)
-     dot(exp.(x), x.^2)
-     dot(x, exp.(x)) ≈ dot(exp.(x), x)
-     
-     Inclusion(1 .. 2)
-
+    for x in (Inclusion(ChebyshevInterval()), Inclusion(1 .. 2))
+        @test sum(x) == last(x)-first(x)
+        # sum(x .^ 2)
+        # sum(exp.(x))
+        @test dot(x, x) ≈ sum(expand(x .^2))
+        @test dot(x.^2, x.^2) ≈ sum(expand(x .^4))
+        @test dot(exp.(x), x.^2) ≈ sum(expand(x .^2 .* exp.(x)))
+        @test dot(x, exp.(x)) ≈ dot(exp.(x), x)
+    end
 end
