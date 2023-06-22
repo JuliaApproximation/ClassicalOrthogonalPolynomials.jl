@@ -179,3 +179,9 @@ function __dot(::ExpansionLayout, ::ExpansionLayout, a, b)
     c' * (P'Q) * d
 end
 __dot(_, _, a, b) = dot(expand(a), expand(b))
+__dot(::ZerosLayout, _, a, b) = __dot(ZerosLayout(), ZerosLayout(), a, b)
+__dot(_, ::ZerosLayout, a, b) = __dot(ZerosLayout(), ZerosLayout(), a, b)
+function __dot(::ZerosLayout, ::ZerosLayout, a, b)
+    axes(a) == axes(b) || throw(DimensionMismatch("axes must match"))
+    zero(promote_type(eltype(a), eltype(b)))
+end
