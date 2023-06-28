@@ -35,8 +35,8 @@ singularitiesbroadcast(::typeof(^), L::LegendreWeight, ::NoSingularities) = L
 singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # can't find roots
 
 singularities(::AbstractJacobi{T}) where T = LegendreWeight{T}()
-singularities(::Inclusion{T,<:AbstractInterval}) where T = LegendreWeight{T}()
-singularities(d::Inclusion{T,<:Interval}) where T = LegendreWeight{T}()[affine(d,ChebyshevInterval{T}())]
+singularities(::Inclusion{T,<:ChebyshevInterval}) where T = LegendreWeight{T}()
+singularities(d::Inclusion{T,<:AbstractInterval}) where T = LegendreWeight{T}()[affine(d,ChebyshevInterval{T}())]
 singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
 
 _basis(::LegendreWeight{T}) where T = Legendre{T}()
@@ -166,22 +166,3 @@ function _sum(P::Legendre{T}, dims) where T
 end
 
 _sum(p::SubQuasiArray{T,1,Legendre{T},<:Tuple{Inclusion,Int}}, ::Colon) where T = parentindices(p)[2] == 1 ? convert(T, 2) : zero(T)
-
-
-###
-# dot
-###
-
-_dot(::Inclusion{<:Any,<:AbstractInterval}, a, b) = __dot(MemoryLayout(a), MemoryLayout(b), a, b)
-function __dot(::ExpansionLayout, ::ExpansionLayout, a, b)
-    P,c = basis(a),coefficients(a)
-    Q,d = basis(b),coefficients(b)
-    c' * (P'Q) * d
-end
-__dot(_, _, a, b) = dot(expand(a), expand(b))
-__dot(::ZerosLayout, _, a, b) = __dot(ZerosLayout(), ZerosLayout(), a, b)
-__dot(_, ::ZerosLayout, a, b) = __dot(ZerosLayout(), ZerosLayout(), a, b)
-function __dot(::ZerosLayout, ::ZerosLayout, a, b)
-    axes(a) == axes(b) || throw(DimensionMismatch("axes must match"))
-    zero(promote_type(eltype(a), eltype(b)))
-end

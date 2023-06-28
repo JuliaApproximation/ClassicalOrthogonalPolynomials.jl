@@ -156,7 +156,8 @@ axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()),
 ==(A::Legendre, B::Weighted{<:Any,<:AbstractJacobi}) = A == B.P
 ==(A::Weighted{<:Any,<:AbstractJacobi}, B::Legendre) = A.P == B
 
-
+show(io::IO, w::AbstractJacobiWeight) = summary(io, w)
+show(io::IO, P::AbstractJacobi) = summary(io, P)
 summary(io::IO, P::Jacobi) = print(io, "Jacobi($(P.a), $(P.b))")
 
 ###
