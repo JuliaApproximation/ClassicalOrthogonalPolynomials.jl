@@ -13,6 +13,8 @@ UltrasphericalWeight{T}(λ) where T = UltrasphericalWeight{T,typeof(λ)}(λ)
 UltrasphericalWeight(λ) = UltrasphericalWeight{float(typeof(λ)),typeof(λ)}(λ)
 UltrasphericalWeight(::LegendreWeight{T}) where T = UltrasphericalWeight(one(T)/2)
 
+summary(io::IO, w::UltrasphericalWeight) = print(io, "UltrasphericalWeight($(w.λ))")
+
 ==(a::UltrasphericalWeight, b::UltrasphericalWeight) = a.λ == b.λ
 
 function getindex(w::UltrasphericalWeight, x::Number)
@@ -35,6 +37,8 @@ function Ultraspherical(P::Jacobi{T}) where T
 end
 
 Ultraspherical(::ChebyshevU{T}) where T = Ultraspherical{T}(1)
+
+summary(io::IO, w::Ultraspherical) = print(io, "Ultraspherical($(w.λ))")
 
 const WeightedUltraspherical{T} = WeightedBasis{T,<:UltrasphericalWeight,<:Ultraspherical}
 

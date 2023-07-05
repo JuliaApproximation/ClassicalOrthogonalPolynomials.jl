@@ -83,6 +83,8 @@ jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi{float(promote_type(eltype(a
 
 Jacobi(P::Legendre{T}) where T = Jacobi(zero(T), zero(T))
 
+basis_singularities(w::JacobiWeight) = Weighted(Jacobi(w.a, w.b))
+
 """
      jacobip(n, a, b, z)
 
@@ -154,7 +156,8 @@ axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()),
 ==(A::Legendre, B::Weighted{<:Any,<:AbstractJacobi}) = A == B.P
 ==(A::Weighted{<:Any,<:AbstractJacobi}, B::Legendre) = A.P == B
 
-
+show(io::IO, w::AbstractJacobiWeight) = summary(io, w)
+show(io::IO, P::AbstractJacobi) = summary(io, P)
 summary(io::IO, P::Jacobi) = print(io, "Jacobi($(P.a), $(P.b))")
 
 ###

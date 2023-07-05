@@ -57,3 +57,19 @@ include("test_roots.jl")
     f = x -> ChebyshevT{eltype(x)}()[x,1:5]
     @test ForwardDiff.derivative(f,0.1) ≈ [0;(1:4).*U[0.1,1:4]]
 end
+
+@testset "basis" begin
+    for x in (Inclusion(ChebyshevInterval()), Inclusion(1 .. 2))
+        a,b = first(x),last(x)
+        @test sum(x) == b-a
+        @test sum(x .^ 2) ≈ (b^3 - a^3)/3
+        @test sum(exp.(x)) ≈ exp(b) - exp(a)
+        @test dot(x, x) ≈ sum(expand(x .^2))
+        @test dot(x.^2, x.^2) ≈ sum(expand(x .^4))
+        @test dot(exp.(x), x.^2) ≈ sum(expand(x .^2 .* exp.(x)))
+        @test dot(x, exp.(x)) ≈ dot(exp.(x), x)
+    end
+
+    # A = x .^ (0:2)'
+    # sum(A; dims=1)
+end

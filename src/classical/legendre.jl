@@ -35,9 +35,12 @@ singularitiesbroadcast(::typeof(^), L::LegendreWeight, ::NoSingularities) = L
 singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # can't find roots
 
 singularities(::AbstractJacobi{T}) where T = LegendreWeight{T}()
-singularities(::Inclusion{T,<:AbstractInterval}) where T = LegendreWeight{T}()
-singularities(d::Inclusion{T,<:Interval}) where T = LegendreWeight{T}()[affine(d,ChebyshevInterval{T}())]
+singularities(::Inclusion{T,<:ChebyshevInterval}) where T = LegendreWeight{T}()
+singularities(d::Inclusion{T,<:AbstractInterval}) where T = LegendreWeight{T}()[affine(d,ChebyshevInterval{T}())]
 singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
+
+basis_singularities(::LegendreWeight{T}) where T = Legendre{T}()
+basis_singularities(v::SubQuasiArray) = view(basis_singularities(parent(v)), parentindices(v)[1], :)
 
 struct Legendre{T} <: AbstractJacobi{T} end
 Legendre() = Legendre{Float64}()
@@ -49,6 +52,8 @@ weighted(P::SubQuasiArray{<:Any,2,<:Normalized{<:Any,<:Legendre}}) = P
 
 legendre() = Legendre()
 legendre(d::AbstractInterval{T}) where T = Legendre{float(T)}()[affine(d,ChebyshevInterval{T}()), :]
+legendre(d::ChebyshevInterval{T}) where T = Legendre{float(T)}()
+legendre(d::Inclusion) = legendre(d.domain)
 
 """
      legendrep(n, z)
@@ -161,14 +166,3 @@ function _sum(P::Legendre{T}, dims) where T
 end
 
 _sum(p::SubQuasiArray{T,1,Legendre{T},<:Tuple{Inclusion,Int}}, ::Colon) where T = parentindices(p)[2] == 1 ? convert(T, 2) : zero(T)
-
-
-###
-# dot
-###
-
-_dot(::Inclusion{<:Any,<:ChebyshevInterval}, a, b) = _dot(singularities(a), singularities(b), a, b)
-function _dot(::LegendreWeight, ::LegendreWeight, a, b)
-    P = Legendre{promote_type(eltype(a),eltype(b))}()
-    dot(P\a, (massmatrix(P) * (P\b)))
-end

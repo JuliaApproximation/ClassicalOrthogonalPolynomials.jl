@@ -298,10 +298,10 @@ function mul(A::Derivative, B::Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:Abstract
 end
 mul(Ac::QuasiAdjoint{<:Any, Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}}, Bc::QuasiAdjoint{<:Any,<:Derivative}) = mul(Bc', Ac')'    
 
-summary(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
+show(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
 
-__sum(::AbstractNormalizedOPLayout, A, dims) = __sum(ApplyLayout{typeof(*)}(), A, dims)
-function __sum(::WeightedOPLayout, A, dims)
+sum_layout(::AbstractNormalizedOPLayout, A, dims) = sum_layout(ApplyLayout{typeof(*)}(), A, dims)
+function sum_layout(::WeightedOPLayout, A, dims)
     @assert dims == 1
     Hcat(sum(weight(A)), Zeros{eltype(A)}(1,∞))
 end
