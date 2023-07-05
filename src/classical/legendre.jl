@@ -39,8 +39,8 @@ singularities(::Inclusion{T,<:ChebyshevInterval}) where T = LegendreWeight{T}()
 singularities(d::Inclusion{T,<:AbstractInterval}) where T = LegendreWeight{T}()[affine(d,ChebyshevInterval{T}())]
 singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
 
-_basis(::LegendreWeight{T}) where T = Legendre{T}()
-_basis(v::SubQuasiArray) = view(_basis(parent(v)), parentindices(v)[1], :)
+basis_singularities(::LegendreWeight{T}) where T = Legendre{T}()
+basis_singularities(v::SubQuasiArray) = view(basis_singularities(parent(v)), parentindices(v)[1], :)
 
 struct Legendre{T} <: AbstractJacobi{T} end
 Legendre() = Legendre{Float64}()

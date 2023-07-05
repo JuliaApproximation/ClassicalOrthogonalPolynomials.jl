@@ -34,10 +34,10 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!
-import ContinuumArrays: Basis, Weight, basis, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
+import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     grid, plotgrid, _plotgrid, _grid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
-    checkpoints, weight, unweighted, MappedBasisLayouts, __sum, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
+    checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
     plan_transform, plan_grid_transform, MAX_PLOT_POINTS, MulPlan
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg
@@ -94,7 +94,7 @@ _equals(::MappedBasisLayouts, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && 
 _broadcastbasis(::typeof(+), ::MappedOPLayout, ::MappedOPLayout, P, Q) = _broadcastbasis(+, MappedBasisLayout(), MappedBasisLayout(), P, Q)
 _broadcastbasis(::typeof(+), ::MappedOPLayout, M::MappedBasisLayout, P, Q) = _broadcastbasis(+, MappedBasisLayout(), M, P, Q)
 _broadcastbasis(::typeof(+), L::MappedBasisLayout, ::MappedOPLayout, P, Q) = _broadcastbasis(+, L, MappedBasisLayout(), P, Q)
-__sum(::MappedOPLayout, A, dims) = __sum(MappedBasisLayout(), A, dims)
+sum_layout(::MappedOPLayout, A, dims) = sum_layout(MappedBasisLayout(), A, dims)
 
 # demap to avoid Golub-Welsch fallback
 ContinuumArrays.transform_ldiv_if_columns(L::Ldiv{MappedOPLayout,Lay}, ax::OneTo) where Lay = ContinuumArrays.transform_ldiv_if_columns(Ldiv{MappedBasisLayout,Lay}(L.A,L.B), ax)
@@ -170,7 +170,7 @@ singularities(::ExpansionLayout, f) = singularities(basis(f))
 singularitiesview(w, ::Inclusion) = w # for now just assume it doesn't change
 singularities(S::SubQuasiArray) = singularitiesview(singularities(parent(S)), parentindices(S)[1])
 
-basis(lay, v, ax::Inclusion{<:Any,<:AbstractInterval}) = _basis(singularities(v))
+basis_axes(::Inclusion{<:Any,<:AbstractInterval}, v) = basis_singularities(singularities(v))
 
 struct NoSingularities end
 

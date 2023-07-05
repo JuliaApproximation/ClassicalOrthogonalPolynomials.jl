@@ -83,7 +83,7 @@ jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi{float(promote_type(eltype(a
 
 Jacobi(P::Legendre{T}) where T = Jacobi(zero(T), zero(T))
 
-_basis(w::JacobiWeight) = Weighted(Jacobi(w.a, w.b))
+basis_singularities(w::JacobiWeight) = Weighted(Jacobi(w.a, w.b))
 
 """
      jacobip(n, a, b, z)
