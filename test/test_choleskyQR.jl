@@ -1,6 +1,6 @@
 using Test, ClassicalOrthogonalPolynomials, BandedMatrices, LinearAlgebra, LazyArrays, ContinuumArrays, LazyBandedMatrices, InfiniteLinearAlgebra
 import ClassicalOrthogonalPolynomials: cholesky_jacobimatrix, qr_jacobimatrix
-import LazyArrays: AbstractCachedMatrix
+import LazyArrays: AbstractCachedMatrix, resizedata!
 
 
 @testset "CholeskyQR" begin
@@ -119,7 +119,7 @@ import LazyArrays: AbstractCachedMatrix
         end
     end
 
-    @testset "Comparison of QR with Lanczos" begin
+    @testset "Comparison of QR with Classical and Lanczos" begin
         @testset "QR case, w(x) = (1-x)^2" begin
             P = Normalized(legendre(0..1))
             x = axes(P,1)
@@ -128,16 +128,67 @@ import LazyArrays: AbstractCachedMatrix
             sqrtwf(x) = (1-x)
             # compute Jacobi matrix via decomp
             Jchol = cholesky_jacobimatrix(wf, P)
-            Jqr = qr_jacobimatrix(sqrtwf, P)
+            JqrQ = qr_jacobimatrix(sqrtwf, P)
+            JqrR = qr_jacobimatrix(sqrtwf, P, :R)
             # use alternative inputs
             sqrtW = (P \ (sqrtwf.(x) .* P))
-            Jqralt = qr_jacobimatrix(sqrtW, P)
+            JqrQalt = qr_jacobimatrix(sqrtW, P)
+            JqrRalt = qr_jacobimatrix(sqrtW, P, :R)
             # compute Jacobi matrix via Lanczos
             Jlanc = jacobimatrix(LanczosPolynomial(@.(wf.(x)),Normalized(legendre(0..1))))
             # Comparison with Lanczos
             @test Jchol[1:500,1:500] ≈ Jlanc[1:500,1:500]
-            @test Jqr[1:500,1:500] ≈ Jlanc[1:500,1:500]
-            @test Jqralt[1:500,1:500] ≈ Jlanc[1:500,1:500]
+            @test JqrQ[1:500,1:500] ≈ Jlanc[1:500,1:500]
+            @test JqrR[1:500,1:500] ≈ Jlanc[1:500,1:500]
+            @test JqrQalt[1:500,1:500] ≈ Jlanc[1:500,1:500]
+            @test JqrRalt[1:500,1:500] ≈ Jlanc[1:500,1:500]
+        end
+        @testset "QR case, w(x) = (1-x)^4" begin
+            P = Normalized(legendre(0..1))
+            x = axes(P,1)
+            J = jacobimatrix(P)
+            sqrtwf(x) = (1-x)^2
+            # compute Jacobi matrix via decomp
+            JqrQ = qr_jacobimatrix(sqrtwf, P)
+            JqrR = qr_jacobimatrix(sqrtwf, P, :R)
+            # use alternative inputs
+            sqrtW = (P \ (sqrtwf.(x) .* P))
+            JqrQalt = qr_jacobimatrix(sqrtW, P)
+            JqrRalt = qr_jacobimatrix(sqrtW, P, :R)
+            # compute Jacobi matrix via Lanczos
+            Jclass = jacobimatrix(Normalized(jacobi(4,0,0..1)))
+            # Comparison with Lanczos
+            @test JqrQ[1:10,1:10] ≈ Jclass[1:10,1:10]
+            @test JqrR[1:10,1:10] ≈ Jclass[1:10,1:10]
+            @test JqrQalt[1:10,1:10] ≈ Jclass[1:10,1:10]
+            @test JqrRalt[1:10,1:10] ≈ Jclass[1:10,1:10]
+        end
+        @testset "QR case, w(x) = (x)^2*(1-x)^4" begin
+            P = Normalized(legendre(0..1))
+            x = axes(P,1)
+            J = jacobimatrix(P)
+            sqrtwf(x) = (x)*(1-x)^2
+            # compute Jacobi matrix via decomp
+            JqrQ = qr_jacobimatrix(sqrtwf, P)
+            JqrR = qr_jacobimatrix(sqrtwf, P, :R)
+            # use alternative inputs
+            sqrtW = (P \ (sqrtwf.(x) .* P))
+            JqrQalt = qr_jacobimatrix(sqrtW, P)
+            JqrRalt = qr_jacobimatrix(sqrtW, P, :R)
+            # compute Jacobi matrix via Lanczos
+            Jclass = jacobimatrix(Normalized(jacobi(4,2,0..1)))
+            # Comparison with Lanczos
+            @test JqrQ[1:10,1:10] ≈ Jclass[1:10,1:10]
+            @test JqrR[1:10,1:10] ≈ Jclass[1:10,1:10]
+            @test JqrQalt[1:10,1:10] ≈ Jclass[1:10,1:10]
+            @test JqrRalt[1:10,1:10] ≈ Jclass[1:10,1:10]
+            # test consistency of resizing in succession
+            F = qr_jacobimatrix(sqrtwf, P);
+            resizedata!(JqrQ.dv,70)
+            resizedata!(JqrQ.ev,70)
+            @test JqrQ[1:5,1:5] ≈ F[1:5,1:5]
+            @test JqrQ[1:20,1:20] ≈ F[1:20,1:20]
+            @test JqrQ[50:70,50:70] ≈ F[50:70,50:70]
         end
     end
 
