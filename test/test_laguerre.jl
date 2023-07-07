@@ -1,5 +1,6 @@
-using ClassicalOrthogonalPolynomials, Test
+using ClassicalOrthogonalPolynomials, BandedMatrices, Test
 import ClassicalOrthogonalPolynomials: orthogonalityweight
+using ForwardDiff
 
 @testset "Laguerre" begin
     @testset "Laguerre weight" begin
@@ -22,8 +23,29 @@ import ClassicalOrthogonalPolynomials: orthogonalityweight
         L = Laguerre(1/2)
         @test (D*L)[x,1:4] ≈ [0,-1,x-20/8,-x^2/2 + 7/2*x - 35/8]
 
+        α = 0.3
+        wL = Weighted(Laguerre(α))
+        wP = Weighted(Laguerre(α-1))
+        Dₓ = wP \ (D * wL)
+        ForwardDiff.derivative(x -> (Weighted(Laguerre{eltype(x)}(α)))[x, 1:10],0.1) ≈ (wP[x, 1:11]'*Dₓ[1:11,1:10])'
+
         x = axes(L,1)
         X = L \ (x .* L)
         @test 0.1*L[0.1,1:10]' ≈ L[0.1,1:11]'*X[1:11,1:10]
+    end
+
+    @testset "Conversion" begin
+        α = 0.3
+        L = Laguerre(α)
+        P = Laguerre(α-1)
+        
+        @test L \ L == Eye(∞)
+        @test P[0.1, 1:10] ≈ (L[0.1,1:10]'*(L \ P)[1:10,1:10])'
+    
+        wL = Weighted(L)
+        wP = Weighted(P)
+        
+        @test wL \ wL == Eye(∞)
+        @test wL[0.1, 1:10] ≈ (wP[0.1,1:11]'*(wP \ wL)[1:11,1:10])'
     end
 end

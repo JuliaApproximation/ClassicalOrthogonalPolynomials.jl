@@ -9,7 +9,8 @@ end
 
 LaguerreWeight{T}() where T = LaguerreWeight{T}(zero(T))
 LaguerreWeight() = LaguerreWeight{Float64}()
-axes(::LaguerreWeight{T}) where T = (Inclusion(ℝ),)
+# axes(::LaguerreWeight{T}) where T = (Inclusion(ℝ),)
+axes(::LaguerreWeight{T}) where T = (Inclusion(HalfLine{T}()),)
 function getindex(w::LaguerreWeight, x::Number)
     x ∈ axes(w,1) || throw(BoundsError())
     x^w.α * exp(-x)
@@ -64,4 +65,36 @@ recurrencecoefficients(L::Laguerre{T}) where T = ((-one(T)) ./ (1:∞), ((L.α+1
     T = promote_type(eltype(D),eltype(L))
     D = _BandedMatrix(Fill(-one(T),1,∞), ∞, -1,1)
     Laguerre(L.α+1)*D
+end
+
+@simplify function *(D::Derivative, w_A::Weighted{<:Any,<:Laguerre})
+    T = promote_type(eltype(D),eltype(w_A))
+    D = BandedMatrix(-1=>one(T):∞)
+    Weighted(Laguerre{T}(w_A.P.α-1))*D
+end
+
+##########
+# Conversion
+##########
+
+function \(L::Laguerre, K::Laguerre)
+    T = promote_type(eltype(L), eltype(K))
+    if L.α ≈ K.α
+        Eye{T}(∞)
+    elseif L.α ≈ K.α + 1
+        BandedMatrix(0=>Fill{T}(one(T), ∞), 1=>Fill{T}(-one(T), ∞))
+    else
+        error("Not implemented for this choice of L.α and K.α.")
+    end
+end
+
+function \(w_A::Weighted{<:Any,<:Laguerre}, w_B::Weighted{<:Any,<:Laguerre})
+    T = promote_type(eltype(w_A), eltype(w_B))
+    if w_A.P.α ≈ w_B.P.α
+        Eye{T}(∞)
+    elseif w_A.P.α + 1 ≈ w_B.P.α
+        BandedMatrix(0=>w_B.P.α:∞, -1=>-one(T):-one(T):-∞)
+    else
+        error("Not implemented for this choice of w_A.P.α and w_B.P.α.")
+    end
 end
