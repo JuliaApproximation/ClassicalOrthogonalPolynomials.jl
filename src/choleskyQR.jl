@@ -56,7 +56,7 @@ function cholesky_jacobimatrix(W::AbstractMatrix, Q)
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data in two cached bands which are generated in tandem but can be accessed separately.
-mutable struct CholeskyJacobiData{T} <: AbstractMatrix{T}
+mutable struct CholeskyJacobiData{T} <: LazyMatrix{T}
     dv::AbstractVector{T} # store diagonal band entries in adaptively sized vector
     ev::AbstractVector{T} # store off-diagonal band entries in adaptively sized vector
     U::UpperTriangular{T} # store upper triangular conversion matrix (needed to extend available entries)
@@ -135,7 +135,7 @@ function qr_jacobimatrix(sqrtW::AbstractMatrix{T}, Q, method = :Q) where T
 end
 
 # The generated Jacobi operators are symmetric tridiagonal, so we store their data in two cached bands which are generated in tandem but can be accessed separately.
-mutable struct QRJacobiData{method,T} <: AbstractMatrix{T}
+mutable struct QRJacobiData{method,T} <: LazyMatrix{T}
     dv::AbstractVector{T} # store diagonal band entries in adaptively sized vector
     ev::AbstractVector{T} # store off-diagonal band entries in adaptively sized vector
     U                     # store conversion, Q method: stores QR object. R method: only stores R.

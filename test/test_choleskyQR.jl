@@ -116,6 +116,21 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 # Comparison with Lanczos
                 @test Jchol[1:500,1:500] ≈ Jlanc[1:500,1:500]
             end
+
+            @testset "Jacobi matrix multiplication" begin
+                P = Normalized(legendre(0..1))
+                x = axes(P,1)
+                J = jacobimatrix(P)
+                wf(x) = (1-x)^2
+                sqrtwf(x) = (1-x)
+                # compute Jacobi matrix via decomp
+                Jchol = cholesky_jacobimatrix(wf, P)
+                JqrQ = qr_jacobimatrix(sqrtwf, P)
+                JqrR = qr_jacobimatrix(sqrtwf, P, :R)
+                @test (Jchol*Jchol)[1:10,1:10] ≈ ApplyArray(*,Jchol,Jchol)[1:10,1:10]
+                @test (Jchol*Jchol)[1:10,1:10] ≈ (JqrQ*JqrQ)[1:10,1:10]
+                @test (Jchol*Jchol)[1:10,1:10] ≈ (JqrR*JqrR)[1:10,1:10]
+            end
         end
     end
 
