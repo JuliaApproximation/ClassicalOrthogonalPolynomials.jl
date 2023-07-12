@@ -38,7 +38,7 @@ import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, Abstract
     grid, plotgrid, _plotgrid, _grid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
-    plan_transform, plan_grid_transform, MAX_PLOT_POINTS, MulPlan
+    plan_transform, plan_grid_transform, MAX_PLOT_POINTS, MulPlan, grammatrix
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg
 
@@ -182,17 +182,12 @@ singularities(r::Base.RefValue) = r[] # pass through
 orthogonalityweight(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) =
     orthogonalityweight(parent(P))[parentindices(P)[1]]
 
-function massmatrix(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}})
-    Q = parent(P)
-    kr,jr = parentindices(P)
-    massmatrix(Q)/kr.A
-end
 
 weighted(P::AbstractQuasiMatrix) = Weighted(P)
 
 OrthogonalPolynomial(w::Weight) =error("Override for $(typeof(w))")
 
-@simplify *(B::Identity, C::OrthogonalPolynomial) = C*jacobimatrix(C)
+@simplify *(B::Identity, C::OrthogonalPolynomial) = ApplyQuasiMatrix(*, C, jacobimatrix(C))
 
 function layout_broadcasted(::Tuple{PolynomialLayout,AbstractOPLayout}, ::typeof(*), x::Inclusion, C)
     x == axes(C,1) || throw(DimensionMismatch())

@@ -227,11 +227,7 @@ weight(Q::OrthonormalWeighted) = sqrt.(orthogonalityweight(Q.P))
 
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
 
-@simplify function *(Ac::QuasiAdjoint{<:Any,<:OrthonormalWeighted}, B::OrthonormalWeighted)
-    @assert parent(Ac).P == B.P
-    Eye{promote_type(eltype(Ac),eltype(B))}(∞)
-end
-
+grammatrix(A::OrthonormalWeighted{T}) where T = Eye{T}(∞)
 
 
 """
@@ -268,13 +264,9 @@ _mul_arguments(Q::Weighted{<:Any,<:Normalized}) = arguments(ApplyLayout{typeof(*
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = Q * (Q.P \ (x .* Q.P))
 
 
-@simplify *(Ac::QuasiAdjoint{<:Any,<:Weighted}, wB::Weighted) = 
-    convert(WeightedBasis, parent(Ac))' * convert(WeightedBasis, wB)
-
-
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted}, B::AbstractQuasiVector)
     P = (Ac').P
-    massmatrix(P) * (P\B)
+    grammatrix(P) * (P\B)
 end
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:SubQuasiArray}}, B::Weighted{<:Any,<:SubQuasiArray})

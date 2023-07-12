@@ -180,16 +180,19 @@ end
 #########
 
 
-@simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractJacobi) = legendre_massmatrix(Ac,B)
-@simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::Weighted{<:Any,<:AbstractJacobi}) = legendre_massmatrix(Ac,B)
+@simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractJacobi) = legendre_grammatrix(parent(Ac),B)
+@simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::Weighted{<:Any,<:AbstractJacobi}) = legendre_grammatrix(parent(Ac),B)
+grammatrix(A::AbstractJacobi) = legendre_grammatrix(A)
+grammatrix(A::Weighted{<:Any,<:AbstractJacobi}) = legendre_grammatrix(A)
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractQuasiVector)
+    println("HELLO")
     P = Legendre{eltype(Ac)}()
     (Ac * P) * (P \ B)
 end
 
 # 2^{a + b + 1} {\Gamma(n+a+1) \Gamma(n+b+1) \over (2n+a+b+1) \Gamma(n+a+b+1) n!}.
-function massmatrix(P::Jacobi)
+function weightedgrammatrix(P::Jacobi)
     a,b = P.a,P.b
     n = 0:∞
     Diagonal(2^(a+b+1) .* (exp.(loggamma.(n .+ (a+1)) .+ loggamma.(n .+ (b+1)) .- loggamma.(n .+ (a+b+1)) .- loggamma.(n .+ 1)) ./ (2n .+ (a+b+1))))
@@ -206,7 +209,7 @@ end
     A = parent(Ac)
     w,B = arguments(wB)
     P = Jacobi(w.a, w.b)
-    (P\A)' * massmatrix(P) * (P \ B)
+    (P\A)' * weightedgrammatrix(P) * (P \ B)
 end
 
 ########
@@ -457,16 +460,6 @@ function \(L::Legendre, WS::WeightedBasis{Bool,JacobiWeight{Bool},Jacobi{Bool}})
         error("Not implemented")
     end
 end
-
-@simplify function *(St::QuasiAdjoint{Bool,Jacobi{Bool}}, WS::WeightedBasis{Int,JacobiWeight{Int},Jacobi{Bool}})
-    w = parent(W)
-    (w.b == 2 && S.b && w.a == 2 && S.a && parent(St) == S) || throw(ArgumentError())
-    W_sqrt = Diagonal(JacobiWeight(true,true))
-    L = Legendre()
-    A = PInv(L)*W_sqrt*S
-    A'*(L'L)*A
-end
-
 
 
 ###

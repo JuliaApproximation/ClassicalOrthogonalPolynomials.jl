@@ -46,9 +46,9 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::HermiteWeight{T}, ::Hermite
 jacobimatrix(H::Hermite{T}) where T = Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(∞), one(T):∞)
 recurrencecoefficients(H::Hermite{T}) where T = Fill{T}(2,∞), Zeros{T}(∞), zero(T):2:∞
 
-massmatrix(::Hermite{T}) where T = Diagonal(sqrt(convert(T,π)) .* convert(T,2) .^ (0:∞) .* gamma.(one(T):∞))
+weightedgrammatrix(::Hermite{T}) where T = Diagonal(sqrt(convert(T,π)) .* convert(T,2) .^ (0:∞) .* gamma.(one(T):∞))
 
-@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:Hermite}}, B::Hermite) = massmatrix(Hermite{promote_type(eltype(A),eltype(B))}())
+@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:Hermite}}, B::Hermite) = weightedgrammatrix(Hermite{promote_type(eltype(A),eltype(B))}())
 
 ##########
 # Derivatives

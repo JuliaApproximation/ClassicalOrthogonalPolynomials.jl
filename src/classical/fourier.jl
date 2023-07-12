@@ -147,14 +147,14 @@ end
     Diagonal(Fill(2convert(TV,π),(axes(B,2),)))
 end
 
-function diff(S::Fourier{T}; dims=1) where T
+function diff(F::Fourier{T}; dims=1) where T
     D = _BlockArray(Diagonal(Vcat([reshape([zero(T)],1,1)], (one(T):∞) .* Fill([0 -one(T); one(T) 0], ∞))), (axes(F,2),axes(F,2)))
-    Fourier{TV}() * D
+    F * D
 end
 
-function diff(S::Laurent{T}; dims=1) where T
-    D = Diagonal(PseudoBlockVector((((one(T):∞) .÷ 2) .* (1 .- 2 .* iseven.(1:∞))) * convert(T,im), (axes(F,2),)))
-    Laurent{TV}() * D
+function diff(F::Laurent{T}; dims=1) where T
+    D = Diagonal(PseudoBlockVector((((one(real(T)):∞) .÷ 2) .* (1 .- 2 .* iseven.(1:∞))) * convert(T,im), (axes(F,2),)))
+    F * D
 end
 
 

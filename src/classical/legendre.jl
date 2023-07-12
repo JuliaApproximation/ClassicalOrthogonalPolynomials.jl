@@ -107,20 +107,22 @@ end
 
 
 """
-    legendre_massmatrix
+    legendre_grammatrix
 
-computes the massmatrix by first re-expanding in Legendre
+computes the grammatrix by first re-expanding in Legendre
 """
-function legendre_massmatrix(Ac, B)
-    A = parent(Ac)
+function legendre_grammatrix(A, B)
     P = Legendre{eltype(B)}()
-    (P\A)'*massmatrix(P)*(P\B)
+    (P\A)'*grammatrix(P)*(P\B)
 end
 
-@simplify *(Ac::QuasiAdjoint{<:Any,<:Legendre}, B::Legendre) = massmatrix(Legendre{promote_type(eltype(Ac), eltype(B))}())
+function legendre_grammatrix(A)
+    P = Legendre{eltype(A)}()
+    R = P\A
+    R' * grammatrix(P) * R
+end
 
-# massmatrix(P) = Weighted(P)'P
-massmatrix(P::Legendre{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
+grammatrix(P::Legendre{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
 
 ########
 # Jacobi Matrix

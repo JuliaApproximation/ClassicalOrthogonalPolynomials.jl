@@ -269,7 +269,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
             @test (T \ U)[1:10,1:10] ≈ inv((U \ T)[1:10,1:10])
         end
 
-        @testset "massmatrix" begin
+        @testset "grammatrix" begin
             @test (T'Weighted(T))[1:10,1:10] ≈ Diagonal([π; fill(π/2,9)])
             @test (U'Weighted(U))[1:10,1:10] ≈ Diagonal(fill(π/2,10))
         end

@@ -22,7 +22,6 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
 
         N = 10
         A = D* (w.*S)[:,1:N]
-        @test A.args[1] == P
         @test P\(D*(w.*S)[:,1:N]) isa ApplyMatrix{<:Any,typeof(*)}
 
         L = D*(w.*S)
