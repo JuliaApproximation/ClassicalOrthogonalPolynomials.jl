@@ -111,6 +111,7 @@ end
 arguments(::ApplyLayout{typeof(*)}, Q::Normalized) = Q.P, Diagonal(Q.scaling)
 _mul_arguments(Q::Normalized) = arguments(ApplyLayout{typeof(*)}(), Q)
 _mul_arguments(Q::QuasiAdjoint{<:Any,<:Normalized}) = arguments(ApplyLayout{typeof(*)}(), Q)
+copy(M::Mul{<:AdjointBasisLayout{<:NormalizedOPLayout},Blay}) where Blay<:AbstractBasisLayout = copy(Mul{ApplyLayout{typeof(*)}, Blay}(M.A, M.B))
 
 # table stable identity if A.P == B.P
 @inline _normalized_ldiv(An, C, Bn) = An \ (C * Bn)
