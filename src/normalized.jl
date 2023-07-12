@@ -295,3 +295,8 @@ end
 
 _sum(p::SubQuasiArray{T,1,<:Weighted,<:Tuple{Inclusion,Int}}, ::Colon) where T = 
     parentindices(p)[2] == 1 ? convert(T, sum(weight(parent(p)))) : zero(T)
+
+demap(W::Weighted) = Weighted(demap(W.P))
+basismap(W::Weighted) = basismap(W.P)
+const MappedOPLayouts = Union{MappedOPLayout,WeightedOPLayout{MappedOPLayout}}
+diff_layout(::MappedOPLayouts, A, dims...) = diff_layout(MappedBasisLayout(), A, dims...)

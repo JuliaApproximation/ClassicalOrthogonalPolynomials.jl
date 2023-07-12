@@ -235,7 +235,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
                 y = affine(0..1,-1..1)
                 D = Derivative(Inclusion(0..1))
                 @test isbanded(wT[y,:] \ D * wU[y,:])
-                @test isbanded((wU[y,:]' * D').args[1])
+                @test typeof(wU[y,:]' * D') == typeof((D * wU[y,:])')
             end
         end
     end

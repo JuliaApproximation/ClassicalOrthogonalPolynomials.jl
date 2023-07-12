@@ -54,5 +54,9 @@ massmatrix(::Hermite{T}) where T = Diagonal(sqrt(convert(T,π)) .* convert(T,2) 
 # Derivatives
 #####
 
-diff(H::Hermite{T}; dims=1) where T = ApplyQuasiArray(*, H, _BandedMatrix((zero(T):2:∞)', ℵ₀, -1,1))
-diff(W::Weighted{T,<:Hermite}; dims=1) where T = ApplyQuasiArray(*, W, _BandedMatrix(Fill(-one(T), 1, ∞), ℵ₀, 1,-1))
+diff(H::Hermite{T}; dims=1) where T = ApplyQuasiMatrix(*, H, _BandedMatrix((zero(T):2:∞)', ℵ₀, -1,1))
+diff(W::Weighted{T,<:Hermite}; dims=1) where T = ApplyQuasiMatrix(*, W, _BandedMatrix(Fill(-one(T), 1, ∞), ℵ₀, 1,-1))
+function diff(Q::OrthonormalWeighted{<:Any,<:Hermite}; dims=1)
+    X = jacobimatrix(Q.P)
+    ApplyQuasiMatrix(*, Q, Tridiagonal(-X.ev, X.dv, X.ev))
+end
