@@ -186,7 +186,6 @@ grammatrix(A::AbstractJacobi) = legendre_grammatrix(A)
 grammatrix(A::Weighted{<:Any,<:AbstractJacobi}) = legendre_grammatrix(A)
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractQuasiVector)
-    println("HELLO")
     P = Legendre{eltype(Ac)}()
     (Ac * P) * (P \ B)
 end
