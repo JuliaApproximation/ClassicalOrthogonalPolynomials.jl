@@ -30,7 +30,7 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
                     ApplyQuasiArray, ApplyQuasiMatrix, LazyQuasiArrayApplyStyle, AbstractQuasiArrayApplyStyle,
                     LazyQuasiArray, LazyQuasiVector, LazyQuasiMatrix, LazyLayout, LazyQuasiArrayStyle,
                     _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector,
-                    AbstractQuasiFill, _dot, _equals, QuasiArrayLayout, PolynomialLayout
+                    AbstractQuasiFill, _equals, QuasiArrayLayout, PolynomialLayout
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!
