@@ -60,8 +60,7 @@ recurrencecoefficients(L::Laguerre{T}) where T = ((-one(T)) ./ (1:∞), ((L.α+1
 # Derivatives
 ##########
 
-@simplify function *(D::Derivative, L::Laguerre)
-    T = promote_type(eltype(D),eltype(L))
+function diff(L::Laguerre{T}; dims=1) where T
     D = _BandedMatrix(Fill(-one(T),1,∞), ∞, -1,1)
-    Laguerre(L.α+1)*D
+    ApplyQuasiMatrix(*, Laguerre(L.α+1), D)
 end

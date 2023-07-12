@@ -183,15 +183,14 @@ end
 ##########
 
 # Ultraspherical(1)\(D*Chebyshev())
-@simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::ChebyshevT)
-    T = promote_type(eltype(D),eltype(S))
-    A = _BandedMatrix((zero(T):∞)', ℵ₀, -1,1)
-    ApplyQuasiMatrix(*, ChebyshevU{T}(), A)
+function diff(S::ChebyshevT{T}; dims=1) where T
+    D = _BandedMatrix((zero(T):∞)', ℵ₀, -1,1)
+    ApplyQuasiMatrix(*, ChebyshevU{T}(), D)
 end
 
-@simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
-    T = promote_type(eltype(D),eltype(W))
-    Weighted(ChebyshevT{T}()) * _BandedMatrix((-one(T):-one(T):(-∞))', ℵ₀, 1,-1)
+function diff(W::Weighted{T,<:ChebyshevU}; dims=1) where T
+    D =  _BandedMatrix((-one(T):-one(T):(-∞))', ℵ₀, 1,-1)
+    ApplyQuasiMatrix(*, Weighted(ChebyshevT{T}()), D)
 end
 
 

@@ -52,21 +52,7 @@ massmatrix(::Hermite{T}) where T = Diagonal(sqrt(convert(T,π)) .* convert(T,2) 
 
 ##########
 # Derivatives
-##########
+#####
 
-@simplify function *(D::Derivative, H::Hermite)
-    T = promote_type(eltype(D),eltype(H))
-    D = _BandedMatrix((zero(T):2:∞)', ℵ₀, -1,1)
-    H*D
-end
-
-@simplify function *(D::Derivative, W::Weighted{<:Any,<:Hermite})
-    T = promote_type(eltype(D),eltype(W))
-    D = _BandedMatrix(Fill(-one(T), 1, ∞), ℵ₀, 1,-1)
-    W*D
-end
-
-@simplify function *(D::Derivative, Q::OrthonormalWeighted{<:Any,<:Hermite})
-    X = jacobimatrix(Q.P)
-    Q * Tridiagonal(-X.ev, X.dv, X.ev)
-end
+diff(H::Hermite{T}; dims=1) where T = ApplyQuasiArray(*, H, _BandedMatrix((zero(T):2:∞)', ℵ₀, -1,1))
+diff(W::Weighted{T,<:Hermite}; dims=1) where T = ApplyQuasiArray(*, W, _BandedMatrix(Fill(-one(T), 1, ∞), ℵ₀, 1,-1))

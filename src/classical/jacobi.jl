@@ -345,71 +345,71 @@ end
 ##########
 
 # Jacobi(a+1,b+1)\(D*Jacobi(a,b))
-@simplify *(D::Derivative{<:Any,<:AbstractInterval}, S::Jacobi) = Jacobi(S.a+1,S.b+1) * _BandedMatrix((((1:∞) .+ (S.a + S.b))/2)', ℵ₀, -1,1)
+diff(S::Jacobi; dims=1) = ApplyQuasiMatrix(*, Jacobi(S.a+1,S.b+1), _BandedMatrix((((1:∞) .+ (S.a + S.b))/2)', ℵ₀, -1,1))
 
 
 #L_6^t
-@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::HalfWeighted{:a,<:Any,<:Jacobi})
+function diff(WS::HalfWeighted{:a,<:Any,<:Jacobi}; dims=1)
     S = WS.P
     a,b = S.a, S.b
-    HalfWeighted{:a}(Jacobi(a-1,b+1)) * Diagonal(-(a:∞))
+    ApplyQuasiMatrix(*, HalfWeighted{:a}(Jacobi(a-1,b+1)), Diagonal(-(a:∞)))
 end
 
 #L_6
-@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::HalfWeighted{:b,<:Any,<:Jacobi})
+function diff(WS::HalfWeighted{:b,<:Any,<:Jacobi}; dims=1)
     S = WS.P
     a,b = S.a, S.b
-    HalfWeighted{:b}(Jacobi(a+1,b-1)) * Diagonal(b:∞)
+    ApplyQuasiMatrix(*, HalfWeighted{:b}(Jacobi(a+1,b-1)), Diagonal(b:∞))
 end
 
 for ab in (:(:a), :(:b))
-    @eval @simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::HalfWeighted{$ab,<:Any,<:Normalized})
+    @eval function diff(WS::HalfWeighted{$ab,<:Any,<:Normalized}; dims=1)
         P,M = arguments(ApplyLayout{typeof(*)}(), WS.P)
-        D * HalfWeighted{$ab}(P) * M
+        ApplyQuasiMatrix(*, diff(HalfWeighted{$ab}(P);dims=dims), M)
     end
 end
 
 
-@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::Weighted{<:Any,<:Jacobi})
+function diff(WS::Weighted{<:Any,<:Jacobi}; dims=1)
     # L_1^t
     S = WS.P
     a,b = S.a, S.b
     if a == b == 0
-        D*S
+        diff(S)
     elseif iszero(a)
-        D * HalfWeighted{:b}(S)
+        diff(HalfWeighted{:b}(S))
     elseif iszero(b)
-        D * HalfWeighted{:a}(S)
+        diff(HalfWeighted{:a}(S))
     else
-        Weighted(Jacobi(a-1, b-1)) * _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1)
+        ApplyQuasiMatrix(*, Weighted(Jacobi(a-1, b-1)), _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1))
     end
 end
 
 
 # Jacobi(a-1,b-1)\ (D*w*Jacobi(a,b))
-@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::WeightedJacobi)
+function diff(WS::WeightedJacobi; dims=1)
     w,S = WS.args
     a,b = S.a, S.b
     if isorthogonalityweighted(WS) # L_1^t
-        D * Weighted(S)
+        diff(Weighted(S))
     elseif w.a == w.b == 0
-        D*S
+        diff(S)
     elseif iszero(w.a) && w.b == b #L_6
-        D * HalfWeighted{:b}(S)
+        diff(HalfWeighted{:b}(S))
     elseif iszero(w.b) && w.a == a #L_6^t
-        D * HalfWeighted{:a}(S)
+        diff(HalfWeighted{:a}(S))
     elseif iszero(w.a)
         # We differentiate
         # D * ((1+x)^w.b * P^(a,b)) == D * ((1+x)^(w.b-b) * (1+x)^b * P^(a,b))
         #    == (1+x)^(w.b-1) * (w.b-b) * P^(a,b) + (1+x)^(w.b-b) * D*((1+x)^b*P^(a,b))
         #    == (1+x)^(w.b-1) * P^(a+1,b) ((w.b-b) * C2 + C1 * W)
-        W = HalfWeighted{:b}(Jacobi(a+1, b-1)) \ (D * HalfWeighted{:b}(S))
+        W = HalfWeighted{:b}(Jacobi(a+1, b-1)) \ diff(HalfWeighted{:b}(S))
         J = Jacobi(a+1,b) # range Jacobi
         C1 = J \ Jacobi(a+1, b-1)
         C2 = J \ Jacobi(a,b)
         ApplyQuasiMatrix(*, JacobiWeight(w.a,w.b-1) .* J, (w.b-b) * C2 + C1 * W)
     elseif iszero(w.b)
-        W = HalfWeighted{:a}(Jacobi(a-1, b+1)) \ (D * (HalfWeighted{:a}(S)))
+        W = HalfWeighted{:a}(Jacobi(a-1, b+1)) \ diff(HalfWeighted{:a}(S))
         J = Jacobi(a,b+1) # range Jacobi
         C1 = J \ Jacobi(a-1, b+1)
         C2 = J \ Jacobi(a,b)
@@ -419,7 +419,7 @@ end
         #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b) * P - (1+x) * w.a * P + (1-x^2) * D * P)
         #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b) * P - (1+x) * w.a * P + P * L * W)
         J = Jacobi(a+1,b+1) # range space
-        W = J \ (D * S)
+        W = J \ diff(S)
         X = jacobimatrix(S)
         L = S \ Weighted(J)
         (JacobiWeight(w.a-1,w.b-1) .* S) *  (((w.b-w.a)*I-(w.a+w.b) * X) + L*W)
@@ -429,16 +429,16 @@ end
         #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b-b) * P^(a,b) + (1+x) * (a-w.a) * P^(a,b))
         #        + (1+x)^(w.b-b) * (1-x)^(w.a-a) * D * ((1+x)^b * (1-x)^a * P^(a,b)))
         
-        W = Weighted(Jacobi(a-1,b-1)) \ (D * Weighted(S))
+        W = Weighted(Jacobi(a-1,b-1)) \ diff(Weighted(S))
         X = jacobimatrix(S)
         C = S \ Jacobi(a-1,b-1)
         (JacobiWeight(w.a-1,w.b-1) .* S) *  (((w.b-b+a-w.a)*I+(a-w.a-w.b+b) * X) + C*W)
     end
 end
 
-@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::WeightedBasis{<:Any,<:JacobiWeight,<:Legendre})
+function diff(WS::WeightedBasis{<:Any,<:JacobiWeight,<:Legendre}; dims=1)
     w,S = WS.args
-    D * (w .* Jacobi(S))
+    diff(w .* Jacobi(S))
 end
 
 

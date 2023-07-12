@@ -196,11 +196,10 @@ function \(A::AbstractInterlaceBasis, B::AbstractInterlaceBasis)
     BlockBroadcastArray{T}(Diagonal, unitblocks.((\).(A.args, B.args))...)
 end
 
-@simplify function *(D::Derivative, S::AbstractInterlaceBasis)
-    axes(D,2) == axes(S,1) || throw(DimensionMismatch())
-    args = arguments.(*, Derivative.(axes.(S.args,1)) .* S.args)
+function diff(S::AbstractInterlaceBasis; dims=1)
+    args = arguments.(*, diff.(S.args))
     all(length.(args) .== 2) || error("Not implemented")
-    interlacebasis(S, map(first, args)...) * BlockBroadcastArray{promote_type(eltype(D),eltype(eltype(S)))}(Diagonal, unitblocks.(last.(args))...)
+    ApplyQuasiMatrix(*, interlacebasis(S, map(first, args)...), BlockBroadcastArray{promote_type(eltype(D),eltype(eltype(S)))}(Diagonal, unitblocks.(last.(args))...))
 end
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractInterlaceBasis}, B::AbstractInterlaceBasis)

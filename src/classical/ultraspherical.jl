@@ -90,28 +90,25 @@ end
 ##########
 
 # Ultraspherical(1)\(D*Chebyshev())
-@simplify *(D::Derivative{<:Any,<:ChebyshevInterval}, S::ChebyshevU) = D * Ultraspherical(S)
+diff(S::ChebyshevU; dims=1) = diff(Ultraspherical(S))
 
 # Ultraspherical(1/2)\(D*Legendre())
-@simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::Legendre)
-    T = promote_type(eltype(D),eltype(S))
+function diff(S::Legendre{T}; dims=1) where T
     A = _BandedMatrix(Ones{T}(1,∞), ℵ₀, -1,1)
     ApplyQuasiMatrix(*, Ultraspherical{T}(convert(T,3)/2), A)
 end
 
 
 # Ultraspherical(λ+1)\(D*Ultraspherical(λ))
-@simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::Ultraspherical)
-    T = promote_type(eltype(D),eltype(S))
+function diff(S::Ultraspherical{T}; dims=1) where T
     A = _BandedMatrix(Fill(2convert(T,S.λ),1,∞), ℵ₀, -1,1)
     ApplyQuasiMatrix(*, Ultraspherical{T}(S.λ+1), A)
 end
 
 # Ultraspherical(λ-1)\ (D*wUltraspherical(λ))
-@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::Weighted{<:Any,<:Ultraspherical})
+function diff(WS::Weighted{T,<:Ultraspherical}; dims=1) where T
     S = WS.P
     λ = S.λ
-    T = promote_type(eltype(D),eltype(WS))
     if λ == 1
         A = _BandedMatrix((-(one(T):∞))', ℵ₀, 1,-1)
         ApplyQuasiMatrix(*, Weighted(ChebyshevT{T}()), A)
@@ -123,14 +120,13 @@ end
 end
 
 # Ultraspherical(λ-1)\ (D*w*Ultraspherical(λ))
-@simplify function *(D::Derivative{<:Any,<:AbstractInterval}, WS::WeightedUltraspherical)
+function diff(WS::WeightedUltraspherical{T}; dims=1) where T
     w,S = WS.args
     λ = S.λ
-    T = eltype(WS)
     if iszero(w.λ)
-        D*S
+        diff(S)
     elseif isorthogonalityweighted(WS) # weights match
-        D * Weighted(S)
+        diff(Weighted(S))
     else
         error("Not implemented")
     end
