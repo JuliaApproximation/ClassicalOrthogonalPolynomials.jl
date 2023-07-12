@@ -32,9 +32,6 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
 
         L = D*(w.*S)[:,1:N]
 
-        A  = *((L').args..., L.args...)
-        @test A isa ApplyMatrix{<:Any,typeof(*)}
-
         Δ = L'L
         @test Δ isa ApplyMatrix{<:Any,typeof(*)}
         @test bandwidths(Δ) == (0,0)
@@ -132,7 +129,6 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         @test f[0.1] ≈ g[2*0.1-1]
         h = 0.0000001
         @test (D*f)[0.1] ≈ (f[0.1+h]-f[0.1])/h atol=100h
-        @test Jacobi(2.0,2.0)[2x.-1,:] \ (D*S).args[1] isa BandedMatrix
         @test (Jacobi(2.0,2.0)[2x.-1,:] \ (D*S))[1:10,1:10] == diagm(1 => 4:12)
 
         P = Legendre()[2x.-1,:]
@@ -146,7 +142,6 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         @test (D*f)[0.1] ≈ (f[0.1+h]-f[0.1])/h atol=100h
         @test P == P
 
-        @test P.parent == (D*wS).args[1].parent
         DwS = apply(*,D,wS)
         A,B = P,arguments(DwS)[1];
         @test (A.parent\B.parent) == Eye(∞)

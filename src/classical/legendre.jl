@@ -123,6 +123,7 @@ function legendre_grammatrix(A)
 end
 
 grammatrix(P::Legendre{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
+grammatrix(P::Normalized{T,<:Legendre}) where T = Eye{T}(∞)
 
 ########
 # Jacobi Matrix

@@ -266,7 +266,7 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = 
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted}, B::AbstractQuasiVector)
     P = (Ac').P
-    grammatrix(P) * (P\B)
+    weightedgrammatrix(P) * (P\B)
 end
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:SubQuasiArray}}, B::Weighted{<:Any,<:SubQuasiArray})
@@ -292,3 +292,5 @@ demap(W::Weighted) = Weighted(demap(W.P))
 basismap(W::Weighted) = basismap(W.P)
 const MappedOPLayouts = Union{MappedOPLayout,WeightedOPLayout{MappedOPLayout}}
 diff_layout(::MappedOPLayouts, A, dims...) = diff_layout(MappedBasisLayout(), A, dims...)
+
+diff_layout(::NormalizedOPLayout, A, dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, dims...)
