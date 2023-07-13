@@ -199,7 +199,7 @@ end
 function diff(S::AbstractInterlaceBasis; dims=1)
     args = arguments.(*, diff.(S.args))
     all(length.(args) .== 2) || error("Not implemented")
-    ApplyQuasiMatrix(*, interlacebasis(S, map(first, args)...), BlockBroadcastArray{promote_type(eltype(D),eltype(eltype(S)))}(Diagonal, unitblocks.(last.(args))...))
+    ApplyQuasiMatrix(*, interlacebasis(S, map(first, args)...), BlockBroadcastArray{eltype(eltype(S))}(Diagonal, unitblocks.(last.(args))...))
 end
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractInterlaceBasis}, B::AbstractInterlaceBasis)
