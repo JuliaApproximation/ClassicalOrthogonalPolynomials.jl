@@ -230,3 +230,5 @@ copy(M::Mul{<:AdjointBasisLayout{<:LanczosLayout},Blay}) where Blay<:AbstractBas
 broadcastbasis(::typeof(+), P::Union{Normalized,LanczosPolynomial}, Q::Union{Normalized,LanczosPolynomial}) = broadcastbasis(+, P.P, Q.P)
 broadcastbasis(::typeof(+), P::Union{Normalized,LanczosPolynomial}, Q) = broadcastbasis(+, P.P, Q)
 broadcastbasis(::typeof(+), P, Q::Union{Normalized,LanczosPolynomial}) = broadcastbasis(+, P, Q.P)
+
+diff_layout(::LanczosLayout, P::AbstractQuasiMatrix, dims...) = diff_layout(ApplyLayout{typeof(*)}(), P, dims...)

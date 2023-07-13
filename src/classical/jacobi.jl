@@ -30,6 +30,10 @@ end
 JacobiWeight(a::V, b::T) where {T,V} = JacobiWeight{promote_type(T,V)}(a,b)
 jacobiweight(a,b, d::AbstractInterval{T}) where T = JacobiWeight(a,b)[affine(d,ChebyshevInterval{T}())]
 
+AbstractQuasiArray{T}(w::JacobiWeight) where T = JacobiWeight{T}(w.a, w.b)
+AbstractQuasiVector{T}(w::JacobiWeight) where T = JacobiWeight{T}(w.a, w.b)
+
+
 ==(A::JacobiWeight, B::JacobiWeight) = A.b == B.b && A.a == B.a
 
 function getindex(w::JacobiWeight, x::Number)
@@ -37,6 +41,7 @@ function getindex(w::JacobiWeight, x::Number)
     (1-x)^w.a * (1+x)^w.b
 end
 
+show(io::IO, P::JacobiWeight) = summary(io, P)
 summary(io::IO, w::JacobiWeight) = print(io, "(1-x)^$(w.a) * (1+x)^$(w.b) on -1..1")
 
 sum(P::JacobiWeight) = jacobimoment(P.a, P.b)
@@ -156,8 +161,7 @@ axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()),
 ==(A::Legendre, B::Weighted{<:Any,<:AbstractJacobi}) = A == B.P
 ==(A::Weighted{<:Any,<:AbstractJacobi}, B::Legendre) = A.P == B
 
-show(io::IO, w::AbstractJacobiWeight) = summary(io, w)
-show(io::IO, P::AbstractJacobi) = summary(io, P)
+show(io::IO, P::Jacobi) = summary(io, P)
 summary(io::IO, P::Jacobi) = print(io, "Jacobi($(P.a), $(P.b))")
 
 ###

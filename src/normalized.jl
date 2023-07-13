@@ -240,6 +240,9 @@ struct Weighted{T, PP<:AbstractQuasiMatrix{T}} <: AbstractWeighted{T}
     P::PP
 end
 
+AbstractQuasiArray{T}(W::Weighted) where T = Weighted(AbstractQuasiArray{T}(W.P))
+AbstractQuasiMatrix{T}(W::Weighted) where T = Weighted(AbstractQuasiArray{T}(W.P))
+
 axes(Q::Weighted) = axes(Q.P)
 copy(Q::Weighted) = Q
 

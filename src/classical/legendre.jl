@@ -45,6 +45,9 @@ basis_singularities(v::SubQuasiArray) = view(basis_singularities(parent(v)), par
 struct Legendre{T} <: AbstractJacobi{T} end
 Legendre() = Legendre{Float64}()
 
+AbstractQuasiArray{T}(::Legendre) where T = Legendre{T}()
+AbstractQuasiMatrix{T}(::Legendre) where T = Legendre{T}()
+
 weighted(P::Legendre) = P
 weighted(P::Normalized{<:Any,<:Legendre}) = P
 weighted(P::SubQuasiArray{<:Any,2,<:Legendre}) = P
@@ -63,7 +66,8 @@ computes the `n`-th Legendre polynomial at `z`.
 legendrep(n::Integer, z::Number) = Base.unsafe_getindex(Legendre{typeof(z)}(), z, n+1)
 
 
-summary(io::IO, ::Legendre) = print(io, "Legendre()")
+show(io::IO, w::Legendre{Float64}) = summary(io, w)
+summary(io::IO, ::Legendre{Float64}) = print(io, "Legendre()")
 
 ==(::Legendre, ::Legendre) = true
 

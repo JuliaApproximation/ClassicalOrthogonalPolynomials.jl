@@ -9,6 +9,10 @@ struct ChebyshevWeight{kind,T} <: AbstractJacobiWeight{T} end
 ChebyshevWeight{kind}() where kind = ChebyshevWeight{kind,Float64}()
 ChebyshevWeight() = ChebyshevWeight{1,Float64}()
 
+AbstractQuasiArray{T}(::ChebyshevWeight{kind}) where {T,kind} = ChebyshevWeight{kind,T}()
+AbstractQuasiVector{T}(::ChebyshevWeight{kind}) where {T,kind} = ChebyshevWeight{kind,T}()
+
+
 getproperty(w::ChebyshevWeight{1,T}, ::Symbol) where T = -one(T)/2
 getproperty(w::ChebyshevWeight{2,T}, ::Symbol) where T = one(T)/2
 
@@ -29,6 +33,8 @@ const ChebyshevUWeight = ChebyshevWeight{2}
 const ChebyshevT = Chebyshev{1}
 const ChebyshevU = Chebyshev{2}
 
+show(io::IO, P::ChebyshevTWeight{Float64}) = summary(io, P)
+show(io::IO, P::ChebyshevUWeight{Float64}) = summary(io, P)
 summary(io::IO, ::ChebyshevTWeight{Float64}) = print(io, "ChebyshevTWeight()")
 summary(io::IO, ::ChebyshevUWeight{Float64}) = print(io, "ChebyshevUWeight()")
 
@@ -70,6 +76,9 @@ chebysevuweight(d::AbstractInterval{T}) where T = ChebyshevUWeight{float(T)}[aff
 ==(::Jacobi, ::Chebyshev) = false
 ==(::Chebyshev, ::Legendre) = false
 ==(::Legendre, ::Chebyshev) = false
+
+show(io::IO, w::ChebyshevT{Float64}) = summary(io, w)
+show(io::IO, w::ChebyshevU{Float64}) = summary(io, w)
 
 summary(io::IO, w::ChebyshevT{Float64}) = print(io, "ChebyshevT()")
 summary(io::IO, w::ChebyshevU{Float64}) = print(io, "ChebyshevU()")

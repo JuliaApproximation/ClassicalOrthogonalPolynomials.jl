@@ -36,7 +36,7 @@ import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, Infini
 import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!
 import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     grid, plotgrid, _plotgrid, _grid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
-    AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
+    AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
     plan_transform, plan_grid_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
@@ -160,7 +160,7 @@ end
 gives the singularity structure of an expansion, e.g.,
 `JacobiWeight`.
 """
-singularities(::WeightLayout, w) = w
+singularities(::AbstractWeightLayout, w) = w
 singularities(lay::BroadcastLayout, a::AbstractQuasiVector) = singularitiesbroadcast(call(a), map(singularities, arguments(lay, a))...)
 singularities(::WeightedBasisLayouts, a) = singularities(BroadcastLayout{typeof(*)}(), a)
 singularities(::WeightedOPLayout, a) = singularities(weight(a))

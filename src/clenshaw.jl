@@ -343,7 +343,7 @@ end
 layout_broadcasted(::Tuple{BroadcastLayout{typeof(*)},AbstractOPLayout}, ::typeof(*), a, P) =
     _broadcasted_layout_broadcasted_mul(map(MemoryLayout,arguments(BroadcastLayout{typeof(*)}(),a)),a,P)
 
-function _broadcasted_layout_broadcasted_mul(::Tuple{WeightLayout,PolynomialLayout}, wv, P)
+function _broadcasted_layout_broadcasted_mul(::Tuple{AbstractWeightLayout,PolynomialLayout}, wv, P)
     w,v = arguments(wv)
     Q = OrthogonalPolynomial(w)
     a = (w .* Q) * (Q \ v)
