@@ -237,6 +237,15 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
                 @test isbanded(wT[y,:] \ D * wU[y,:])
                 @test typeof(wU[y,:]' * D') == typeof((D * wU[y,:])')
             end
+
+            @testset "linear operator" begin
+                T = chebyshevt(2..3)
+                x = axes(T,1)
+                U  = chebyshevu(T)
+                L = U \ ((x.^2 .- 1) .* Derivative(x) * T - x .* T)
+                c = T \ sqrt.(x.^2 .- 1)
+                @test [T[begin,:]'; L] \ [sqrt(2^2-1); zeros(∞)] ≈ c
+            end
         end
     end
 
