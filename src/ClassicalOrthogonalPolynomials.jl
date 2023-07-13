@@ -185,6 +185,14 @@ orthogonalityweight(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVe
 
 weighted(P::AbstractQuasiMatrix) = Weighted(P)
 
+weightedgrammatrix(P) = weightedgrammatrix_layout(MemoryLayout(P), P)
+function weightedgrammatrix_layout(::MappedOPLayout, P)
+    Q = parent(P)
+    kr,jr = parentindices(P)
+    @assert kr isa AbstractAffineQuasiVector
+    weightedgrammatrix(Q)/kr.A
+end
+
 OrthogonalPolynomial(w::Weight) =error("Override for $(typeof(w))")
 
 @simplify *(B::Identity, C::OrthogonalPolynomial) = ApplyQuasiMatrix(*, C, jacobimatrix(C))
