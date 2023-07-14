@@ -6,6 +6,11 @@ is a quasi-vector representing `exp(-x^2)` on ℝ.
 struct HermiteWeight{T} <: Weight{T} end
 
 HermiteWeight() = HermiteWeight{Float64}()
+
+AbstractQuasiArray{T}(::HermiteWeight) where T = HermiteWeight{T}()
+AbstractQuasiVector{T}(::HermiteWeight) where T = HermiteWeight{T}()
+
+
 axes(::HermiteWeight{T}) where T = (Inclusion{T}(ℝ),)
 ==(::HermiteWeight, ::HermiteWeight) = true
 
@@ -25,6 +30,11 @@ broadcasted(::typeof(sqrt), H::HermiteWeight{T}) where T = H .^ (one(T)/2)
 
 struct Hermite{T} <: OrthogonalPolynomial{T} end
 Hermite() = Hermite{Float64}()
+
+AbstractQuasiArray{T}(::Hermite) where T = Hermite{T}()
+AbstractQuasiMatrix{T}(::Hermite) where T = Hermite{T}()
+
+
 orthogonalityweight(::Hermite{T}) where T = HermiteWeight{T}()
 
 ==(::Hermite, ::Hermite) = true
@@ -46,27 +56,17 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::HermiteWeight{T}, ::Hermite
 jacobimatrix(H::Hermite{T}) where T = Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(∞), one(T):∞)
 recurrencecoefficients(H::Hermite{T}) where T = Fill{T}(2,∞), Zeros{T}(∞), zero(T):2:∞
 
-massmatrix(::Hermite{T}) where T = Diagonal(sqrt(convert(T,π)) .* convert(T,2) .^ (0:∞) .* gamma.(one(T):∞))
+weightedgrammatrix(::Hermite{T}) where T = Diagonal(sqrt(convert(T,π)) .* convert(T,2) .^ (0:∞) .* gamma.(one(T):∞))
 
-@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:Hermite}}, B::Hermite) = massmatrix(Hermite{promote_type(eltype(A),eltype(B))}())
+@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:Hermite}}, B::Hermite) = weightedgrammatrix(Hermite{promote_type(eltype(A),eltype(B))}())
 
 ##########
 # Derivatives
-##########
+#####
 
-@simplify function *(D::Derivative, H::Hermite)
-    T = promote_type(eltype(D),eltype(H))
-    D = _BandedMatrix((zero(T):2:∞)', ℵ₀, -1,1)
-    H*D
-end
-
-@simplify function *(D::Derivative, W::Weighted{<:Any,<:Hermite})
-    T = promote_type(eltype(D),eltype(W))
-    D = _BandedMatrix(Fill(-one(T), 1, ∞), ℵ₀, 1,-1)
-    W*D
-end
-
-@simplify function *(D::Derivative, Q::OrthonormalWeighted{<:Any,<:Hermite})
+diff(H::Hermite{T}; dims=1) where T = ApplyQuasiMatrix(*, H, _BandedMatrix((zero(T):2:∞)', ℵ₀, -1,1))
+diff(W::Weighted{T,<:Hermite}; dims=1) where T = ApplyQuasiMatrix(*, W, _BandedMatrix(Fill(-one(T), 1, ∞), ℵ₀, 1,-1))
+function diff(Q::OrthonormalWeighted{<:Any,<:Hermite}; dims=1)
     X = jacobimatrix(Q.P)
-    Q * Tridiagonal(-X.ev, X.dv, X.ev)
+    ApplyQuasiMatrix(*, Q, Tridiagonal(-X.ev, X.dv, X.ev))
 end

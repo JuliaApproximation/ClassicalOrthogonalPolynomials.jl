@@ -177,10 +177,18 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         T = ChebyshevT()
         w = ChebyshevTWeight()
         wT = Weighted(T)
-        wU = Weighted(ChebyshevU())
+        U = ChebyshevU()
+        wU = Weighted(U)
+
+        @test AbstractQuasiArray{BigFloat}(T) ≡ AbstractQuasiMatrix{BigFloat}(T) ≡ ChebyshevT{BigFloat}()
+        @test AbstractQuasiArray{BigFloat}(w) ≡ AbstractQuasiVector{BigFloat}(w) ≡ ChebyshevTWeight{BigFloat}()
+        @test AbstractQuasiArray{BigFloat}(wT) ≡ AbstractQuasiMatrix{BigFloat}(wT) ≡ Weighted(ChebyshevT{BigFloat}())
+        @test AbstractQuasiArray{BigFloat}(wU) ≡ AbstractQuasiMatrix{BigFloat}(wU) ≡ Weighted(ChebyshevU{BigFloat}())
 
         @test stringmime("text/plain",w) == "ChebyshevTWeight()"
         @test stringmime("text/plain",ChebyshevUWeight()) == "ChebyshevUWeight()"
+        @test stringmime("text/plain",T) == "ChebyshevT()"
+        @test stringmime("text/plain",U) == "ChebyshevU()"
 
         @test (w .* T) ≡ wT
 
@@ -235,7 +243,16 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
                 y = affine(0..1,-1..1)
                 D = Derivative(Inclusion(0..1))
                 @test isbanded(wT[y,:] \ D * wU[y,:])
-                @test isbanded((wU[y,:]' * D').args[1])
+                @test typeof(wU[y,:]' * D') == typeof((D * wU[y,:])')
+            end
+
+            @testset "linear operator" begin
+                T = chebyshevt(2..3)
+                x = axes(T,1)
+                U  = chebyshevu(T)
+                L = U \ ((x.^2 .- 1) .* Derivative(x) * T - x .* T)
+                c = T \ sqrt.(x.^2 .- 1)
+                @test [T[begin,:]'; L] \ [sqrt(2^2-1); zeros(∞)] ≈ c
             end
         end
     end
@@ -269,7 +286,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
             @test (T \ U)[1:10,1:10] ≈ inv((U \ T)[1:10,1:10])
         end
 
-        @testset "massmatrix" begin
+        @testset "grammatrix" begin
             @test (T'Weighted(T))[1:10,1:10] ≈ Diagonal([π; fill(π/2,9)])
             @test (U'Weighted(U))[1:10,1:10] ≈ Diagonal(fill(π/2,10))
         end

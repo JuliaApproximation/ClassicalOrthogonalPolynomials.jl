@@ -9,6 +9,10 @@ struct ChebyshevWeight{kind,T} <: AbstractJacobiWeight{T} end
 ChebyshevWeight{kind}() where kind = ChebyshevWeight{kind,Float64}()
 ChebyshevWeight() = ChebyshevWeight{1,Float64}()
 
+AbstractQuasiArray{T}(::ChebyshevWeight{kind}) where {T,kind} = ChebyshevWeight{kind,T}()
+AbstractQuasiVector{T}(::ChebyshevWeight{kind}) where {T,kind} = ChebyshevWeight{kind,T}()
+
+
 getproperty(w::ChebyshevWeight{1,T}, ::Symbol) where T = -one(T)/2
 getproperty(w::ChebyshevWeight{2,T}, ::Symbol) where T = one(T)/2
 
@@ -29,6 +33,8 @@ const ChebyshevUWeight = ChebyshevWeight{2}
 const ChebyshevT = Chebyshev{1}
 const ChebyshevU = Chebyshev{2}
 
+show(io::IO, P::ChebyshevTWeight{Float64}) = summary(io, P)
+show(io::IO, P::ChebyshevUWeight{Float64}) = summary(io, P)
 summary(io::IO, ::ChebyshevTWeight{Float64}) = print(io, "ChebyshevTWeight()")
 summary(io::IO, ::ChebyshevUWeight{Float64}) = print(io, "ChebyshevUWeight()")
 
@@ -70,6 +76,9 @@ chebysevuweight(d::AbstractInterval{T}) where T = ChebyshevUWeight{float(T)}[aff
 ==(::Jacobi, ::Chebyshev) = false
 ==(::Chebyshev, ::Legendre) = false
 ==(::Legendre, ::Chebyshev) = false
+
+show(io::IO, w::ChebyshevT{Float64}) = summary(io, w)
+show(io::IO, w::ChebyshevU{Float64}) = summary(io, w)
 
 summary(io::IO, w::ChebyshevT{Float64}) = print(io, "ChebyshevT()")
 summary(io::IO, w::ChebyshevU{Float64}) = print(io, "ChebyshevU()")
@@ -143,16 +152,20 @@ recurrencecoefficients(C::ChebyshevU) = (Fill(2,∞), Zeros{Int}(∞), Ones{Int}
 # Mass matrix
 ###
 
-massmatrix(::ChebyshevT{V}) where V = Diagonal([convert(V,π); Fill(convert(V,π)/2,∞)])
-massmatrix(::ChebyshevU{V}) where V = Diagonal(Fill(convert(V,π)/2,∞))
+weightedgrammatrix(::ChebyshevT{V}) where V = Diagonal([convert(V,π); Fill(convert(V,π)/2,∞)])
+weightedgrammatrix(::ChebyshevU{V}) where V = Diagonal(Fill(convert(V,π)/2,∞))
 
-@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevT}}, B::ChebyshevT) = massmatrix(ChebyshevT{promote_type(eltype(A),eltype(B))}())
-@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevU}}, B::ChebyshevU) = massmatrix(ChebyshevU{promote_type(eltype(A),eltype(B))}())
+@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevT}}, B::ChebyshevT) = weightedgrammatrix(ChebyshevT{promote_type(eltype(A),eltype(B))}())
+@simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevU}}, B::ChebyshevU) = weightedgrammatrix(ChebyshevU{promote_type(eltype(A),eltype(B))}())
+
+function grammatrix(A::ChebyshevT{T}) where T
+    f = (k,j) -> isodd(j-k) ? zero(T) : -(((1 + (-1)^(j + k))*(-1 + j^2 + k^2))/(j^4 + (-1 + k^2)^2 - 2j^2*(1 + k^2)))
+    BroadcastMatrix{T}(f, 0:∞, (0:∞)')
+end
 
 @simplify function *(A::QuasiAdjoint{<:Any,<:ChebyshevT}, B::ChebyshevT)
     T = promote_type(eltype(A), eltype(B))
-    f = (k,j) -> isodd(j-k) ? zero(T) : -(((1 + (-1)^(j + k))*(-1 + j^2 + k^2))/(j^4 + (-1 + k^2)^2 - 2j^2*(1 + k^2)))
-    BroadcastMatrix{T}(f, 0:∞, (0:∞)')
+    grammatrix(ChebyshevT{T}())
 end
 
 @simplify function *(A::QuasiAdjoint{<:Any,<:ChebyshevT}, B::ChebyshevU)
@@ -162,9 +175,7 @@ end
 end
 
 
-
-@simplify function *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevU}}, B::Weighted{<:Any,<:ChebyshevU})
-    T = promote_type(eltype(A), eltype(B))
+function grammatrix(A::Weighted{T,<:ChebyshevU}) where T
     f = (k,j) ->  isodd(j-k) ? zero(T) : -((2*(one(T) + (-1)^(j + k))*(1 + j)*(1 + k))/((-1 + j - k)*(1 + j - k)*(1 + j + k)*(3 + j + k)))
     BroadcastMatrix{T}(f, 0:∞, (0:∞)')
 end
@@ -183,15 +194,14 @@ end
 ##########
 
 # Ultraspherical(1)\(D*Chebyshev())
-@simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, S::ChebyshevT)
-    T = promote_type(eltype(D),eltype(S))
-    A = _BandedMatrix((zero(T):∞)', ℵ₀, -1,1)
-    ApplyQuasiMatrix(*, ChebyshevU{T}(), A)
+function diff(S::ChebyshevT{T}; dims=1) where T
+    D = _BandedMatrix((zero(T):∞)', ℵ₀, -1,1)
+    ApplyQuasiMatrix(*, ChebyshevU{T}(), D)
 end
 
-@simplify function *(D::Derivative{<:Any,<:ChebyshevInterval}, W::Weighted{<:Any,<:ChebyshevU})
-    T = promote_type(eltype(D),eltype(W))
-    Weighted(ChebyshevT{T}()) * _BandedMatrix((-one(T):-one(T):(-∞))', ℵ₀, 1,-1)
+function diff(W::Weighted{T,<:ChebyshevU}; dims=1) where T
+    D =  _BandedMatrix((-one(T):-one(T):(-∞))', ℵ₀, 1,-1)
+    ApplyQuasiMatrix(*, Weighted(ChebyshevT{T}()), D)
 end
 
 
