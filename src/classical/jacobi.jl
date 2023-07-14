@@ -83,6 +83,10 @@ end
 
 Jacobi(a::V, b::T) where {T,V} = Jacobi{float(promote_type(T,V))}(a, b)
 
+AbstractQuasiArray{T}(w::Jacobi) where T = Jacobi{T}(w.a, w.b)
+AbstractQuasiMatrix{T}(w::Jacobi) where T = Jacobi{T}(w.a, w.b)
+
+
 jacobi(a,b) = Jacobi(a,b)
 jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi{float(promote_type(eltype(a),eltype(b),T))}(a,b)[affine(d,ChebyshevInterval{T}()), :]
 

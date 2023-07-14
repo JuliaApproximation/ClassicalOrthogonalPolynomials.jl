@@ -177,10 +177,18 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         T = ChebyshevT()
         w = ChebyshevTWeight()
         wT = Weighted(T)
-        wU = Weighted(ChebyshevU())
+        U = ChebyshevU()
+        wU = Weighted(U)
+
+        @test AbstractQuasiArray{BigFloat}(T) ≡ AbstractQuasiMatrix{BigFloat}(T) ≡ ChebyshevT{BigFloat}()
+        @test AbstractQuasiArray{BigFloat}(w) ≡ AbstractQuasiVector{BigFloat}(w) ≡ ChebyshevTWeight{BigFloat}()
+        @test AbstractQuasiArray{BigFloat}(wT) ≡ AbstractQuasiMatrix{BigFloat}(wT) ≡ Weighted(ChebyshevT{BigFloat}())
+        @test AbstractQuasiArray{BigFloat}(wU) ≡ AbstractQuasiMatrix{BigFloat}(wU) ≡ Weighted(ChebyshevU{BigFloat}())
 
         @test stringmime("text/plain",w) == "ChebyshevTWeight()"
         @test stringmime("text/plain",ChebyshevUWeight()) == "ChebyshevUWeight()"
+        @test stringmime("text/plain",T) == "ChebyshevT()"
+        @test stringmime("text/plain",U) == "ChebyshevU()"
 
         @test (w .* T) ≡ wT
 

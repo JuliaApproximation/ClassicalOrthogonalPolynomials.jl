@@ -2,6 +2,10 @@ struct LegendreWeight{T} <: AbstractJacobiWeight{T} end
 LegendreWeight() = LegendreWeight{Float64}()
 legendreweight(d::AbstractInterval{T}) where T = LegendreWeight{float(T)}()[affine(d,ChebyshevInterval{T}())]
 
+AbstractQuasiArray{T}(::LegendreWeight) where T = LegendreWeight{T}()
+AbstractQuasiMatrix{T}(::LegendreWeight) where T = LegendreWeight{T}()
+
+
 function getindex(w::LegendreWeight{T}, x::Number) where T
     x ∈ axes(w,1) || throw(BoundsError())
     one(T)
@@ -128,6 +132,8 @@ end
 
 grammatrix(P::Legendre{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
 grammatrix(P::Normalized{T,<:Legendre}) where T = Eye{T}(∞)
+@simplify *(P::QuasiAdjoint{<:Any,<:Normalized{<:Any,<:Legendre}}, Q::Normalized{<:Any,<:Legendre}) =
+    grammatrix(Normalized(Legendre{promote_type(eltype(P), eltype(Q))}()))
 
 ########
 # Jacobi Matrix

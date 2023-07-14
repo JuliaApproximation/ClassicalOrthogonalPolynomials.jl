@@ -1,7 +1,14 @@
 using ClassicalOrthogonalPolynomials, ContinuumArrays, BandedMatrices, LazyArrays, ForwardDiff, Test
-import LazyArrays: rowsupport, colsupport
+using LazyArrays: rowsupport, colsupport
+using ClassicalOrthogonalPolynomials: grammatrix
 
 @testset "Ultraspherical" begin
+    @testset "Conversion" begin
+        U = Ultraspherical(1)
+        w = UltrasphericalWeight(1)
+        @test AbstractQuasiArray{Float32}(U) ≡ AbstractQuasiMatrix{Float32}(U) ≡ Ultraspherical{Float32}(1)
+        @test AbstractQuasiArray{Float32}(w) ≡ AbstractQuasiVector{Float32}(w) ≡ UltrasphericalWeight{Float32}(1)
+    end
     @testset "Transforms" begin
         U = Ultraspherical(1)
         x = axes(U,1)
@@ -149,5 +156,16 @@ import LazyArrays: rowsupport, colsupport
     @testset "show" begin
         @test stringmime("text/plain",UltrasphericalWeight(1)) == "UltrasphericalWeight(1)"
         @test stringmime("text/plain",Ultraspherical(1)) == "Ultraspherical(1)"
+    end
+
+    @testset "grammatrix" begin
+        C = Ultraspherical(3/2)
+        @test (C'C)[1:5,1:5] == grammatrix(C)[1:5,1:5]
+    end
+
+    @testset "Weighted derivative" begin
+        T = Chebyshev()
+        W = Weighted(T) \ diff(Weighted(Ultraspherical(1)))
+        @test W[1:10,1:10] == diagm(-1 => -(1:9))
     end
 end

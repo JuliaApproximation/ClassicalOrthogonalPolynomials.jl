@@ -5,6 +5,9 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
     @testset "JacobiWeight" begin
         a,b = 0.1,0.2
         w = JacobiWeight(a,b)
+
+        @test AbstractQuasiArray{Float32}(w) ≡ AbstractQuasiVector{Float32}(w) ≡ JacobiWeight{Float32}(a, b)
+
         @test w.^2 == JacobiWeight(2a,2b)
         @test sqrt.(w) == JacobiWeight(a/2,b/2)
         @test JacobiWeight(0.2,0.3) .* w == JacobiWeight(a+0.2,b+0.3)
@@ -23,6 +26,9 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test Legendre() == Jacobi(0,0)
         @test Jacobi(0,0) == Legendre()
         @test Jacobi(1,2) .* Legendre() == Jacobi(1,2) .* Jacobi(0,0)
+
+        J = Jacobi(1,2)
+        @test AbstractQuasiArray{Float32}(J) ≡ AbstractQuasiMatrix{Float32}(J) ≡ Jacobi{Float32}(1,2)
     end
 
     @testset "basis" begin

@@ -6,6 +6,11 @@ is a quasi-vector representing `exp(-x^2)` on ℝ.
 struct HermiteWeight{T} <: Weight{T} end
 
 HermiteWeight() = HermiteWeight{Float64}()
+
+AbstractQuasiArray{T}(::HermiteWeight) where T = HermiteWeight{T}()
+AbstractQuasiVector{T}(::HermiteWeight) where T = HermiteWeight{T}()
+
+
 axes(::HermiteWeight{T}) where T = (Inclusion{T}(ℝ),)
 ==(::HermiteWeight, ::HermiteWeight) = true
 
@@ -25,6 +30,11 @@ broadcasted(::typeof(sqrt), H::HermiteWeight{T}) where T = H .^ (one(T)/2)
 
 struct Hermite{T} <: OrthogonalPolynomial{T} end
 Hermite() = Hermite{Float64}()
+
+AbstractQuasiArray{T}(::Hermite) where T = Hermite{T}()
+AbstractQuasiMatrix{T}(::Hermite) where T = Hermite{T}()
+
+
 orthogonalityweight(::Hermite{T}) where T = HermiteWeight{T}()
 
 ==(::Hermite, ::Hermite) = true

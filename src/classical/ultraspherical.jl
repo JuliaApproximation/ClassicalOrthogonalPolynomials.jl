@@ -13,6 +13,9 @@ UltrasphericalWeight{T}(λ) where T = UltrasphericalWeight{T,typeof(λ)}(λ)
 UltrasphericalWeight(λ) = UltrasphericalWeight{float(typeof(λ)),typeof(λ)}(λ)
 UltrasphericalWeight(::LegendreWeight{T}) where T = UltrasphericalWeight(one(T)/2)
 
+AbstractQuasiArray{T}(w::UltrasphericalWeight) where T = UltrasphericalWeight{T}(w.λ)
+AbstractQuasiVector{T}(w::UltrasphericalWeight) where T = UltrasphericalWeight{T}(w.λ)
+
 show(io::IO, w::UltrasphericalWeight) = summary(io, w)
 summary(io::IO, w::UltrasphericalWeight) = print(io, "UltrasphericalWeight($(w.λ))")
 
@@ -38,6 +41,9 @@ function Ultraspherical(P::Jacobi{T}) where T
 end
 
 Ultraspherical(::ChebyshevU{T}) where T = Ultraspherical{T}(1)
+
+AbstractQuasiArray{T}(w::Ultraspherical) where T = Ultraspherical{T}(w.λ)
+AbstractQuasiMatrix{T}(w::Ultraspherical) where T = Ultraspherical{T}(w.λ)
 
 show(io::IO, w::Ultraspherical) = summary(io, w)
 summary(io::IO, w::Ultraspherical) = print(io, "Ultraspherical($(w.λ))")
