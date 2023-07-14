@@ -13,6 +13,7 @@ UltrasphericalWeight{T}(λ) where T = UltrasphericalWeight{T,typeof(λ)}(λ)
 UltrasphericalWeight(λ) = UltrasphericalWeight{float(typeof(λ)),typeof(λ)}(λ)
 UltrasphericalWeight(::LegendreWeight{T}) where T = UltrasphericalWeight(one(T)/2)
 
+show(io::IO, w::UltrasphericalWeight) = summary(io, w)
 summary(io::IO, w::UltrasphericalWeight) = print(io, "UltrasphericalWeight($(w.λ))")
 
 ==(a::UltrasphericalWeight, b::UltrasphericalWeight) = a.λ == b.λ
@@ -38,6 +39,7 @@ end
 
 Ultraspherical(::ChebyshevU{T}) where T = Ultraspherical{T}(1)
 
+show(io::IO, w::Ultraspherical) = summary(io, w)
 summary(io::IO, w::Ultraspherical) = print(io, "Ultraspherical($(w.λ))")
 
 const WeightedUltraspherical{T} = WeightedBasis{T,<:UltrasphericalWeight,<:Ultraspherical}
