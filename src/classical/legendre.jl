@@ -3,7 +3,7 @@ LegendreWeight() = LegendreWeight{Float64}()
 legendreweight(d::AbstractInterval{T}) where T = LegendreWeight{float(T)}()[affine(d,ChebyshevInterval{T}())]
 
 AbstractQuasiArray{T}(::LegendreWeight) where T = LegendreWeight{T}()
-AbstractQuasiMatrix{T}(::LegendreWeight) where T = LegendreWeight{T}()
+AbstractQuasiVector{T}(::LegendreWeight) where T = LegendreWeight{T}()
 
 
 function getindex(w::LegendreWeight{T}, x::Number) where T
