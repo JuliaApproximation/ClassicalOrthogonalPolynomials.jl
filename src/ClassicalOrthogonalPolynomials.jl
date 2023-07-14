@@ -11,7 +11,7 @@ import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy, setindex,
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
                 to_indices, tail, getproperty, inv, show, isapprox, summary,
-                findall, searchsortedfirst
+                findall, searchsortedfirst, diff
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
@@ -30,15 +30,15 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
                     ApplyQuasiArray, ApplyQuasiMatrix, LazyQuasiArrayApplyStyle, AbstractQuasiArrayApplyStyle,
                     LazyQuasiArray, LazyQuasiVector, LazyQuasiMatrix, LazyLayout, LazyQuasiArrayStyle,
                     _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector,
-                    AbstractQuasiFill, _dot, _equals, QuasiArrayLayout, PolynomialLayout
+                    AbstractQuasiFill, _equals, QuasiArrayLayout, PolynomialLayout, diff_layout
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!
 import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
     grid, plotgrid, _plotgrid, _grid, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
-    AffineQuasiVector, AffineMap, WeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
+    AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, _broadcastbasis,
-    plan_transform, plan_grid_transform, MAX_PLOT_POINTS, MulPlan
+    plan_transform, plan_grid_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg
 
@@ -160,7 +160,7 @@ end
 gives the singularity structure of an expansion, e.g.,
 `JacobiWeight`.
 """
-singularities(::WeightLayout, w) = w
+singularities(::AbstractWeightLayout, w) = w
 singularities(lay::BroadcastLayout, a::AbstractQuasiVector) = singularitiesbroadcast(call(a), map(singularities, arguments(lay, a))...)
 singularities(::WeightedBasisLayouts, a) = singularities(BroadcastLayout{typeof(*)}(), a)
 singularities(::WeightedOPLayout, a) = singularities(weight(a))
@@ -182,17 +182,22 @@ singularities(r::Base.RefValue) = r[] # pass through
 orthogonalityweight(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) =
     orthogonalityweight(parent(P))[parentindices(P)[1]]
 
-function massmatrix(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}})
-    Q = parent(P)
-    kr,jr = parentindices(P)
-    massmatrix(Q)/kr.A
-end
 
 weighted(P::AbstractQuasiMatrix) = Weighted(P)
 
+weightedgrammatrix(P) = weightedgrammatrix_layout(MemoryLayout(P), P)
+function weightedgrammatrix_layout(::MappedOPLayout, P)
+    Q = parent(P)
+    kr,jr = parentindices(P)
+    @assert kr isa AbstractAffineQuasiVector
+    weightedgrammatrix(Q)/kr.A
+end
+
+grammatrix_layout(::MappedOPLayout, P) = grammatrix_layout(MappedBasisLayout(), P)
+
 OrthogonalPolynomial(w::Weight) =error("Override for $(typeof(w))")
 
-@simplify *(B::Identity, C::OrthogonalPolynomial) = C*jacobimatrix(C)
+@simplify *(B::Identity, C::OrthogonalPolynomial) = ApplyQuasiMatrix(*, C, jacobimatrix(C))
 
 function layout_broadcasted(::Tuple{PolynomialLayout,AbstractOPLayout}, ::typeof(*), x::Inclusion, C)
     x == axes(C,1) || throw(DimensionMismatch())

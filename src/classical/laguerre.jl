@@ -9,6 +9,11 @@ end
 
 LaguerreWeight{T}() where T = LaguerreWeight{T}(zero(T))
 LaguerreWeight() = LaguerreWeight{Float64}()
+
+AbstractQuasiArray{T}(w::LaguerreWeight) where T = LaguerreWeight{T}(w.α)
+AbstractQuasiVector{T}(w::LaguerreWeight) where T = LaguerreWeight{T}(w.α)
+
+
 axes(::LaguerreWeight{T}) where T = (Inclusion(ℝ),)
 function getindex(w::LaguerreWeight, x::Number)
     x ∈ axes(w,1) || throw(BoundsError())
@@ -24,6 +29,11 @@ end
 Laguerre{T}() where T = Laguerre{T}(zero(T))
 Laguerre() = Laguerre{Float64}()
 Laguerre(α::T) where T = Laguerre{float(T)}(α)
+
+AbstractQuasiArray{T}(w::Laguerre) where T = Laguerre{T}(w.α)
+AbstractQuasiMatrix{T}(w::Laguerre) where T = Laguerre{T}(w.α)
+
+
 orthogonalityweight(L::Laguerre)= LaguerreWeight(L.α)
 
 ==(L1::Laguerre, L2::Laguerre) = L1.α == L2.α
@@ -60,8 +70,7 @@ recurrencecoefficients(L::Laguerre{T}) where T = ((-one(T)) ./ (1:∞), ((L.α+1
 # Derivatives
 ##########
 
-@simplify function *(D::Derivative, L::Laguerre)
-    T = promote_type(eltype(D),eltype(L))
+function diff(L::Laguerre{T}; dims=1) where T
     D = _BandedMatrix(Fill(-one(T),1,∞), ∞, -1,1)
-    Laguerre(L.α+1)*D
+    ApplyQuasiMatrix(*, Laguerre(L.α+1), D)
 end

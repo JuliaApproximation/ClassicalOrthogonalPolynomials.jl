@@ -55,6 +55,7 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             @test (W'exp.(x))[1:2:10] ≈ (W1'*exp.(axes(W1,1)))[1:5]
             @test (W'exp.(x))[2:2:10] ≈ (W2'*exp.(axes(W2,1)))[1:5]
             M = W'W
+            @test M[Block(1,1)] ≈ Diagonal(fill(8/15,2))
 
             # Δ \ (W'exp.(x))
         end

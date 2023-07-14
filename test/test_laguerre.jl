@@ -3,12 +3,18 @@ import ClassicalOrthogonalPolynomials: orthogonalityweight
 
 @testset "Laguerre" begin
     @testset "Laguerre weight" begin
-        @test sum(LaguerreWeight()) ≡ 1.0
-        @test LaguerreWeight()[0.1] ≈ orthogonalityweight(Laguerre())[0.1] ≈ exp(-0.1)
+        w = LaguerreWeight()
+        @test sum(w) ≡ 1.0
+        @test w[0.1] ≈ orthogonalityweight(Laguerre())[0.1] ≈ exp(-0.1)
         @test LaguerreWeight(1/2)[0.1] ≈ sqrt(0.1)exp(-0.1)
+
+        @test AbstractQuasiArray{Float32}(w) ≡ AbstractQuasiVector{Float32}(w) ≡ LaguerreWeight{Float32}()
     end
 
     @testset "Laguerre L" begin
+        L = Laguerre()
+        @test AbstractQuasiArray{Float32}(L) ≡ AbstractQuasiMatrix{Float32}(L) ≡ Laguerre{Float32}()
+        
         x = 0.1
         @test laguerrel.(0:3, 0, x) ≈ laguerrel.(0:3, x) ≈ [1, 1-x, (2 - 4x + x^2)/2, (6 - 18x + 9x^2 - x^3)/6]
         @test laguerrel.(0:3, 1/2, x) ≈ [1, 3/2 - x, (15 - 20x + 4x^2)/8, (105 - 210x + 84x^2 - 8x^3)/48]

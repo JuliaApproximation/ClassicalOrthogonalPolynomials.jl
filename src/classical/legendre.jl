@@ -2,6 +2,10 @@ struct LegendreWeight{T} <: AbstractJacobiWeight{T} end
 LegendreWeight() = LegendreWeight{Float64}()
 legendreweight(d::AbstractInterval{T}) where T = LegendreWeight{float(T)}()[affine(d,ChebyshevInterval{T}())]
 
+AbstractQuasiArray{T}(::LegendreWeight) where T = LegendreWeight{T}()
+AbstractQuasiVector{T}(::LegendreWeight) where T = LegendreWeight{T}()
+
+
 function getindex(w::LegendreWeight{T}, x::Number) where T
     x ∈ axes(w,1) || throw(BoundsError())
     one(T)
@@ -45,6 +49,9 @@ basis_singularities(v::SubQuasiArray) = view(basis_singularities(parent(v)), par
 struct Legendre{T} <: AbstractJacobi{T} end
 Legendre() = Legendre{Float64}()
 
+AbstractQuasiArray{T}(::Legendre) where T = Legendre{T}()
+AbstractQuasiMatrix{T}(::Legendre) where T = Legendre{T}()
+
 weighted(P::Legendre) = P
 weighted(P::Normalized{<:Any,<:Legendre}) = P
 weighted(P::SubQuasiArray{<:Any,2,<:Legendre}) = P
@@ -63,7 +70,8 @@ computes the `n`-th Legendre polynomial at `z`.
 legendrep(n::Integer, z::Number) = Base.unsafe_getindex(Legendre{typeof(z)}(), z, n+1)
 
 
-summary(io::IO, ::Legendre) = print(io, "Legendre()")
+show(io::IO, w::Legendre{Float64}) = summary(io, w)
+summary(io::IO, ::Legendre{Float64}) = print(io, "Legendre()")
 
 ==(::Legendre, ::Legendre) = true
 
@@ -107,20 +115,25 @@ end
 
 
 """
-    legendre_massmatrix
+    legendre_grammatrix
 
-computes the massmatrix by first re-expanding in Legendre
+computes the grammatrix by first re-expanding in Legendre
 """
-function legendre_massmatrix(Ac, B)
-    A = parent(Ac)
+function legendre_grammatrix(A, B)
     P = Legendre{eltype(B)}()
-    (P\A)'*massmatrix(P)*(P\B)
+    (P\A)'*grammatrix(P)*(P\B)
 end
 
-@simplify *(Ac::QuasiAdjoint{<:Any,<:Legendre}, B::Legendre) = massmatrix(Legendre{promote_type(eltype(Ac), eltype(B))}())
+function legendre_grammatrix(A)
+    P = Legendre{eltype(A)}()
+    R = P\A
+    R' * grammatrix(P) * R
+end
 
-# massmatrix(P) = Weighted(P)'P
-massmatrix(P::Legendre{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
+grammatrix(P::Legendre{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
+grammatrix(P::Normalized{T,<:Legendre}) where T = Eye{T}(∞)
+@simplify *(P::QuasiAdjoint{<:Any,<:Normalized{<:Any,<:Legendre}}, Q::Normalized{<:Any,<:Legendre}) =
+    grammatrix(Normalized(Legendre{promote_type(eltype(P), eltype(Q))}()))
 
 ########
 # Jacobi Matrix

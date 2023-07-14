@@ -1,10 +1,13 @@
 using ClassicalOrthogonalPolynomials, LazyArrays, QuasiArrays, BandedMatrices, ContinuumArrays, ForwardDiff, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw, weighted, oneto
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw, weighted, oneto, grammatrix
 import QuasiArrays: MulQuasiArray
 
 @testset "Legendre" begin
     @testset "LegendreWeight" begin
         w = LegendreWeight()
+        @test AbstractQuasiArray{BigFloat}(w) ≡ AbstractQuasiVector{BigFloat}(w) ≡ LegendreWeight{BigFloat}()
+
+
         @test w.^2 isa LegendreWeight
         @test sqrt.(w) isa LegendreWeight
         @test w .* w isa LegendreWeight
@@ -13,6 +16,9 @@ import QuasiArrays: MulQuasiArray
 
     @testset "basics" begin
         P = Legendre()
+
+        @test AbstractQuasiArray{BigFloat}(P) ≡ AbstractQuasiMatrix{BigFloat}(P) ≡ Legendre{BigFloat}()
+
         @test axes(P) == (Inclusion(ChebyshevInterval()),oneto(∞))
         @test P == P == Legendre{Float32}()
         @test weighted(P) == P
@@ -177,5 +183,10 @@ import QuasiArrays: MulQuasiArray
 
     @testset "Heaviside and Legendre" begin
         @test Legendre() \ HeavisideSpline([-1,1]) == Vcat(1,Zeros(∞,1))
+    end
+
+    @testset "Normalized" begin
+        P̃ = Normalized(Legendre())
+        @test P̃'P̃ ≡ grammatrix(P̃) ≡ Eye(∞)
     end
 end

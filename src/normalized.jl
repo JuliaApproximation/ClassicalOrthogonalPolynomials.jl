@@ -111,6 +111,7 @@ end
 arguments(::ApplyLayout{typeof(*)}, Q::Normalized) = Q.P, Diagonal(Q.scaling)
 _mul_arguments(Q::Normalized) = arguments(ApplyLayout{typeof(*)}(), Q)
 _mul_arguments(Q::QuasiAdjoint{<:Any,<:Normalized}) = arguments(ApplyLayout{typeof(*)}(), Q)
+copy(M::Mul{<:AdjointBasisLayout{<:NormalizedOPLayout},Blay}) where Blay<:AbstractBasisLayout = copy(Mul{ApplyLayout{typeof(*)}, Blay}(M.A, M.B))
 
 # table stable identity if A.P == B.P
 @inline _normalized_ldiv(An, C, Bn) = An \ (C * Bn)
@@ -227,11 +228,7 @@ weight(Q::OrthonormalWeighted) = sqrt.(orthogonalityweight(Q.P))
 
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
 
-@simplify function *(Ac::QuasiAdjoint{<:Any,<:OrthonormalWeighted}, B::OrthonormalWeighted)
-    @assert parent(Ac).P == B.P
-    Eye{promote_type(eltype(Ac),eltype(B))}(∞)
-end
-
+grammatrix(A::OrthonormalWeighted{T}) where T = Eye{T}(∞)
 
 
 """
@@ -242,6 +239,9 @@ is equivalent to `orthogonalityweight(P) .* P`
 struct Weighted{T, PP<:AbstractQuasiMatrix{T}} <: AbstractWeighted{T}
     P::PP
 end
+
+AbstractQuasiArray{T}(W::Weighted) where T = Weighted(AbstractQuasiArray{T}(W.P))
+AbstractQuasiMatrix{T}(W::Weighted) where T = Weighted(AbstractQuasiArray{T}(W.P))
 
 axes(Q::Weighted) = axes(Q.P)
 copy(Q::Weighted) = Q
@@ -268,13 +268,9 @@ _mul_arguments(Q::Weighted{<:Any,<:Normalized}) = arguments(ApplyLayout{typeof(*
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::Weighted) = Q * (Q.P \ (x .* Q.P))
 
 
-@simplify *(Ac::QuasiAdjoint{<:Any,<:Weighted}, wB::Weighted) = 
-    convert(WeightedBasis, parent(Ac))' * convert(WeightedBasis, wB)
-
-
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted}, B::AbstractQuasiVector)
     P = (Ac').P
-    massmatrix(P) * (P\B)
+    weightedgrammatrix(P) * (P\B)
 end
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:SubQuasiArray}}, B::Weighted{<:Any,<:SubQuasiArray})
@@ -284,19 +280,6 @@ end
     W = view(Weighted(parent(Q)), parentindices(Q)...)
     V'W
 end
-
-# Derivative overloads, see ContinuumArrays.jl/src/bases.jl
-
-
-simplifiable(::typeof(*), A::Derivative, B::Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}) = simplifiable(*, Derivative(axes(parent(B),1)), Weighted(parent(B.P)))
-simplifiable(::typeof(*), Ac::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}}, Bc::QuasiAdjoint{<:Any,<:Derivative}) = simplifiable(*, Bc', Ac')
-function mul(A::Derivative, B::Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}})
-    axes(A,2) == axes(B,1) || throw(DimensionMismatch())
-    P = Weighted(parent(B.P))
-    kr,jr = parentindices(B.P)
-    (Derivative(axes(P,1))*P*kr.A)[kr,jr]
-end
-mul(Ac::QuasiAdjoint{<:Any, Weighted{<:Any,<:SubQuasiArray{<:Any,2,<:AbstractQuasiMatrix,<:Tuple{<:AbstractAffineQuasiVector,<:Any}}}}, Bc::QuasiAdjoint{<:Any,<:Derivative}) = mul(Bc', Ac')'    
 
 show(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
 
@@ -308,3 +291,10 @@ end
 
 _sum(p::SubQuasiArray{T,1,<:Weighted,<:Tuple{Inclusion,Int}}, ::Colon) where T = 
     parentindices(p)[2] == 1 ? convert(T, sum(weight(parent(p)))) : zero(T)
+
+demap(W::Weighted) = Weighted(demap(W.P))
+basismap(W::Weighted) = basismap(W.P)
+const MappedOPLayouts = Union{MappedOPLayout,WeightedOPLayout{MappedOPLayout}}
+diff_layout(::MappedOPLayouts, A, dims...) = diff_layout(MappedBasisLayout(), A, dims...)
+
+diff_layout(::NormalizedOPLayout, A, dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, dims...)

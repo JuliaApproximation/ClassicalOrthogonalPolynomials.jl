@@ -147,14 +147,14 @@ end
     Diagonal(Fill(2convert(TV,π),(axes(B,2),)))
 end
 
-@simplify function *(D::Derivative, F::Fourier)
-    TV = promote_type(eltype(D),eltype(F))
-    Fourier{TV}()*_BlockArray(Diagonal(Vcat([reshape([0.0],1,1)], (1.0:∞) .* Fill([0 -one(TV); one(TV) 0], ∞))), (axes(F,2),axes(F,2)))
+function diff(F::Fourier{T}; dims=1) where T
+    D = _BlockArray(Diagonal(Vcat([reshape([zero(T)],1,1)], (one(T):∞) .* Fill([0 -one(T); one(T) 0], ∞))), (axes(F,2),axes(F,2)))
+    F * D
 end
 
-@simplify function *(D::Derivative, F::Laurent)
-    TV = promote_type(eltype(D),eltype(F))
-    Laurent{TV}() * Diagonal(PseudoBlockVector((((1:∞) .÷ 2) .* (1 .- 2 .* iseven.(1:∞))) * convert(TV,im), (axes(F,2),)))
+function diff(F::Laurent{T}; dims=1) where T
+    D = Diagonal(PseudoBlockVector((((one(real(T)):∞) .÷ 2) .* (1 .- 2 .* iseven.(1:∞))) * convert(T,im), (axes(F,2),)))
+    F * D
 end
 
 
