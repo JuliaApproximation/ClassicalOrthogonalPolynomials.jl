@@ -205,9 +205,10 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
             @test JqrQ[1:20,1:20] ≈ F[1:20,1:20]
             @test JqrQ[50:70,50:70] ≈ F[50:70,50:70]
         end
-        @testset "BigFloat returns correct values"
+        @testset "BigFloat returns correct values" begin
             t = BigFloat("1.1")
             P = Normalized(legendre(big(0)..big(1)))
+            X = jacobimatrix(P)
             Xq = qr_jacobimatrix(t*I-X, P, :Q)
             Xr = qr_jacobimatrix(t*I-X, P, :R)
             @test Xq[1:20,1:20] ≈ Xr[1:20,1:20]
