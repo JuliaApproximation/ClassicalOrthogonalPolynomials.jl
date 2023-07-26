@@ -67,7 +67,7 @@ end
 # Computes the initial data for the Jacobi operator bands
 function CholeskyJacobiData(U::AbstractMatrix{T}, UX) where T
     # compute a length 2 vector on first go and circumvent BigFloat issue
-    if T isa BigFloat
+    if T == BigFloat
         dv = zeros(T,2) 
         ev = zeros(T,2)
     else
@@ -155,7 +155,7 @@ function QRJacobiData{:Q,T}(F, P) where T
     b = 3+bandwidths(F.R)[2]÷2
     X = jacobimatrix(P)
         # we fill 1 entry on the first run and circumvent BigFloat issue
-    if T isa BigFloat
+    if T == BigFloat
         dv = zeros(T,2) 
         ev = zeros(T,1)
     else
@@ -188,7 +188,7 @@ function QRJacobiData{:R,T}(F, P) where T
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
     # compute a length 2 vector on first go and circumvent BigFloat issue
-    if T isa BigFloat
+    if T == BigFloat
         dv = zeros(T,2) 
         ev = zeros(T,2)
     else
@@ -234,7 +234,7 @@ function _fillqrbanddata!(J::QRJacobiData{:Q,T}, inds::UnitRange{Int}) where T
     K, τ, F, dv, ev = J.UX, J.U.τ, J.U.factors, J.dv, J.ev
     D = sign.(view(J.U.R,band(0)).*view(J.U.R,band(0))[2:end])
     M = zeros(T,b+3,b+3)
-    if T isa BigFloat
+    if T == BigFloat
         M = zeros(T,b+3,b+3)
     else
         M = Matrix{T}(undef,b+3,b+3) 
