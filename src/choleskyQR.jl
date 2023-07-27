@@ -67,13 +67,8 @@ end
 # Computes the initial data for the Jacobi operator bands
 function CholeskyJacobiData(U::AbstractMatrix{T}, UX) where T
     # compute a length 2 vector on first go and circumvent BigFloat issue
-    if T == BigFloat
-        dv = zeros(T,2) 
-        ev = zeros(T,2)
-    else
-        dv = Vector{T}(undef,2) 
-        ev = Vector{T}(undef,2) 
-    end
+    dv = zeros(T,2) 
+    ev = zeros(T,2)
     dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = -U[1,2]*UX[2,1]/(U[1,1]*U[2,2])+UX[2,2]/U[2,2] # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[1] = -UX[1,1]*U[1,2]/(U[1,1]*U[2,2])+UX[1,2]/U[2,2] # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
@@ -154,15 +149,10 @@ end
 function QRJacobiData{:Q,T}(F, P) where T
     b = 3+bandwidths(F.R)[2]÷2
     X = jacobimatrix(P)
-        # we fill 1 entry on the first run and circumvent BigFloat issue
-    if T == BigFloat
-        dv = zeros(T,2) 
-        ev = zeros(T,1)
-    else
-        dv = Vector{T}(undef,2) 
-        ev = Vector{T}(undef,1) 
-    end
-        # fill first entry (special case)
+    # we fill 1 entry on the first run and circumvent BigFloat issue
+    dv = zeros(T,2) 
+    ev = zeros(T,1)
+    # fill first entry (special case)
     M = Matrix(X[1:b,1:b])
     resizedata!(F.factors,b,b)
     # special case for first entry double Householder product
@@ -188,13 +178,8 @@ function QRJacobiData{:R,T}(F, P) where T
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
     # compute a length 2 vector on first go and circumvent BigFloat issue
-    if T == BigFloat
-        dv = zeros(T,2) 
-        ev = zeros(T,2)
-    else
-        dv = Vector{T}(undef,2) 
-        ev = Vector{T}(undef,2) 
-    end
+    dv = zeros(T,2) 
+    ev = zeros(T,2)
     dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = -U[1,2]*UX[2,1]/(U[1,1]*U[2,2])+UX[2,2]/U[2,2] # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[1] = -UX[1,1]*U[1,2]/(U[1,1]*U[2,2])+UX[1,2]/U[2,2] # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
