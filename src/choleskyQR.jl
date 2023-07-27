@@ -219,10 +219,10 @@ function _fillqrbanddata!(J::QRJacobiData{:Q,T}, inds::UnitRange{Int}) where T
     K, τ, F, dv, ev = J.UX, J.U.τ, J.U.factors, J.dv, J.ev
     D = sign.(view(J.U.R,band(0)).*view(J.U.R,band(0))[2:end])
     M = zeros(T,b+3,b+3)
-    if T == BigFloat
-        M = zeros(T,b+3,b+3)
-    else
+    if isprimitivetype(T)
         M = Matrix{T}(undef,b+3,b+3) 
+    else
+        M = zeros(T,b+3,b+3)
     end
     @inbounds for n in jj
         dv[n] = K[1,1] # no sign correction needed on diagonal entry due to cancellation
