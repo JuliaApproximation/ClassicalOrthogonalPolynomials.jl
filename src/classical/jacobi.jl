@@ -255,29 +255,68 @@ end
 \(A::Legendre, B::Jacobi) = Jacobi(A)\B
 \(A::Legendre, B::Weighted{<:Any,<:Jacobi}) = Jacobi(A)\B
 
+function _jacobi_convert_a(a, b) # Jacobi(a+1, b) \ Jacobi(a, b)
+    if isone(-a-b)
+        Bidiagonal(Vcat(1, ((2:∞) .+ (a+b)) ./ ((3:2:∞) .+ (a+b))), -((1:∞) .+ b) ./ ((3:2:∞) .+ (a+b)), :U)
+    else
+        Bidiagonal(((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)), -((1:∞) .+ b)./((3:2:∞) .+ (a+b)), :U)
+    end
+end
+function _jacobi_convert_b(a, b) # Jacobi(a, b+1) \ Jacobi(a, b)
+    if isone(-a-b)
+        Bidiagonal(Vcat(1, ((2:∞) .+ (a+b)) ./ ((3:2:∞) .+ (a+b))), ((1:∞) .+ a) ./ ((3:2:∞) .+ (a+b)), :U)
+    else
+        Bidiagonal(((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)), ((1:∞) .+ a)./((3:2:∞) .+ (a+b)), :U)
+    end
+end
+
+# TODO: implement ApplyArray(*, A) in LazyArrays.jl, then these can be simplified
+# the type specification is also because LazyArrays.jl is slow otherwise
+# getindex and print could be very slow. This needs to be fixed by LazyArrays.jl
+function _jacobi_convert_a(a, b, k, T) # Jacobi(a+k, b) \ Jacobi(a, b)
+    if iszero(k)
+        Eye{T}(∞)
+    elseif isone(k)
+        _jacobi_convert_a(a, b)
+    else
+        list = tuple([_jacobi_convert_a(a+j, b) for j in k-1:-1:0]...)
+        ApplyArray{T,2,typeof(*),typeof(list)}(*, list)
+    end
+end
+function _jacobi_convert_b(a, b, k, T) # Jacobi(a, b+k) \ Jacobi(a, b)
+    if iszero(k)
+        Eye{T}(∞)
+    elseif isone(k)
+        _jacobi_convert_b(a, b)
+    else
+        list = tuple([_jacobi_convert_b(a, b+j) for j in k-1:-1:0]...)
+        ApplyArray{T,2,typeof(*),typeof(list)}(*, list)
+    end
+end
+
 function \(A::Jacobi, B::Jacobi)
     T = promote_type(eltype(A), eltype(B))
-    a,b = B.a,B.b
-    if A.a ≈ a && A.b ≈ b
-        Eye{T}(∞)
-    elseif isone(-a-b) && A.a == a && A.b == b+1
-        Bidiagonal(Vcat(1, ((2:∞) .+ (a+b)) ./ ((3:2:∞) .+ (a+b))), ((1:∞) .+ a) ./ ((3:2:∞) .+ (a+b)), :U)
-    elseif isone(-a-b) && A.a == a+1 && A.b == b
-        Bidiagonal(Vcat(1, ((2:∞) .+ (a+b)) ./ ((3:2:∞) .+ (a+b))), -((1:∞) .+ b) ./ ((3:2:∞) .+ (a+b)), :U)
-    elseif A.a == a && A.b == b+1
-        Bidiagonal(((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)), ((1:∞) .+ a)./((3:2:∞) .+ (a+b)), :U)
-    elseif A.a == a+1 && A.b == b
-        Bidiagonal(((1:∞) .+ (a+b))./((1:2:∞) .+ (a+b)), -((1:∞) .+ b)./((3:2:∞) .+ (a+b)), :U)
-    elseif A.a ≥ a+1
-        J = Jacobi(a+1,b)
-        (A \ J) * (J \ B)
-    elseif A.b ≥ b+1
-        J = Jacobi(a,b+1)
-        (A \ J) * (J \ B)
-    elseif isinteger(A.a-a) && isinteger(A.b-b)
-        inv(B \ A)
+    aa, ab = A.a, A.b
+    ba, bb = B.a, B.b
+    ka = Integer(aa-ba)
+    kb = Integer(ab-bb)
+    if ka >= 0
+        C1 = _jacobi_convert_a(ba, ab, ka, T)
+        if kb >= 0
+            C2 = _jacobi_convert_b(ba, bb, kb, T)
+        else
+            C2 = inv(_jacobi_convert_b(ba, ab, -kb, T))
+        end
+        if iszero(ka)
+            C2
+        elseif iszero(kb)
+            C1
+        else
+            list = (C1, C2)
+            ApplyArray{T,2,typeof(*),typeof(list)}(*, list)
+        end
     else
-        error("not implemented for $A and $B")
+        inv(B \ A)
     end
 end
 
