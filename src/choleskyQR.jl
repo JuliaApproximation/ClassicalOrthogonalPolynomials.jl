@@ -66,8 +66,9 @@ end
 
 # Computes the initial data for the Jacobi operator bands
 function CholeskyJacobiData(U::AbstractMatrix{T}, UX) where T
-    dv = Vector{T}(undef,2) # compute a length 2 vector on first go
-    ev = Vector{T}(undef,2)
+    # compute a length 2 vector on first go and circumvent BigFloat issue
+    dv = zeros(T,2) 
+    ev = zeros(T,2)
     dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = -U[1,2]*UX[2,1]/(U[1,1]*U[2,2])+UX[2,2]/U[2,2] # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[1] = -UX[1,1]*U[1,2]/(U[1,1]*U[2,2])+UX[1,2]/U[2,2] # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
@@ -148,10 +149,10 @@ end
 function QRJacobiData{:Q,T}(F, P) where T
     b = 3+bandwidths(F.R)[2]÷2
     X = jacobimatrix(P)
-        # we fill 1 entry on the first run
-    dv = zeros(T,2)
+    # we fill 1 entry on the first run and circumvent BigFloat issue
+    dv = zeros(T,2) 
     ev = zeros(T,1)
-        # fill first entry (special case)
+    # fill first entry (special case)
     M = Matrix(X[1:b,1:b])
     resizedata!(F.factors,b,b)
     # special case for first entry double Householder product
@@ -176,8 +177,9 @@ function QRJacobiData{:R,T}(F, P) where T
     U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U)  # QR decomposition does not force positive diagonals on R by default
     X = jacobimatrix(P)
     UX = ApplyArray(*,U,X)
-    dv = Vector{T}(undef,2) # compute a length 2 vector on first go
-    ev = Vector{T}(undef,2)
+    # compute a length 2 vector on first go and circumvent BigFloat issue
+    dv = zeros(T,2) 
+    ev = zeros(T,2)
     dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = -U[1,2]*UX[2,1]/(U[1,1]*U[2,2])+UX[2,2]/U[2,2] # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[1] = -UX[1,1]*U[1,2]/(U[1,1]*U[2,2])+UX[1,2]/U[2,2] # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
@@ -216,7 +218,12 @@ function _fillqrbanddata!(J::QRJacobiData{:Q,T}, inds::UnitRange{Int}) where T
     resizedata!(J.U.τ,m)
     K, τ, F, dv, ev = J.UX, J.U.τ, J.U.factors, J.dv, J.ev
     D = sign.(view(J.U.R,band(0)).*view(J.U.R,band(0))[2:end])
-    M = Matrix{T}(undef,b+3,b+3)
+    M = zeros(T,b+3,b+3)
+    if isprimitivetype(T)
+        M = Matrix{T}(undef,b+3,b+3) 
+    else
+        M = zeros(T,b+3,b+3)
+    end
     @inbounds for n in jj
         dv[n] = K[1,1] # no sign correction needed on diagonal entry due to cancellation
         # doublehouseholderapply!(K,τ[n+1],view(F,n+2:n+b+2,n+1),w)
