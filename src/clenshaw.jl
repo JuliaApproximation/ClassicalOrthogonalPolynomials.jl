@@ -115,6 +115,9 @@ Base.@propagate_inbounds function getindex(f::Mul{<:AbstractOPLayout,<:PaddedLay
     unsafe_getindex(f, x, j...)
 end
 
+Base.@propagate_inbounds getindex(f::Mul{<:WeightedOPLayout,<:PaddedLayout}, x::Number, j...) =
+    weight(f.A)[x] * (unweighted(f.A) * f.B)[x, j...]
+
 ###
 # Operator clenshaw
 ###
