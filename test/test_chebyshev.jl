@@ -169,6 +169,8 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         end
 
         @testset "broadcast" begin
+            x = Inclusion(0..1)
+            T = Chebyshev()[2x .- 1,:]
             @test (x.^2 .* T)[0.1,1:10] ≈ 0.1^2 * T[0.1,1:10]
 
             f = T * [1:3; zeros(∞)]
