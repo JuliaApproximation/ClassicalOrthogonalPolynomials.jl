@@ -152,6 +152,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         @test chebyshevt(0..1) == chebyshevt(Inclusion(0..1)) == chebyshevt(T) == T
         @test (T \ [x exp.(x)])[1:20,1] ≈ (T\x)[1:20]
         @test (T \ [x exp.(x)])[1:20,2] ≈ (T\exp.(x))[1:20]
+        @test grid(T, 5) == (grid(Chebyshev(), 5) .+ 1)/2
 
         Tn = Chebyshev()[2x .- 1, [1,3,4]]
         @test (axes(Tn,1) .* Tn).args[2][1:5,:] ≈ (axes(T,1) .* T).args[2][1:5,[1,3,4]]
@@ -169,7 +170,14 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         end
 
         @testset "broadcast" begin
+            x = Inclusion(0..1)
+            T = Chebyshev()[2x .- 1,:]
             @test (x.^2 .* T)[0.1,1:10] ≈ 0.1^2 * T[0.1,1:10]
+
+            f = T * [1:3; zeros(∞)]
+            g = LinearSpline(-1:1)[parentindices(T)[1],:]  * [1:3;]
+            @test_throws ErrorException (f + g)[0.1]
+            @test_throws ErrorException (g + f)[0.1]
         end
     end
 
@@ -228,11 +236,15 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
             x = Inclusion(0..1)
             wT̃ = wT[2x .- 1, :]
             @test MemoryLayout(wT̃) isa MappedWeightedBasisLayout
+            @test wT̃ == wT̃
+            @test wT̃ ≠ T[2x .- 1, :]
+            @test T[2x .- 1, :] ≠ wT̃
             v = wT̃ * (wT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
 
             WT̃ = w[2x .- 1] .* T[2x .- 1, :]
             @test MemoryLayout(WT̃) isa WeightedBasisLayout{MappedOPLayout}
+            @test WT̃ ≠ T[2x .- 1, :]
             v = WT̃ * (WT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
 
@@ -253,6 +265,18 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
                 L = U \ ((x.^2 .- 1) .* Derivative(x) * T - x .* T)
                 c = T \ sqrt.(x.^2 .- 1)
                 @test [T[begin,:]'; L] \ [sqrt(2^2-1); zeros(∞)] ≈ c
+            end
+
+            @testset "algebra" begin
+                T = chebyshevt(2..3)
+                U = chebyshevu(2..3)
+                wT = Weighted(ChebyshevT())[parentindices(T)...]
+                f = T * [1:3; zeros(∞)]
+                g = U * [1:3; zeros(∞)]
+                h = wT * [1:3; zeros(∞)]
+
+                @test (f + g)[2.1] ≈ f[2.1]+g[2.1]
+                @test (f - g)[2.1] ≈ f[2.1]-g[2.1]
             end
         end
     end
@@ -542,6 +566,10 @@ ContinuumArrays.invmap(::InvQuadraticMap{T}) where T = QuadraticMap{T}()
     un2 = Tn2 \ (2 * x .^2 .- 1)
     u = T \ (2 * x .^2 .- 1)
     @test un ≈ un2 ≈ u[1:10]
+
+    f = T * [1:3; zeros(∞)]
+    g = chebyshevt(0..1) * [1:3; zeros(∞)]
+    @test_broken (f + g)[0.1] ≈ f[0.1] + g[0.1] # ContinuumArrays needs to check maps are equal
 end
 
 @testset "block structure" begin

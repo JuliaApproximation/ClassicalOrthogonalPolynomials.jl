@@ -55,9 +55,9 @@ Base.iterate(S::QuasiQR, ::Val{:done}) = nothing
 
 axes(Q::Normalized) = axes(Q.P)
 
-_equals(::AbstractNormalizedOPLayout, ::AbstractNormalizedOPLayout, P, Q) = orthogonalityweight(P) == orthogonalityweight(Q)
-_equals(::AbstractNormalizedOPLayout, ::AbstractOPLayout, P, Q) = isnormalized(Q) && orthogonalityweight(P) == orthogonalityweight(Q)
-_equals(::AbstractOPLayout, ::AbstractNormalizedOPLayout, P, Q) = isnormalized(P) && orthogonalityweight(P) == orthogonalityweight(Q)
+equals_layout(::AbstractNormalizedOPLayout, ::AbstractNormalizedOPLayout, P, Q) = orthogonalityweight(P) == orthogonalityweight(Q)
+equals_layout(::AbstractNormalizedOPLayout, ::AbstractOPLayout, P, Q) = isnormalized(Q) && orthogonalityweight(P) == orthogonalityweight(Q)
+equals_layout(::AbstractOPLayout, ::AbstractNormalizedOPLayout, P, Q) = isnormalized(P) && orthogonalityweight(P) == orthogonalityweight(Q)
 
 
 
