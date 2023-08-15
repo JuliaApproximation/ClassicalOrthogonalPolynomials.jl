@@ -152,6 +152,7 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
         @test chebyshevt(0..1) == chebyshevt(Inclusion(0..1)) == chebyshevt(T) == T
         @test (T \ [x exp.(x)])[1:20,1] ≈ (T\x)[1:20]
         @test (T \ [x exp.(x)])[1:20,2] ≈ (T\exp.(x))[1:20]
+        @test grid(T, 5) == (grid(Chebyshev(), 5) .+ 1)/2
 
         Tn = Chebyshev()[2x .- 1, [1,3,4]]
         @test (axes(Tn,1) .* Tn).args[2][1:5,:] ≈ (axes(T,1) .* T).args[2][1:5,[1,3,4]]
