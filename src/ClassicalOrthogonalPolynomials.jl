@@ -161,7 +161,7 @@ gives the singularity structure of an expansion, e.g.,
 `JacobiWeight`.
 """
 singularities(::AbstractWeightLayout, w) = w
-singularities(lay::BroadcastLayout, a::AbstractQuasiVector) = singularitiesbroadcast(call(a), map(singularities, arguments(lay, a))...)
+singularities(lay::BroadcastLayout, a) = singularitiesbroadcast(call(a), map(singularities, arguments(lay, a))...)
 singularities(::WeightedBasisLayouts, a) = singularities(BroadcastLayout{typeof(*)}(), a)
 singularities(::WeightedOPLayout, a) = singularities(weight(a))
 singularities(w) = singularities(MemoryLayout(w), w)
@@ -170,7 +170,7 @@ singularities(::ExpansionLayout, f) = singularities(basis(f))
 singularitiesview(w, ::Inclusion) = w # for now just assume it doesn't change
 singularities(S::SubQuasiArray) = singularitiesview(singularities(parent(S)), parentindices(S)[1])
 
-basis_axes(::Inclusion{<:Any,<:AbstractInterval}, v) = basis_singularities(singularities(v))
+basis_axes(::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{eltype(v)}, basis_singularities(singularities(v)))
 
 struct NoSingularities end
 
