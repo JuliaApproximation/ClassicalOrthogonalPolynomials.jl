@@ -191,8 +191,9 @@ import QuasiArrays: MulQuasiArray
     end
 
     @testset "log sum/diff" begin
+    	P = Legendre()
         z = 2 + im
-        f = expand(Legendre(), exp)
+        f = expand(P, exp)
         x = axes(f,1)
         @test sum(log.(z .- x) .* f) ≈ sum(expand(Legendre{ComplexF64}(), x -> log(z - x)*exp(x)))
         @test diff(log.(z .- x) .* P)[0.1,1:5] ≈ log.(z .- 0.1) .* diff(P)[0.1,1:5] - P[0.1,1:5] ./ (z .- 0.1)
