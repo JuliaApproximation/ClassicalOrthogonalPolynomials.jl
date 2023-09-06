@@ -94,7 +94,7 @@ end
 ldiv(P::Legendre{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
 function transform_ldiv(::Legendre{V}, f::Union{AbstractQuasiVector,AbstractQuasiMatrix}) where V
     T = ChebyshevT{V}()
-    dat = T \ f
+    dat = transform_ldiv(T, f)
     pad(th_cheb2leg(paddeddata(dat)), axes(dat)...)
 end
 
