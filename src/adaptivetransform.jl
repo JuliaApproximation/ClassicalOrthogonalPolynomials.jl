@@ -1,5 +1,5 @@
 
-transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
+ContinuumArrays.transform_ldiv_size(::Tuple{<:Any,InfiniteCardinal{0}}, A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}) where {T,V}  =
     adaptivetransform_ldiv(A, f)
 
 

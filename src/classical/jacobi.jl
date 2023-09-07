@@ -177,9 +177,9 @@ plotgrid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{2,T}(min(40n,
 
 ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
 ldiv(P::Jacobi{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
-function ldiv(P::Jacobi{V}, f::AbstractQuasiVector) where V
+function transform_ldiv(P::Jacobi{V}, f::AbstractQuasiArray) where V
     T = ChebyshevT{V}()
-    [cheb2jac(paddeddata(T \ f), P.a, P.b); zeros(V,∞)]
+    pad(cheb2jac(paddeddata(T \ f), P.a, P.b), axes(P,2), tail(axes(f))...)
 end
 
 

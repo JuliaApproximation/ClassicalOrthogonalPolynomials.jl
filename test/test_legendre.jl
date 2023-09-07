@@ -199,4 +199,11 @@ import QuasiArrays: MulQuasiArray
         @test diff(log.(z .- x) .* P)[0.1,1:5] ≈ log.(z .- 0.1) .* diff(P)[0.1,1:5] - P[0.1,1:5] ./ (z .- 0.1)
         @test diff(log.(z .- x) .* f)[0.1] ≈ log(z - 0.1) * exp(0.1) - exp(0.1) / (z - 0.1)
     end
+
+    @testset "type stable expansion" begin
+        P = Legendre()
+        T = ChebyshevT()
+        @test @inferred(T \ P[:,1]) == Vcat([1], Zeros(∞))
+        @test @inferred(P \ P[:,1]) == Vcat([1], Zeros(∞))
+    end
 end
