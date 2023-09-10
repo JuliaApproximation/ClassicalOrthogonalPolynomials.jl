@@ -266,7 +266,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
         P = Legendre()
         Q = Normalized(P)
         f = expand(Q, exp)
-        @test (Q/(Q\f))[0.1] ≈ exp(0.1)
+        @test (Q*(Q\f))[0.1] ≈ exp(0.1)
 
         W = JacobiWeight(1,1) .* Normalized(Jacobi(1,1))
         g = ApplyQuasiArray(*, W, [1:3; zeros(∞)])
