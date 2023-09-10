@@ -179,6 +179,13 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
             @test_throws ErrorException (f + g)[0.1]
             @test_throws ErrorException (g + f)[0.1]
         end
+
+        @testset "broadcast +" begin
+            x = Inclusion(0..1)
+            T = Chebyshev()[2x .- 1,:]
+            @test T \ (exp.(x) .+ cos.(x)) ≈ transform(T, x -> exp(x)+cos(x))
+            @test T \ (exp.(x) .- cos.(x)) ≈ transform(T, x -> exp(x)-cos(x))
+        end
     end
 
     @testset "weighted" begin
@@ -570,6 +577,8 @@ ContinuumArrays.invmap(::InvQuadraticMap{T}) where T = QuadraticMap{T}()
     f = T * [1:3; zeros(∞)]
     g = chebyshevt(0..1) * [1:3; zeros(∞)]
     @test_broken (f + g)[0.1] ≈ f[0.1] + g[0.1] # ContinuumArrays needs to check maps are equal
+
+    @test ClassicalOrthogonalPolynomials.singularities(T) === LegendreWeight()[QuadraticMap()]
 end
 
 @testset "block structure" begin

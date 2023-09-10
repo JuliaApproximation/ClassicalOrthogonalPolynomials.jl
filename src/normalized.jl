@@ -126,7 +126,7 @@ simplifiable(::Ldiv{<:NormalizedOPLayout,<:NormalizedOPLayout}) = Val(true)
 @inline copy(L::Ldiv{<:AbstractNormalizedOPLayout,Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
 @inline copy(L::Ldiv{Lay,<:AbstractNormalizedOPLayout}) where Lay<:AbstractLazyLayout = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{<:AbstractNormalizedOPLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
-copy(L::Ldiv{<:AbstractNormalizedOPLayout,<:ExpansionLayout}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
+@inline copy(L::Ldiv{<:AbstractNormalizedOPLayout,<:ExpansionLayout}) = copy(Ldiv{BasisLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{ApplyLayout{typeof(*)},<:AbstractNormalizedOPLayout}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{MappedOPLayout,<:AbstractNormalizedOPLayout}) = copy(Ldiv{MappedOPLayout,ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{<:AbstractNormalizedOPLayout,ApplyLayout{typeof(hcat)}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(hcat)}}(L.A, L.B))
@@ -149,9 +149,9 @@ function _norm_expand_ldiv(A, w_B)
     B̃,D = arguments(ApplyLayout{typeof(*)}(), B)
     (A \ (w .* B̃)) * D
 end
-simpliable(::Ldiv{<:AbstractNormalizedOPLayout,<:WeightedBasisLayout{<:AbstractNormalizedOPLayout}}) = Val(true)
+simplifiable(::Ldiv{<:AbstractNormalizedOPLayout,<:WeightedBasisLayout{<:AbstractNormalizedOPLayout}}) = Val(true)
 copy(L::Ldiv{<:AbstractNormalizedOPLayout,<:WeightedBasisLayout{<:AbstractNormalizedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
-simpliable(::Ldiv{OPLayout,<:WeightedBasisLayout{<:AbstractNormalizedOPLayout}}) = Val(true)
+simplifiable(::Ldiv{OPLayout,<:WeightedBasisLayout{<:AbstractNormalizedOPLayout}}) = Val(true)
 copy(L::Ldiv{OPLayout,<:WeightedBasisLayout{<:AbstractNormalizedOPLayout}}) = _norm_expand_ldiv(L.A, L.B)
 
 ###
