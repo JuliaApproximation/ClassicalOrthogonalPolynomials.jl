@@ -200,16 +200,16 @@ Base.array_summary(io::IO, C::LanczosJacobiBand{T}, inds::Tuple{Vararg{OneToInf{
 QuasiArrays.ApplyQuasiArray(Q::LanczosPolynomial) = ApplyQuasiArray(*, arguments(ApplyLayout{typeof(*)}(), Q)...)
 
 
-function \(A::LanczosPolynomial{T}, B::LanczosPolynomial{V}) where {T,V}
-    A == B && return Eye{promote_type(T,V)}(∞)
+@simplify function \(A::LanczosPolynomial, B::LanczosPolynomial)
+    A == B && return Eye{promote_type(eltype(A),eltype(B))}(∞)
     inv(LanczosConversion(A.data)) * (A.P \ B.P)  * LanczosConversion(B.data)
 end
-\(A::OrthogonalPolynomial, Q::LanczosPolynomial) = (A \ Q.P) * LanczosConversion(Q.data)
-\(A::Normalized, Q::LanczosPolynomial) = (A \ Q.P) * LanczosConversion(Q.data)
-\(Q::LanczosPolynomial, A::OrthogonalPolynomial) = inv(LanczosConversion(Q.data)) * (Q.P \ A)
-\(Q::LanczosPolynomial, A::Normalized) = inv(LanczosConversion(Q.data)) * (Q.P \ A)
-\(Q::LanczosPolynomial, A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}) = inv(LanczosConversion(Q.data)) * (Q.P \ A)
-\(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, Q::LanczosPolynomial) = (A \ Q.P) * LanczosConversion(Q.data)
+@simplify \(A::OrthogonalPolynomial, Q::LanczosPolynomial) = (A \ Q.P) * LanczosConversion(Q.data)
+@simplify \(A::Normalized, Q::LanczosPolynomial) = (A \ Q.P) * LanczosConversion(Q.data)
+@simplify \(Q::LanczosPolynomial, A::OrthogonalPolynomial) = inv(LanczosConversion(Q.data)) * (Q.P \ A)
+@simplify \(Q::LanczosPolynomial, A::Normalized) = inv(LanczosConversion(Q.data)) * (Q.P \ A)
+@simplify \(Q::LanczosPolynomial, A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}) = inv(LanczosConversion(Q.data)) * (Q.P \ A)
+@simplify \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, Q::LanczosPolynomial) = (A \ Q.P) * LanczosConversion(Q.data)
 
 ArrayLayouts.mul(Q::LanczosPolynomial, C::AbstractArray) = ApplyQuasiArray(*, Q, C)
 function ldiv(Qn::SubQuasiArray{<:Any,2,<:LanczosPolynomial,<:Tuple{<:Inclusion,<:Any}}, C::AbstractQuasiArray)

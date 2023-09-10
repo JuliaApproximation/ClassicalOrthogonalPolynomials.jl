@@ -1,5 +1,5 @@
 
-transform_ldiv(A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}, ::Tuple{<:Any,InfiniteCardinal{0}}) where {T,V}  =
+ContinuumArrays.transform_ldiv_size(::Tuple{<:Any,InfiniteCardinal{0}}, A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}) where {T,V}  =
     adaptivetransform_ldiv(A, f)
 
 
@@ -31,7 +31,7 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector
 
     for jr in increasingtruncations(ax)
         An = A[:,jr]
-        cfs = An \ f
+        cfs = transform_ldiv(An, f)
         maxabsc = maximum(abs, cfs)
         if maxabsc ≤ tol && maxabsfr ≤ tol # probably zero
             return pad(similar(cfs,0), ax)

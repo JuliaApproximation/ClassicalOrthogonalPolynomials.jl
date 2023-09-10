@@ -75,7 +75,18 @@ MemoryLayout(::Type{<:OrthogonalPolynomial}) = OPLayout()
 
 sublayout(::AbstractOPLayout, ::Type{<:Tuple{<:AbstractAffineQuasiVector,<:Slice}}) = MappedOPLayout()
 
+"""
+    MappedOPLayout
+
+represents an OP that is (usually affine) mapped OP
+"""
 struct MappedOPLayout <: AbstractOPLayout end
+
+"""
+    WeightedOPLayout
+
+represents an OP multiplied by its orthogonality weight.
+"""
 struct WeightedOPLayout{Lay<:AbstractOPLayout} <: AbstractWeightedBasisLayout end
 
 isorthogonalityweighted(::WeightedOPLayout, _) = true
@@ -96,10 +107,6 @@ broadcastbasis_layout(::typeof(+), ::MappedOPLayout, M::MappedBasisLayout, P, Q)
 broadcastbasis_layout(::typeof(+), L::MappedBasisLayout, ::MappedOPLayout, P, Q) = broadcastbasis_layout(+, L, MappedBasisLayout(), P, Q)
 sum_layout(::MappedOPLayout, A, dims) = sum_layout(MappedBasisLayout(), A, dims)
 
-# demap to avoid Golub-Welsch fallback
-ContinuumArrays.transform_ldiv_if_columns(L::Ldiv{MappedOPLayout,Lay}, ax::OneTo) where Lay = ContinuumArrays.transform_ldiv_if_columns(Ldiv{MappedBasisLayout,Lay}(L.A,L.B), ax)
-ContinuumArrays.transform_ldiv_if_columns(L::Ldiv{MappedOPLayout,ApplyLayout{typeof(hcat)}}, ax::OneTo) = ContinuumArrays.transform_ldiv_if_columns(Ldiv{MappedBasisLayout,UnknownLayout}(L.A,L.B), ax)
-
 equals_layout(::AbstractOPLayout, ::AbstractWeightedBasisLayout, _, _) = false # Weighted-Legendre doesn't exist
 equals_layout(::AbstractWeightedBasisLayout, ::AbstractOPLayout, _, _) = false # Weighted-Legendre doesn't exist
 
@@ -109,7 +116,14 @@ equals_layout(::WeightedBasisLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP
 equals_layout(::WeightedBasisLayout{<:AbstractOPLayout}, ::WeightedBasisLayout{<:AbstractOPLayout}, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
 
 
-copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:MappedBasisLayouts = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,Lay}) where Lay = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,BroadcastLayout{typeof(-)}}) = copy(Ldiv{MappedBasisLayout,BroadcastLayout{typeof(-)}}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,BroadcastLayout{typeof(+)}}) = copy(Ldiv{MappedBasisLayout,BroadcastLayout{typeof(+)}}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{MappedBasisLayout,BroadcastLayout{typeof(*)}}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,ApplyLayout{typeof(hcat)}}) = copy(Ldiv{MappedBasisLayout,ApplyLayout{typeof(hcat)}}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{MappedBasisLayout,ApplyLayout{typeof(*)}}(L.A,L.B))
 
 # OPs are immutable
 copy(a::OrthogonalPolynomial) = a
@@ -168,6 +182,7 @@ singularities(w) = singularities(MemoryLayout(w), w)
 singularities(::ExpansionLayout, f) = singularities(basis(f))
 
 singularitiesview(w, ::Inclusion) = w # for now just assume it doesn't change
+singularitiesview(w, ind) = view(w, ind)
 singularities(S::SubQuasiArray) = singularitiesview(singularities(parent(S)), parentindices(S)[1])
 
 basis_axes(::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{eltype(v)}, basis_singularities(singularities(v)))
@@ -291,14 +306,14 @@ end
 plan_grid_transform(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=1:N) where N =
     plan_grid_transform(MappedBasisLayout(), L, szs, dims)
 
-function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
+@simplify function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
     _,jA = parentindices(A)
     _,jB = parentindices(B)
     (parent(A) \ parent(B))[jA, jB]
 end
 
-function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}})
+@simplify function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
     parent(A) \ parent(B)
 end

@@ -346,10 +346,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test Jacobi(0.0,0.0) \ Legendre() == Eye(∞)
         @test ((Ultraspherical(3/2) \ Jacobi(1,1))*(Jacobi(1,1) \ Ultraspherical(3/2)))[1:10,1:10] ≈ Eye(10)
         f = Jacobi(0.0,0.0)*[[1,2,3]; zeros(∞)]
-        g = (Legendre() \ f) - f.args[2]
-        @test_skip norm(g) ≤ 1E-15
-        @test_broken (Legendre() \ f) == f.args[2]
-        @test (Legendre() \ f)[1:10] ≈ f.args[2][1:10]
+        g = (Legendre() \ f) - coefficients(f)
+        @test_skip norm(g) ≤ 1E-15
+        @test (Legendre() \ f) == coefficients(f)
+        @test (Legendre() \ f)[1:10] ≈ coefficients(f)[1:10]
         f = Jacobi(1.0,1.0)*[[1,2,3]; zeros(∞)]
         g = Ultraspherical(3/2)*(Ultraspherical(3/2)\f)
         @test f[0.1] ≈ g[0.1]

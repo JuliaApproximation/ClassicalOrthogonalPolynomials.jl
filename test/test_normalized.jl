@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, LinearAlgebra, Test
+using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, LinearAlgebra, QuasiArrays, Test
 import ClassicalOrthogonalPolynomials: NormalizedOPLayout, recurrencecoefficients, Normalized, Clenshaw, weighted, grid, plotgrid
 import LazyArrays: CachedVector, PaddedLayout
 import ContinuumArrays: MappedWeightedBasisLayout
@@ -260,5 +260,16 @@ import ContinuumArrays: MappedWeightedBasisLayout
             X[k, j, :] = Qₙ[g,:] \ X[k, j, :]
         end
         @test PX ≈ X
+    end
+
+    @testset "simplifable" begin
+        P = Legendre()
+        Q = Normalized(P)
+        f = expand(Q, exp)
+        @test (Q*(Q\f))[0.1] ≈ exp(0.1)
+
+        W = JacobiWeight(1,1) .* Normalized(Jacobi(1,1))
+        g = ApplyQuasiArray(*, W, [1:3; zeros(∞)])
+        @test P \ g ≈ transform(P, x -> g[x])
     end
 end
