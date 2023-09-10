@@ -116,8 +116,9 @@ equals_layout(::WeightedBasisLayout, ::WeightedOPLayout, wP, wQ) = unweighted(wP
 equals_layout(::WeightedBasisLayout{<:AbstractOPLayout}, ::WeightedBasisLayout{<:AbstractOPLayout}, wP, wQ) = unweighted(wP) == unweighted(wQ) && weight(wP) == weight(wQ)
 
 
-copy(L::Ldiv{MappedOPLayout}) = copy(Ldiv{MappedBasisLayout,typeof(MemoryLayout(L.B))}(L.A,L.B))
-copy(L::Ldiv{MappedOPLayout,<:AbstractLazyLayout}) = copy(Ldiv{MappedBasisLayout,typeof(MemoryLayout(L.B))}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,Lay}) where Lay = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
 copy(L::Ldiv{MappedOPLayout,BroadcastLayout{typeof(-)}}) = copy(Ldiv{MappedBasisLayout,BroadcastLayout{typeof(-)}}(L.A,L.B))
 copy(L::Ldiv{MappedOPLayout,BroadcastLayout{typeof(+)}}) = copy(Ldiv{MappedBasisLayout,BroadcastLayout{typeof(+)}}(L.A,L.B))
 copy(L::Ldiv{MappedOPLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{MappedBasisLayout,BroadcastLayout{typeof(*)}}(L.A,L.B))
@@ -181,6 +182,7 @@ singularities(w) = singularities(MemoryLayout(w), w)
 singularities(::ExpansionLayout, f) = singularities(basis(f))
 
 singularitiesview(w, ::Inclusion) = w # for now just assume it doesn't change
+singularitiesview(w, ind) = view(w, ind)
 singularities(S::SubQuasiArray) = singularitiesview(singularities(parent(S)), parentindices(S)[1])
 
 basis_axes(::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{eltype(v)}, basis_singularities(singularities(v)))
@@ -304,14 +306,14 @@ end
 plan_grid_transform(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=1:N) where N =
     plan_grid_transform(MappedBasisLayout(), L, szs, dims)
 
-function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
+@simplify function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
     _,jA = parentindices(A)
     _,jB = parentindices(B)
     (parent(A) \ parent(B))[jA, jB]
 end
 
-function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}})
+@simplify function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{Any,Slice}})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
     parent(A) \ parent(B)
 end

@@ -31,7 +31,7 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector
 
     for jr in increasingtruncations(ax)
         An = A[:,jr]
-        cfs = An \ f
+        cfs = transform_ldiv(An, f)
         maxabsc = maximum(abs, cfs)
         if maxabsc ≤ tol && maxabsfr ≤ tol # probably zero
             return pad(similar(cfs,0), ax)
