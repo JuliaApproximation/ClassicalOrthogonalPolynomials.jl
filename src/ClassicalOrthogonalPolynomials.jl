@@ -117,6 +117,7 @@ equals_layout(::WeightedBasisLayout{<:AbstractOPLayout}, ::WeightedBasisLayout{<
 
 
 copy(L::Ldiv{MappedOPLayout,Lay}) where Lay = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
+copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:ExpansionLayout = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
 copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:AbstractLazyLayout = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
 copy(L::Ldiv{MappedOPLayout,Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{MappedBasisLayout,Lay}(L.A,L.B))
 copy(L::Ldiv{MappedOPLayout,BroadcastLayout{typeof(-)}}) = copy(Ldiv{MappedBasisLayout,BroadcastLayout{typeof(-)}}(L.A,L.B))

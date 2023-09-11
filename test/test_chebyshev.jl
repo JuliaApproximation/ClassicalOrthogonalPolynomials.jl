@@ -186,6 +186,13 @@ import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
             @test T \ (exp.(x) .+ cos.(x)) ≈ transform(T, x -> exp(x)+cos(x))
             @test T \ (exp.(x) .- cos.(x)) ≈ transform(T, x -> exp(x)-cos(x))
         end
+
+        @testset "expansion" begin
+            x = Inclusion(0..1)
+            T = Chebyshev()[2x .- 1,:]
+            f = T * [1:3; zeros(∞)]
+            @test T \ f ≈ [1:3; zeros(∞)]
+        end
     end
 
     @testset "weighted" begin
