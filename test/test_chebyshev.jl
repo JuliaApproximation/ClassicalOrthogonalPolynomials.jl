@@ -5,6 +5,7 @@ import LazyArrays: ApplyStyle
 import QuasiArrays: MulQuasiMatrix
 import Base: OneTo
 import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
+import BandedMatrices: isbanded
 
 @testset "Chebyshev" begin
     @testset "ChebyshevGrid" begin
