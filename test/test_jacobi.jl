@@ -172,6 +172,12 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test (D * (JacobiWeight(c,a) .* P))[0.1,1:5] ≈ ((JacobiWeight(c,a) .* P)[0.1+h,1:5]-(JacobiWeight(c,a) .* P)[0.1,1:5])/h atol=1E-5
             @test (D * (JacobiWeight(c,a) .* P))[0.1,1:5] ≈ (D * (JacobiWeight(c,a) .* Legendre()))[0.1,1:5]
         end
+
+        @testset "grammatrix" begin
+            W = Weighted(jacobi(1,1,0..1))
+            M = grammatrix(W)
+            @test M[1:10,1:10] == grammatrix(Weighted(Jacobi(1,1)))[1:10,1:10]/2
+        end
     end
 
     @testset "functions" begin

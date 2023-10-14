@@ -210,6 +210,7 @@ function weightedgrammatrix_layout(::MappedOPLayout, P)
 end
 
 grammatrix_layout(::MappedOPLayout, P) = grammatrix_layout(MappedBasisLayout(), P)
+grammatrix_layout(::WeightedOPLayout{MappedOPLayout}, P) = grammatrix_layout(MappedBasisLayout(), P)
 
 OrthogonalPolynomial(w::Weight) =error("Override for $(typeof(w))")
 
