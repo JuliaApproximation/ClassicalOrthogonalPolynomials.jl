@@ -69,6 +69,16 @@ singularitiesbroadcast(::typeof(*), V::Union{NoSingularities,SubQuasiArray}...) 
 
 abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
 
+struct JacobiTransformPlan{T, CHEB2JAC, DCT} <: Plan{T}
+    cheb2jac::CHEB2JAC
+    chebtransform::DCT
+end
+
+JacobiTransformPlan(c2l, ct) = JacobiTransformPlan{promote_type(eltype(c2l),eltype(ct)),typeof(c2l),typeof(ct)}(c2l, ct)
+
+*(P::JacobiTransformPlan, x::AbstractArray) = P.cheb2jac*(P.chebtransform*x)
+
+
 include("legendre.jl")
 
 singularitiesbroadcast(::typeof(*), ::LegendreWeight, b::AbstractJacobiWeight) = b
@@ -93,6 +103,13 @@ jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi{float(promote_type(eltype(a
 Jacobi(P::Legendre{T}) where T = Jacobi(zero(T), zero(T))
 
 basis_singularities(w::JacobiWeight) = Weighted(Jacobi(w.a, w.b))
+
+function plan_grid_transform(P::Jacobi{T}, szs::NTuple{N,Int}, dims=1:N) where {T,N}
+    arr = Array{T}(undef, szs...)
+    x = grid(P, size(arr,1))
+    x, JacobiTransformPlan(FastTransforms.plan_th_jac2jac!(arr, dims), plan_chebyshevtransform(arr, dims))
+end
+
 
 """
      jacobip(n, a, b, z)

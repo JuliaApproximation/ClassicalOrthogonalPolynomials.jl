@@ -98,19 +98,10 @@ function transform_ldiv(::Legendre{V}, f::Union{AbstractQuasiVector,AbstractQuas
     pad(th_cheb2leg(paddeddata(dat)), axes(dat)...)
 end
 
-struct LegendreTransformPlan{T, CHEB2LEG, DCT} <: Plan{T}
-    cheb2leg::CHEB2LEG
-    chebtransform::DCT
-end
-
-LegendreTransformPlan(c2l, ct) = LegendreTransformPlan{promote_type(eltype(c2l),eltype(ct)),typeof(c2l),typeof(ct)}(c2l, ct)
-
-*(P::LegendreTransformPlan, x::AbstractArray) = P.cheb2leg*(P.chebtransform*x)
-
 function plan_grid_transform(P::Legendre{T}, szs::NTuple{N,Int}, dims=1:N) where {T,N}
     arr = Array{T}(undef, szs...)
     x = grid(P, size(arr,1))
-    x, LegendreTransformPlan(FastTransforms.plan_th_cheb2leg!(arr, dims), plan_chebyshevtransform(arr, dims))
+    x, JacobiTransformPlan(FastTransforms.plan_th_cheb2leg!(arr, dims), plan_chebyshevtransform(arr, dims))
 end
 
 
