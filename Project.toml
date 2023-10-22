@@ -1,7 +1,7 @@
 name = "ClassicalOrthogonalPolynomials"
 uuid = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
 authors = ["Sheehan Olver <solver@mac.com>"]
-version = "0.11.9"
+version = "0.11.10"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
@@ -33,7 +33,7 @@ ContinuumArrays = "0.16"
 DomainSets = "0.6"
 FFTW = "1.1"
 FastGaussQuadrature = "0.5, 1"
-FastTransforms = "0.15.2"
+FastTransforms = "0.15.10"
 FillArrays = "1"
 HypergeometricFunctions = "0.3.4"
 InfiniteArrays = "0.12.11, 0.13"

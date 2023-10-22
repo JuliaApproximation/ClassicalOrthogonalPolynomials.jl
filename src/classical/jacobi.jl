@@ -107,7 +107,7 @@ basis_singularities(w::JacobiWeight) = Weighted(Jacobi(w.a, w.b))
 function plan_grid_transform(P::Jacobi{T}, szs::NTuple{N,Int}, dims=1:N) where {T,N}
     arr = Array{T}(undef, szs...)
     x = grid(P, size(arr,1))
-    x, JacobiTransformPlan(FastTransforms.plan_th_jac2jac!(arr, dims), plan_chebyshevtransform(arr, dims))
+    x, JacobiTransformPlan(FastTransforms.plan_th_cheb2jac!(arr, P.a, P.b, dims), plan_chebyshevtransform(arr, dims))
 end
 
 
@@ -196,7 +196,7 @@ ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
 ldiv(P::Jacobi{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
 function transform_ldiv(P::Jacobi{V}, f::AbstractQuasiArray) where V
     T = ChebyshevT{V}()
-    pad(cheb2jac(paddeddata(T \ f), P.a, P.b), axes(P,2), tail(axes(f))...)
+    pad(FastTransforms.th_cheb2jac(paddeddata(T \ f), P.a, P.b, 1), axes(P,2), tail(axes(f))...)
 end
 
 

@@ -197,6 +197,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         P = Jacobi(1/2,0.)
         x = axes(P,1)
         @test (P * (P \ exp.(x)))[0.1] ≈ exp(0.1)
+        @test P[:,1:20] \ exp.(x) ≈ (P \ exp.(x))[1:20]
 
         @test P[0.1,:]' * (P \ [exp.(x) cos.(x)]) ≈ [exp(0.1) cos(0.1)]
 
@@ -219,8 +220,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             x = axes(P,1)
             u = P * (P \ exp.(x))
             @test u[0.1] ≈ exp(0.1)
-            # U = P * (P \ [exp.(x) cos.(x)]) # not good at multiscale
-            @test_broken U[0.1,:] ≈ [exp(0.1),cos(0.1)]
+            U = P * (P \ [exp.(x) cos.(x)])
+            @test U[0.1,:] ≈ [exp(0.1),cos(0.1)]
         end
 
         @testset "special cases" begin
