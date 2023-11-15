@@ -38,7 +38,7 @@ import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, Abstract
     grid, plotgrid, plotgrid_layout, plotvalues_layout, grid_layout, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, broadcastbasis_layout,
-    plan_transform, plan_grid_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout
+    plan_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg
 
@@ -140,7 +140,27 @@ x*P == P*X
 ```
 Note that `X` is the transpose of the usual definition of the Jacobi matrix.
 """
-jacobimatrix(P) = error("Override for $(typeof(P))")
+jacobimatrix_layout(lay, P, n...) = error("Override for $(typeof(P))")
+
+
+"""
+    _tritrunc(X,n)
+
+does a square truncation of a tridiagonal matrix.
+"""
+function _tritrunc(_, X, n)
+    c,a,b = subdiagonaldata(X),diagonaldata(X),supdiagonaldata(X)
+    Tridiagonal(c[OneTo(n-1)],a[OneTo(n)],b[OneTo(n-1)])
+end
+
+function _tritrunc(::SymTridiagonalLayout, X, n)
+    a,b = diagonaldata(X),supdiagonaldata(X)
+    SymTridiagonal(a[OneTo(n)],b[OneTo(n-1)])
+end
+
+_tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
+
+jacobimatrix(P, n) = _tritrunc(jacobimatrix(P), n)
 
 
 """
@@ -161,11 +181,13 @@ The relationship with the Jacobi matrix is:
 C[n+1]/A[n+1] == X[n,n+1]
 ```
 """
-function recurrencecoefficients(Q::AbstractQuasiMatrix{T}) where T
+function recurrencecoefficients_layout(lay, Q::AbstractQuasiMatrix{T}) where T
     X = jacobimatrix(Q)
     c,a,b = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
     inv.(c), -(a ./ c), Vcat(zero(T), b) ./ c
 end
+
+recurrencecoefficients(Q) = recurrencecoefficients_layout(MemoryLayout(Q), Q)
 
 
 
@@ -237,16 +259,18 @@ end
 
 
 
-function jacobimatrix(C::SubQuasiArray{T,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) where T
+function jacobimatrix_layout(::MappedOPLayout, C, n...)
     P = parent(C)
     kr,jr = parentindices(C)
-    Y = jacobimatrix(P)
+    @assert kr isa AbstractAffineQuasiVector
+    Y = jacobimatrix(P, n...)
     kr.A \ (Y - kr.b * Eye{T}(size(Y,1)))
 end
 
-function recurrencecoefficients(C::SubQuasiArray{T,2,<:Any,<:Tuple{AbstractAffineQuasiVector,Slice}}) where T
+function recurrencecoefficients_layout(::MappedOPLayout, C, n...)
     P = parent(C)
     kr,jr = parentindices(C)
+    @assert kr isa AbstractAffineQuasiVector
     A,B,C = recurrencecoefficients(P)
     A * kr.A, A*kr.b + B, C
 end
@@ -257,56 +281,41 @@ include("normalized.jl")
 include("lanczos.jl")
 include("choleskyQR.jl")
 
-function _tritrunc(_, X, n)
-    c,a,b = subdiagonaldata(X),diagonaldata(X),supdiagonaldata(X)
-    Tridiagonal(c[OneTo(n-1)],a[OneTo(n)],b[OneTo(n-1)])
-end
-
-function _tritrunc(::SymTridiagonalLayout, X, n)
-    a,b = diagonaldata(X),supdiagonaldata(X)
-    SymTridiagonal(a[OneTo(n)],b[OneTo(n-1)])
-end
-
-_tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
-
-jacobimatrix(V::SubQuasiArray{<:Any,2,<:Any,<:Tuple{Inclusion,OneTo}}) =
-    _tritrunc(jacobimatrix(parent(V)), maximum(parentindices(V)[2]))
-
-grid_layout(::AbstractOPLayout, P, n::Integer) = eigvals(symtridiagonalize(jacobimatrix(P[:,OneTo(n)])))
+grid_layout(::AbstractOPLayout, P, n::Integer) = eigvals(symtridiagonalize(jacobimatrix(P, n)))
 grid_layout(::MappedOPLayout, P, n::Integer) = grid_layout(MappedBasisLayout(), P, n)
 plotgrid_layout(::AbstractOPLayout, P, n::Integer) = grid(P, min(40n, MAX_PLOT_POINTS))
 plotgrid_layout(::MappedOPLayout, P, n::Integer) = plotgrid_layout(MappedBasisLayout(), P, n)
 plotvalues_layout(::ExpansionLayout{MappedOPLayout}, f, x...) = plotvalues_layout(ExpansionLayout{MappedBasisLayout}(), f, x...)
 
-function golubwelsch(X)
+function golubwelsch(X::AbstractMatrix)
     D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
     D, V[1,:].^2
 end
 
-function golubwelsch(V::SubQuasiArray)
-    x,w = golubwelsch(jacobimatrix(V))
+function golubwelsch(P, n::Integer)
+    x,w = golubwelsch(jacobimatrix(P, n))
     w .*= sum(orthogonalityweight(parent(V)))
     x,w
 end
 
+golubwelsch(V::SubQuasiArray) = golubwelsch(parent(V), maximum(parentindices(V)[2]))
 
-function plan_grid_transform(Q::Normalized, szs::NTuple{N,Int}, dims=1:N) where N
-    L = Q[:,OneTo(szs[1])]
-    x,w = golubwelsch(L)
-    x, MulPlan(L[x,:]'*Diagonal(w), dims)
+
+function plan_transform(Q::Normalized, szs::NTuple{N,Int}, dims=1:N) where N
+    xws = golubwelsch.(Ref(L), szs)
+    MulPlan(map(xw -> ((x,w) = xw; L[x,:]'*Diagonal(w)), xws), dims)
 end
 
-function plan_grid_transform(::AbstractOPLayout, P, szs::NTuple{N,Int}, dims=1:N) where N
+function plan_transform(::AbstractOPLayout, P, szs::NTuple{N,Int}, dims=1:N) where N
     Q = Normalized(P)
-    x, A = plan_grid_transform(Q, szs, dims...)
+    A = plan_transform(Q, szs, dims...)
     n = szs[1]
     D = (P \ Q)[1:n, 1:n]
-    x, D * A
+    D * A
 end
 
 
-plan_grid_transform(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=1:N) where N =
-    plan_grid_transform(MappedBasisLayout(), L, szs, dims)
+plan_transform(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=1:N) where N = plan_transform(MappedBasisLayout(), L, szs, dims)
 
 @simplify function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
