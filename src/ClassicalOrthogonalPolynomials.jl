@@ -140,7 +140,9 @@ x*P == P*X
 ```
 Note that `X` is the transpose of the usual definition of the Jacobi matrix.
 """
-jacobimatrix_layout(lay, P, n...) = error("Override for $(typeof(P))")
+jacobimatrix(P, n...) = jacobimatrix_layout(MemoryLayout(P), P, n...)
+
+jacobimatrix_layout(lay, P) = error("Override for $(typeof(P))")
 
 
 """
@@ -160,7 +162,7 @@ end
 
 _tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
 
-jacobimatrix(P, n) = _tritrunc(jacobimatrix(P), n)
+jacobimatrix_layout(lay, P, n) = _tritrunc(jacobimatrix(P), n)
 
 
 """
@@ -181,7 +183,8 @@ The relationship with the Jacobi matrix is:
 C[n+1]/A[n+1] == X[n,n+1]
 ```
 """
-function recurrencecoefficients_layout(lay, Q::AbstractQuasiMatrix{T}) where T
+function recurrencecoefficients_layout(lay, Q)
+    T = eltype(Q)
     X = jacobimatrix(Q)
     c,a,b = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
     inv.(c), -(a ./ c), Vcat(zero(T), b) ./ c
@@ -260,6 +263,7 @@ end
 
 
 function jacobimatrix_layout(::MappedOPLayout, C, n...)
+    T = eltype(C)
     P = parent(C)
     kr,jr = parentindices(C)
     @assert kr isa AbstractAffineQuasiVector

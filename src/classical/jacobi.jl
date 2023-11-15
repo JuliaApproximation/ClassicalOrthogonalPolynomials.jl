@@ -104,11 +104,7 @@ Jacobi(P::Legendre{T}) where T = Jacobi(zero(T), zero(T))
 
 basis_singularities(w::JacobiWeight) = Weighted(Jacobi(w.a, w.b))
 
-function plan_grid_transform(P::Jacobi{T}, szs::NTuple{N,Int}, dims=1:N) where {T,N}
-    arr = Array{T}(undef, szs...)
-    x = grid(P, size(arr,1))
-    x, JacobiTransformPlan(FastTransforms.plan_th_cheb2jac!(arr, P.a, P.b, dims), plan_chebyshevtransform(arr, dims))
-end
+plan_transform(P::Jacobi{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_cheb2jac!(T, szs, P.a, P.b, dims), plan_chebyshevtransform(T, szs, dims...))
 
 
 """

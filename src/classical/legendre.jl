@@ -98,11 +98,7 @@ function transform_ldiv(::Legendre{V}, f::Union{AbstractQuasiVector,AbstractQuas
     pad(th_cheb2leg(paddeddata(dat)), axes(dat)...)
 end
 
-function plan_grid_transform(P::Legendre{T}, szs::NTuple{N,Int}, dims=1:N) where {T,N}
-    arr = Array{T}(undef, szs...)
-    x = grid(P, size(arr,1))
-    x, JacobiTransformPlan(FastTransforms.plan_th_cheb2leg!(arr, dims), plan_chebyshevtransform(arr, dims))
-end
+plan_transform(::Legendre{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_cheb2leg!(T, szs, dims...), plan_chebyshevtransform(T, szs, dims...))
 
 
 """
