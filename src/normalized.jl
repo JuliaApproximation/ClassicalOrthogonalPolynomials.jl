@@ -91,7 +91,7 @@ QuasiArrays.ApplyQuasiArray(Q::Normalized) = ApplyQuasiArray(*, arguments(ApplyL
 
 ArrayLayouts.mul(Q::Normalized, C::AbstractArray) = ApplyQuasiArray(*, Q, C)
 
-grid(P::Normalized, n...) = grid(P.P, n...)
+grid(P::Normalized, n::Integer) = grid(P.P, n)
 plotgrid(P::Normalized, n...) = plotgrid(P.P, n...)
 
 # transform_ldiv(Q::Normalized, C::AbstractQuasiArray) = Q.scaling .\ (Q.P \ C)
