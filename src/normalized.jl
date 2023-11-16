@@ -91,10 +91,10 @@ QuasiArrays.ApplyQuasiArray(Q::Normalized) = ApplyQuasiArray(*, arguments(ApplyL
 
 ArrayLayouts.mul(Q::Normalized, C::AbstractArray) = ApplyQuasiArray(*, Q, C)
 
-grid(P::Normalized, n::Integer) = grid(P.P, n)
-plotgrid(P::Normalized, n...) = plotgrid(P.P, n...)
+# TODO: Leverage fast transforms
 
 # transform_ldiv(Q::Normalized, C::AbstractQuasiArray) = Q.scaling .\ (Q.P \ C)
+# this leverages fast transforms for Q.P
 function transform_ldiv(Q::Normalized, C::AbstractQuasiArray)
     c = paddeddata(Q.P \ C)
     [Q.scaling[axes(c,1)] .\ c; zeros(eltype(c), ∞)]

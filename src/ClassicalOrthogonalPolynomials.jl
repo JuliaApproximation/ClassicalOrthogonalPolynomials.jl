@@ -38,7 +38,7 @@ import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, Abstract
     grid, plotgrid, plotgrid_layout, plotvalues_layout, grid_layout, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, broadcastbasis_layout,
-    plan_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout
+    plan_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg
 
@@ -285,6 +285,7 @@ include("normalized.jl")
 include("lanczos.jl")
 include("choleskyQR.jl")
 
+# Default is Golub–Welsch
 grid_layout(::AbstractOPLayout, P, n::Integer) = eigvals(symtridiagonalize(jacobimatrix(P, n)))
 grid_layout(::MappedOPLayout, P, n::Integer) = grid_layout(MappedBasisLayout(), P, n)
 plotgrid_layout(::AbstractOPLayout, P, n::Integer) = grid(P, min(40n, MAX_PLOT_POINTS))
@@ -298,28 +299,33 @@ end
 
 function golubwelsch(P, n::Integer)
     x,w = golubwelsch(jacobimatrix(P, n))
-    w .*= sum(orthogonalityweight(parent(V)))
+    w .*= sum(orthogonalityweight(P))
     x,w
 end
 
 golubwelsch(V::SubQuasiArray) = golubwelsch(parent(V), maximum(parentindices(V)[2]))
 
-
-function plan_transform(Q::Normalized, szs::NTuple{N,Int}, dims=1:N) where N
-    xws = golubwelsch.(Ref(L), szs)
-    MulPlan(map(xw -> ((x,w) = xw; L[x,:]'*Diagonal(w)), xws), dims)
+# Default is Golub–Welsch expansion
+# note this computes the grid an extra time.
+function plan_transform_layout(::AbstractOPLayout, P, szs::NTuple{N,Int}, dims=ntuple(identity,Val(N))) where N
+    dimsz = getindex.(Ref(szs), dims) # get the sizes of transformed dimensions
+    if P isa Normalized
+        MulPlan(map(dimsz) do n
+            (x,w) = golubwelsch(P, n)
+            P[x,oneto(n)]'*Diagonal(w)
+            end, dims)
+    else
+        Q = normalized(P)
+        MulPlan(map(dimsz) do n
+            (x,w) = golubwelsch(Q, n)
+            D = (P \ Q)[1:n, 1:n]
+            D*Q[x,oneto(n)]'*Diagonal(w)
+            end, dims)
+    end
 end
 
-function plan_transform(::AbstractOPLayout, P, szs::NTuple{N,Int}, dims=1:N) where N
-    Q = Normalized(P)
-    A = plan_transform(Q, szs, dims...)
-    n = szs[1]
-    D = (P \ Q)[1:n, 1:n]
-    D * A
-end
 
-
-plan_transform(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=1:N) where N = plan_transform(MappedBasisLayout(), L, szs, dims)
+plan_transform_layout(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=ntuple(identity,Val(N))) where N = plan_transform(MappedBasisLayout(), L, szs, dims)
 
 @simplify function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())
