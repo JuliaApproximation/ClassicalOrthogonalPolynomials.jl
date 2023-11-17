@@ -4,7 +4,7 @@ using Base, ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, FillAr
 using ForwardDiff, SemiseparableMatrices, SpecialFunctions, LazyBandedMatrices
 import ContinuumArrays: BasisLayout, MappedBasisLayout
 import ClassicalOrthogonalPolynomials: jacobimatrix, ∞, ChebyshevInterval, LegendreWeight,
-            Clenshaw, forwardrecurrence!, singularities
+            Clenshaw, forwardrecurrence!, singularities, OrthogonalPolynomial
 import LazyArrays: ApplyStyle, colsupport, MemoryLayout, arguments
 import SemiseparableMatrices: VcatAlmostBandedLayout
 import QuasiArrays: MulQuasiMatrix
@@ -72,4 +72,10 @@ end
 
     # A = x .^ (0:2)'
     # sum(A; dims=1)
+end
+
+@testset "Incomplete" begin
+    struct MyIncompleteJacobi <: ClassicalOrthogonalPolynomials.AbstractJacobi{Float64} end
+    @test_throws ErrorException jacobimatrix(MyIncompleteJacobi())
+    @test_throws ErrorException plan_transform(MyIncompleteJacobi(), 5)
 end

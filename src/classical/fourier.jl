@@ -132,8 +132,8 @@ end
 
 *(F::AbstractShuffledPlan{T}, b::AbstractVecOrMat) where T = mul!(similar(b, T), F, b)
 
-plan_grid_transform(F::Fourier{T}, szs::NTuple{N,Int}, dims...) where {T,N} = grid(F, szs[1]), ShuffledR2HC{T}(szs, dims...)
-plan_grid_transform(F::Laurent{T}, szs::NTuple{N,Int}, dims...) where {T,N} = grid(F, szs[1]), ShuffledFFT{T}(szs, dims...)
+plan_transform(F::Fourier{T}, szs::NTuple{N,Int}, dims...) where {T,N} = ShuffledR2HC{T}(szs, dims...)
+plan_transform(F::Laurent{T}, szs::NTuple{N,Int}, dims...) where {T,N} = ShuffledFFT{T}(szs, dims...)
 
 import BlockBandedMatrices: _BlockSkylineMatrix
 

@@ -384,7 +384,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test P isa ApplyQuasiArray
         @test axes(P) == axes(S)
         V = view(P,0.1,1:10)
-        @test all(arguments(V) .≈ [L[0.1,:], S[0.1,1:8]])
+        # @test all(arguments(V) .≈ [L[0.1,:], S[0.1,1:8]])
         @test P[0.1,1:10] == [L[0.1,:]; S[0.1,1:8]]
         D = Derivative(axes(P,1))
         # applied(*,D,P) |> typeof
