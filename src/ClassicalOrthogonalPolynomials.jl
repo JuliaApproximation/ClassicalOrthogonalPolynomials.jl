@@ -325,7 +325,7 @@ function plan_transform_layout(::AbstractOPLayout, P, szs::NTuple{N,Int}, dims=n
 end
 
 
-plan_transform_layout(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=ntuple(identity,Val(N))) where N = plan_transform(MappedBasisLayout(), L, szs, dims)
+plan_transform_layout(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=ntuple(identity,Val(N))) where N = plan_transform_layout(MappedBasisLayout(), L, szs, dims)
 
 @simplify function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())

@@ -143,9 +143,6 @@ ClassicalOrthogonalPolynomials.jacobip
 ClassicalOrthogonalPolynomials.laguerrel
 ```
 ```@docs
-ClassicalOrthogonalPolynomials.laguerrel
-```
-```@docs
 ClassicalOrthogonalPolynomials.hermiteh
 ```
 
