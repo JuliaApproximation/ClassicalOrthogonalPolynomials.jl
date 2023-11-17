@@ -38,7 +38,7 @@ import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, Abstract
     grid, plotgrid, plotgrid_layout, plotvalues_layout, grid_layout, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, broadcastbasis_layout,
-    plan_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout
+    plan_grid_transform, plan_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout
 import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
                         _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg
 
