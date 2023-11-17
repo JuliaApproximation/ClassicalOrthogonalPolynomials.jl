@@ -75,6 +75,7 @@ end
 end
 
 @testset "Incomplete" begin
-    struct MyIncompleteOP <: OrthogonalPolynomial{Float64} end
-    @test_throws ErrorException jacobimatrix(MyIncompleteOP())
+    struct MyIncompleteJacobi <: ClassicalOrthogonalPolynomials.AbstractJacobi{Float64} end
+    @test_throws ErrorException jacobimatrix(MyIncompleteJacobi())
+    @test_throws ErrorException plan_transform(MyIncompleteJacobi(), 5)
 end
