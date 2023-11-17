@@ -165,6 +165,13 @@ _tritrunc(X, n) = _tritrunc(MemoryLayout(X), X, n)
 jacobimatrix_layout(lay, P, n) = _tritrunc(jacobimatrix(P), n)
 
 
+function recurrencecoefficients_layout(lay, Q)
+    T = eltype(Q)
+    X = jacobimatrix(Q)
+    c,a,b = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
+    inv.(c), -(a ./ c), Vcat(zero(T), b) ./ c
+end
+
 """
     recurrencecoefficients(P)
 
@@ -183,13 +190,6 @@ The relationship with the Jacobi matrix is:
 C[n+1]/A[n+1] == X[n,n+1]
 ```
 """
-function recurrencecoefficients_layout(lay, Q)
-    T = eltype(Q)
-    X = jacobimatrix(Q)
-    c,a,b = subdiagonaldata(X), diagonaldata(X), supdiagonaldata(X)
-    inv.(c), -(a ./ c), Vcat(zero(T), b) ./ c
-end
-
 recurrencecoefficients(Q) = recurrencecoefficients_layout(MemoryLayout(Q), Q)
 
 
