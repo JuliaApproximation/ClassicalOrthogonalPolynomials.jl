@@ -63,6 +63,7 @@ import QuasiArrays: MulQuasiArray
         @test F2*X ≈ vcat([(p2 * X[k,:])' for k = 1:size(X,1)]...)
         F = plan_transform(P, X)
         @test F*X ≈ F2*(F1*X)
+        @test F\(F*X) ≈ X
     end
 
     @testset "operators" begin
