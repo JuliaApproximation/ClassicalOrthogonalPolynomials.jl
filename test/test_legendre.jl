@@ -55,6 +55,7 @@ import QuasiArrays: MulQuasiArray
 
         X = randn(10, 11)
         F1 = plan_transform(P, X, 1)
+        @test size(F1) == (10,11)
         p1 = plan_transform(P, X[:,1])
         @test F1*X ≈ hcat([p1 * X[:,j] for j = 1:size(X,2)]...)
         F2 = plan_transform(P, X, 2)
