@@ -75,8 +75,10 @@ struct JacobiTransformPlan{T, CHEB2JAC, DCT} <: Plan{T}
 end
 
 JacobiTransformPlan(c2l, ct) = JacobiTransformPlan{promote_type(eltype(c2l),eltype(ct)),typeof(c2l),typeof(ct)}(c2l, ct)
+size(P::JacobiTransformPlan, k...) = size(P.chebtransform, k...)
 
 *(P::JacobiTransformPlan, x::AbstractArray) = P.cheb2jac*(P.chebtransform*x)
+\(P::JacobiTransformPlan, x::AbstractArray) = P.chebtransform\(P.cheb2jac\x)
 
 
 include("legendre.jl")
