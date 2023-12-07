@@ -168,4 +168,12 @@ using ClassicalOrthogonalPolynomials: grammatrix
         W = Weighted(T) \ diff(Weighted(Ultraspherical(1)))
         @test W[1:10,1:10] == diagm(-1 => -(1:9))
     end
+
+    @testset "Legendre" begin
+        P = Legendre()
+        P̃ = Ultraspherical(1/2)
+        C = Ultraspherical(3/2)
+        @test P[0.1,1:5] ≈ P̃[0.1,1:5] 
+        @test (P \ Weighted(C))[1:10,1:10] ≈ (P \ Weighted(Jacobi(1,1)))[1:10,1:10] * (Jacobi(1,1) \ C)[1:10,1:10]
+    end
 end
