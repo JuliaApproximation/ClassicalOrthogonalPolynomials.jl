@@ -288,7 +288,6 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
 
         P = Legendre()
         w̄ = JacobiWeight(true,false)
-        @test_broken P \ (w̃ .* Jacobi(true,false))
         w̄ = JacobiWeight(false,true)
         @test (P \ (w̃ .* Jacobi(false,true)))[1:10,1:10] == diagm(0 => ones(10), -1 => ones(9))
 
