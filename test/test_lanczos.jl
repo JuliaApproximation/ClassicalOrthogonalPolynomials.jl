@@ -298,8 +298,9 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
         lmin,lmax = (c-d)^2,(c+d)^2
         U = chebyshevu(lmin..lmax)
         x = axes(U,1)
-        w = @. (a+b) * sqrt((x-lmin)*(lmax-x)/(2π*x*(1-x)))
+        w = @. (a+b) * sqrt((x-lmin)*(lmax-x))/(2π*x*(1-x))
         Q = LanczosPolynomial(w, U)
-        @test Q[0.5,1:3] ≈ [0.9384176649676137,1.2140849874743076,0.5387898199391473]
+        @test jacobimatrix(Q)[1,1] ≈ 1/3
+        @test Q[0.5,1:3] ≈ [1, 1.369306393762913, 0.6469364618834543]
     end
 end

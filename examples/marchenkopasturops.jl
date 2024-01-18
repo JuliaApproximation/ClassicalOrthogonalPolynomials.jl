@@ -23,6 +23,6 @@ c,d = sqrt(a/(a+b) * (1-1/(a+b))), sqrt(1/(a+b) * (1-a/(a+b)))
 lmin,lmax = (c-d)^2,(c+d)^2
 U = chebyshevu(lmin..lmax)
 x = axes(U,1)
-w = @. (a+b) * sqrt((x-lmin)*(lmax-x)/(2π*x*(1-x)))
+w = @. (a+b) * sqrt((x-lmin)*(lmax-x))/(2π*x*(1-x))
 Q = LanczosPolynomial(w, U)
 plot(Q[:,1:7])
