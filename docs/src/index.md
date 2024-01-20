@@ -38,13 +38,13 @@ hermiteh(n, x) # H_n(x)
 
 For expansions, recurrence relationships, and other operations linked with linear equations, it is useful to treat the families of orthogonal 
 polynomials as _continuum arrays_, as implemented in [ContinuumArrays.jl](https://github.com/JuliaApproximation/ContinuumArrays.jl). The continuum arrays implementation is accessed as follows:
-```@repl usergide
+```@repl userguide
 T = ChebyshevT() # Or just Chebyshev()
 axes(T) # [-1,1] by 1:∞
 T[x, n+1] # T_n(x) = cos(n*acos(x))
 ```
 We can thereby access many points and indices efficiently using array-like language:
-```@repl usergide
+```@repl userguide
 x = range(-1, 1; length=1000);
 T[x, 1:1000] # [T_j(x[k]) for k=1:1000, j=0:999]
 ```
