@@ -26,9 +26,11 @@ function OrthogonalPolynomial(w::AbstractQuasiVector, P::AbstractQuasiMatrix)
     ConvertedOrthogonalPolynomial(w, X, parent(X.dv).U, Q)
 end
 
-orthogonalpolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w)
+orthogonalpolynomial(wP...) = OrthogonalPolynomial(wP...)
 orthogonalpolynomial(w::SubQuasiArray) = orthogonalpolynomial(parent(w))[parentindices(w)[1],:]
 
+OrthogonalPolynomial(w::Function, P::AbstractQuasiMatrix) = OrthogonalPolynomial(w.(axes(P,1)), P)
+orthogonalpolynomial(w::Function, P::AbstractQuasiMatrix) = orthogonalpolynomial(w.(axes(P,1)), P)
 
 
 """
@@ -43,7 +45,8 @@ cholesky_jacobimatrix(w::Function, P) = cholesky_jacobimatrix(w.(axes(P,1)), P)
 
 function cholesky_jacobimatrix(w::AbstractQuasiVector, P)
     Q = normalized(P)
-    W = Symmetric(Q \ (w .* Q)) # Compute weight multiplication via Clenshaw
+    w_P = orthogonalityweight(P)
+    W = Symmetric(Q \ ((w ./ w_P) .* Q)) # Compute weight multiplication via Clenshaw
     return cholesky_jacobimatrix(W, Q)
 end
 function cholesky_jacobimatrix(W::AbstractMatrix, Q)
