@@ -306,6 +306,26 @@ end
 
 getindex(M::Clenshaw, k::Int, j::Int) = M[k:k,j][1]
 
+
+function getindex(S::Symmetric{T,<:Clenshaw{<:Any}}, kr::AbstractUnitRange, j::Integer) where T
+    M = S.data
+    b = bandwidth(M,1)
+    jkr=max(1,min(j,first(kr))-b÷2):max(j,last(kr))+b÷2
+    # relationship between jkr and kr, jr
+    kr2,j2 = kr.-first(jkr).+1,j-first(jkr)+1
+    f = [Zeros{T}(j2-1); one(T); Zeros{T}(length(jkr)-j2)]
+    lmul!(M.p0, clenshaw(M.c, M.A, M.B, M.C, M.X[jkr, jkr], f)[kr2])
+end
+
+function getindex(S::Symmetric{T,<:Clenshaw{<:Any}}, kr::AbstractUnitRange, jr::AbstractUnitRange) where T
+    M = S.data
+    b = bandwidth(M,1)
+    jkr=max(1,min(first(jr),first(kr))-b÷2):max(last(jr),last(kr))+b÷2
+    # relationship between jkr and kr, jr
+    kr2,jr2 = kr.-first(jkr).+1,jr.-first(jkr).+1
+    Symmetric(lmul!(M.p0, clenshaw(M.c, M.A, M.B, M.C, M.X[jkr, jkr])[minimum(min(jr2,kr2)):maximum(max(jr2,kr2)),minimum(min(jr2,kr2)):maximum(max(jr2,kr2))]))[kr2,jr2]
+end
+
 transposelayout(M::ClenshawLayout) = LazyBandedMatrices.LazyBandedLayout()
 # TODO: generalise for layout, use Base.PermutedDimsArray
 Base.permutedims(M::Clenshaw{<:Number}) = transpose(M)

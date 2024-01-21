@@ -75,6 +75,12 @@ import ContinuumArrays: MappedWeightedBasisLayout
             w = @. x + x^2 + 1 # w[x] == x + x^2 + 1
             W = Q \ (w .* Q)
             @test W isa Clenshaw
+
+            # Clenshaw is symmetric for normalized polynomials
+            S = Symmetric(W)
+            @test S[1:10,2] ≈ W[1:10,2]
+            @test S[1:10,1:10] ≈ W[1:10,1:10]
+            @test S[13,15] ≈ W[13,15]
         end
 
         @testset "show" begin

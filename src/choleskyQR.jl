@@ -37,9 +37,9 @@ orthogonalpolynomial(w::Function, P::AbstractQuasiMatrix) = orthogonalpolynomial
 cholesky_jacobimatrix(w, P)
 
 returns the Jacobi matrix `X` associated to a quasi-matrix of polynomials
-orthogonal with respect to `w(x) w_p(x)` where `w_p(x)` is the weight of the polynomials in `P` by computing a Cholesky decomposition of the weight modification.
+orthogonal with respect to `w(x)` by computing a Cholesky decomposition of the weight modification.
 
-The resulting polynomials are orthonormal on the same domain as `P`. The supplied `P` must be normalized. Accepted inputs are `w` as a function or `W` as an infinite matrix representing multiplication with the function `w` on the basis `P`.
+The resulting polynomials are orthonormal on the same domain as `P`. The supplied `P` must be normalized. Accepted inputs are `w` as a function or `W` as an infinite matrix representing the weight modifier multiplication by the function `w / w_P` on `P` where `w_P` is the orthogonality weight of `P`.
 """
 cholesky_jacobimatrix(w::Function, P) = cholesky_jacobimatrix(w.(axes(P,1)), P)
 
@@ -53,8 +53,7 @@ function cholesky_jacobimatrix(W::AbstractMatrix, Q)
     isnormalized(Q) || error("Polynomials must be orthonormal")
     U = cholesky(W).U
     X = jacobimatrix(Q)
-    UX = ApplyArray(*,U,X)
-    CJD = CholeskyJacobiData(U,UX)
+    CJD = CholeskyJacobiData(U,X)
     return SymTridiagonal(view(CJD,:,1),view(CJD,:,2))
 end
 
@@ -63,23 +62,31 @@ mutable struct CholeskyJacobiData{T} <: LazyMatrix{T}
     dv::AbstractVector{T} # store diagonal band entries in adaptively sized vector
     ev::AbstractVector{T} # store off-diagonal band entries in adaptively sized vector
     U::UpperTriangular{T} # store upper triangular conversion matrix (needed to extend available entries)
-    UX::ApplyArray{T}     # store U*X, where X is the Jacobi matrix of the original P (needed to extend available entries)
+    X                     # store the Jacobi matrix of the original P
     datasize::Int         # size of so-far computed block 
 end
 
 # Computes the initial data for the Jacobi operator bands
-function CholeskyJacobiData(U::AbstractMatrix{T}, UX) where T
+function CholeskyJacobiData(U::AbstractMatrix{T}, X) where T
     # compute a length 2 vector on first go and circumvent BigFloat issue
     dv = zeros(T,2) 
     ev = zeros(T,2)
+    UX = U[1:3,1:3]*X[1:3,1:3]
     dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = -U[1,2]*UX[2,1]/(U[1,1]*U[2,2])+UX[2,2]/U[2,2] # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[1] = -UX[1,1]*U[1,2]/(U[1,1]*U[2,2])+UX[1,2]/U[2,2] # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[2] = UX[2,1]/U[3,3]*(-U[1,3]/U[1,1]+U[1,2]*U[2,3]/(U[1,1]*U[2,2]))+UX[2,2]/U[3,3]*(-U[2,3]/U[2,2])+UX[2,3]/U[3,3] # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])[1:3,1:3] \ [zeros(T,2); one(T)])
-    return CholeskyJacobiData{T}(dv, ev, U, UX, 2)
+    return CholeskyJacobiData{T}(dv, ev, U, X, 2)
 end
 
 size(::CholeskyJacobiData) = (ℵ₀,2) # Stored as two infinite cached bands
+
+function getindex(C::SymTridiagonal{<:Any, <:SubArray{<:Any, 1, <:CholeskyJacobiData, <:Tuple, false}, <:SubArray{<:Any, 1, <:CholeskyJacobiData, <:Tuple, false}}, kr::UnitRange, jr::UnitRange)
+    m = maximum(max(kr,jr))
+    resizedata!(C.dv.parent,m,2)
+    resizedata!(C.ev.parent,m,2)
+    return copy(view(C,kr,jr))
+end
 
 function getindex(K::CholeskyJacobiData, n::Integer, m::Integer)
     @assert (m==1) || (m==2)
@@ -102,12 +109,14 @@ function resizedata!(K::CholeskyJacobiData, n::Integer, m::Integer)
 end
 
 function _fillcholeskybanddata!(J::CholeskyJacobiData{T}, inds::UnitRange{Int}) where T
-    # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
-    resizedata!(J.U,inds[end]+1,inds[end]+1)
-    resizedata!(J.UX,inds[end]+1,inds[end]+1)
+    # pre-fill U to prevent expensive step-by-step filling in
+    m = inds[end]+1
+    partialcholesky!(J.U.data, m)
+    dv, ev, U, X = J.dv, J.ev, J.U, J.X
 
-    dv, ev, UX, U = J.dv, J.ev, J.UX, J.U
-    @inbounds for k in inds
+    UX = @views U[1:m,1:m]*X[1:m,1:m]
+
+    @inbounds Threads.@threads for k = inds  
         # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
         dv[k] = -U[k-1,k]*UX[k,k-1]/(U[k-1,k-1]*U[k,k])+UX[k,k]/U[k,k]
         ev[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  
