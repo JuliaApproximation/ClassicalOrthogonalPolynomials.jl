@@ -248,5 +248,8 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
          U = ChebyshevU()
          Q = orthogonalpolynomial(x -> (1+x^2)*sqrt(1-x^2), U)
          @test bandwidths(Q\U) == (0,2)
+
+         Q̃ = OrthogonalPolynomial(x -> (1+x^2)*sqrt(1-x^2), U)
+         @test jacobimatrix(Q)[1:10,1:10] == jacobimatrix(Q̃)[1:10,1:10]
     end
 end
