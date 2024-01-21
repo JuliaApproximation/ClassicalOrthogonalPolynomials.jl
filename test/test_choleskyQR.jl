@@ -1,5 +1,5 @@
 using Test, ClassicalOrthogonalPolynomials, BandedMatrices, LinearAlgebra, LazyArrays, ContinuumArrays, LazyBandedMatrices, InfiniteLinearAlgebra
-import ClassicalOrthogonalPolynomials: cholesky_jacobimatrix, qr_jacobimatrix
+import ClassicalOrthogonalPolynomials: cholesky_jacobimatrix, qr_jacobimatrix, orthogonalpolynomial
 import LazyArrays: AbstractCachedMatrix, resizedata!
 
 
@@ -10,7 +10,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 P = Normalized(legendre(0..1))
                 x = axes(P,1)
                 J = jacobimatrix(P)
-                wf(x) = x^2*(1-x)
+                wf = x -> x^2*(1-x)
                 # compute Jacobi matrix via cholesky
                 Jchol = cholesky_jacobimatrix(wf, P)
                 # compute Jacobi matrix via classical recurrence
@@ -224,7 +224,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
 
         @test Q == Q
         @test P ≠ Q
-        @test Q ≠ P
+        @test Q ≠ P
         @test Q == Q̃
         @test Q̃ == Q
         
@@ -242,5 +242,14 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
 
         # need to fix InfiniteLinearAlgebra to add AdaptiveBandedLayout
         @test_broken R[1:10,1:10] isa BandedMatrix
+    end
+
+    @testset "Chebyshev" begin
+         U = ChebyshevU()
+         Q = orthogonalpolynomial(x -> (1+x^2)*sqrt(1-x^2), U)
+         @test bandwidths(Q\U) == (0,2)
+
+         Q̃ = OrthogonalPolynomial(x -> (1+x^2)*sqrt(1-x^2), U)
+         @test jacobimatrix(Q)[1:10,1:10] == jacobimatrix(Q̃)[1:10,1:10]
     end
 end
