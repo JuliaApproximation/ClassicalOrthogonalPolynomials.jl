@@ -52,8 +52,7 @@ end
 function cholesky_jacobimatrix(W::AbstractMatrix, Q)
     isnormalized(Q) || error("Polynomials must be orthonormal")
     U = cholesky(W).U
-    X = jacobimatrix(Q)
-    CJD = CholeskyJacobiData(U,cache(simplify(Mul(U,X))))
+    CJD = CholeskyJacobiData(U,Q)
     return SymTridiagonal(view(CJD,:,1),view(CJD,:,2))
 end
 
@@ -62,20 +61,23 @@ mutable struct CholeskyJacobiData{T} <: LazyMatrix{T}
     dv::AbstractVector{T} # store diagonal band entries in adaptively sized vector
     ev::AbstractVector{T} # store off-diagonal band entries in adaptively sized vector
     U::UpperTriangular{T} # store upper triangular conversion matrix (needed to extend available entries)
-    UX                    # stores cached U*X to speed up extension of entries
+    X::AbstractMatrix{T}  # store Jacobi matrix of original polynomials
+    P                     # store original polynomials
     datasize::Int         # size of so-far computed block 
 end
 
 # Computes the initial data for the Jacobi operator bands
-function CholeskyJacobiData(U::AbstractMatrix{T}, UX) where T
+function CholeskyJacobiData(U::AbstractMatrix{T}, P) where T
     # compute a length 2 vector on first go and circumvent BigFloat issue
     dv = zeros(T,2)
     ev = zeros(T,2)
+    X = jacobimatrix(P)
+    UX = view(U,1:3,1:3)*X[1:3,1:3]
     dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = -U[1,2]*UX[2,1]/(U[1,1]*U[2,2])+UX[2,2]/U[2,2] # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[1] = -UX[1,1]*U[1,2]/(U[1,1]*U[2,2])+UX[1,2]/U[2,2] # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[2] = UX[2,1]/U[3,3]*(-U[1,3]/U[1,1]+U[1,2]*U[2,3]/(U[1,1]*U[2,2]))+UX[2,2]/U[3,3]*(-U[2,3]/U[2,2])+UX[2,3]/U[3,3] # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])[1:3,1:3] \ [zeros(T,2); one(T)])
-    return CholeskyJacobiData{T}(dv, ev, U, UX, 2)
+    return CholeskyJacobiData{T}(dv, ev, U, X, P, 2)
 end
 
 size(::CholeskyJacobiData) = (ℵ₀,2) # Stored as two infinite cached bands
@@ -111,8 +113,9 @@ function _fillcholeskybanddata!(J::CholeskyJacobiData{T}, inds::UnitRange{Int}) 
     # pre-fill U to prevent expensive step-by-step filling in
     m = inds[end]+1
     partialcholesky!(J.U.data, m)
-    resizedata!(J.UX, m, m)
-    dv, ev, U, UX = J.dv, J.ev, J.U, J.UX
+    dv, ev, U, X = J.dv, J.ev, J.U, J.X
+
+    UX = view(U,1:m,1:m)*X[1:m,1:m]
 
     @inbounds Threads.@threads for k = inds  
         # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
@@ -151,7 +154,7 @@ mutable struct QRJacobiData{method,T} <: LazyMatrix{T}
     dv::AbstractVector{T} # store diagonal band entries in adaptively sized vector
     ev::AbstractVector{T} # store off-diagonal band entries in adaptively sized vector
     U                     # store conversion, Q method: stores QR object. R method: only stores R.
-    UX                    # Auxilliary matrix. Q method: stores in-progress incomplete modification. R method: stores U*X for efficiency.
+    UX                    # Auxilliary matrix. Q method: stores in-progress incomplete modification. R method: stores Jacobi matrix of original polynomials
     P                     # Remember original polynomials
     datasize::Int         # size of so-far computed block 
 end
@@ -187,7 +190,7 @@ function QRJacobiData{:R,T}(F, P) where T
     U = F.R
     U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U)  # QR decomposition does not force positive diagonals on R by default
     X = jacobimatrix(P)
-    UX = cache(simplify(Mul(U,X)))
+    UX = view(U,1:3,1:3)*X[1:3,1:3]
     # compute a length 2 vector on first go and circumvent BigFloat issue
     dv = zeros(T,2) 
     ev = zeros(T,2)
@@ -195,7 +198,7 @@ function QRJacobiData{:R,T}(F, P) where T
     dv[2] = -U[1,2]*UX[2,1]/(U[1,1]*U[2,2])+UX[2,2]/U[2,2] # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[1] = -UX[1,1]*U[1,2]/(U[1,1]*U[2,2])+UX[1,2]/U[2,2] # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[2] = UX[2,1]/U[3,3]*(-U[1,3]/U[1,1]+U[1,2]*U[2,3]/(U[1,1]*U[2,2]))+UX[2,2]/U[3,3]*(-U[2,3]/U[2,2])+UX[2,3]/U[3,3] # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])
-    return QRJacobiData{:R,T}(dv, ev, U, UX, P, 2)
+    return QRJacobiData{:R,T}(dv, ev, U, X, P, 2)
 end
 
 
@@ -261,9 +264,10 @@ function _fillqrbanddata!(J::QRJacobiData{:R,T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
     m = inds[end]+1
     resizedata!(J.U,m,m)
-    resizedata!(J.UX,m,m)
+    dv, ev, X, U = J.dv, J.ev, J.X, J.U
+    
+    UX = view(U,1:m,1:m)*X[1:m,1:m]
 
-    dv, ev, UX, U = J.dv, J.ev, J.UX, J.U
     @inbounds Threads.@threads for k in inds
         dv[k] = -U[k-1,k]*UX[k,k-1]/(U[k-1,k-1]*U[k,k])+UX[k,k]./U[k,k] # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
         ev[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  # this is dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
