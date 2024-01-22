@@ -72,6 +72,7 @@ function CholeskyJacobiData(U::AbstractMatrix{T}, P) where T
     dv = zeros(T,2)
     ev = zeros(T,2)
     X = jacobimatrix(P)
+    partialcholesky!(U.data, 3)
     UX = view(U,1:3,1:3)*X[1:3,1:3]
     dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = -U[1,2]*UX[2,1]/(U[1,1]*U[2,2])+UX[2,2]/U[2,2] # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
