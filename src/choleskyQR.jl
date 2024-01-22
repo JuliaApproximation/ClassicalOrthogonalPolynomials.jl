@@ -53,7 +53,7 @@ function cholesky_jacobimatrix(W::AbstractMatrix, Q)
     isnormalized(Q) || error("Polynomials must be orthonormal")
     U = cholesky(W).U
     X = jacobimatrix(Q)
-    CJD = CholeskyJacobiData(U,X)
+    CJD = CholeskyJacobiData(U,cache(simplify(Mul(U,X))))
     return SymTridiagonal(view(CJD,:,1),view(CJD,:,2))
 end
 
@@ -62,27 +62,26 @@ mutable struct CholeskyJacobiData{T} <: LazyMatrix{T}
     dv::AbstractVector{T} # store diagonal band entries in adaptively sized vector
     ev::AbstractVector{T} # store off-diagonal band entries in adaptively sized vector
     U::UpperTriangular{T} # store upper triangular conversion matrix (needed to extend available entries)
-    X                     # store the Jacobi matrix of the original P
+    UX                    # stores cached U*X to speed up extension of entries
     datasize::Int         # size of so-far computed block 
 end
 
 # Computes the initial data for the Jacobi operator bands
-function CholeskyJacobiData(U::AbstractMatrix{T}, X) where T
+function CholeskyJacobiData(U::AbstractMatrix{T}, UX) where T
     # compute a length 2 vector on first go and circumvent BigFloat issue
-    dv = zeros(T,2) 
+    dv = zeros(T,2)
     ev = zeros(T,2)
-    UX = U[1:3,1:3]*X[1:3,1:3]
     dv[1] = UX[1,1]/U[1,1] # this is dot(view(UX,1,1), U[1,1] \ [one(T)])
     dv[2] = -U[1,2]*UX[2,1]/(U[1,1]*U[2,2])+UX[2,2]/U[2,2] # this is dot(view(UX,2,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[1] = -UX[1,1]*U[1,2]/(U[1,1]*U[2,2])+UX[1,2]/U[2,2] # this is dot(view(UX,1,1:2), U[1:2,1:2] \ [zero(T); one(T)])
     ev[2] = UX[2,1]/U[3,3]*(-U[1,3]/U[1,1]+U[1,2]*U[2,3]/(U[1,1]*U[2,2]))+UX[2,2]/U[3,3]*(-U[2,3]/U[2,2])+UX[2,3]/U[3,3] # this is dot(view(UX,2,1:3), U[1:3,1:3] \ [zeros(T,2); one(T)])[1:3,1:3] \ [zeros(T,2); one(T)])
-    return CholeskyJacobiData{T}(dv, ev, U, X, 2)
+    return CholeskyJacobiData{T}(dv, ev, U, UX, 2)
 end
 
 size(::CholeskyJacobiData) = (ℵ₀,2) # Stored as two infinite cached bands
 
 function getindex(C::SymTridiagonal{<:Any, <:SubArray{<:Any, 1, <:CholeskyJacobiData, <:Tuple, false}, <:SubArray{<:Any, 1, <:CholeskyJacobiData, <:Tuple, false}}, kr::UnitRange, jr::UnitRange)
-    m = maximum(max(kr,jr))
+    m = maximum(max(kr,jr))+1
     resizedata!(C.dv.parent,m,2)
     resizedata!(C.ev.parent,m,2)
     return copy(view(C,kr,jr))
@@ -112,9 +111,8 @@ function _fillcholeskybanddata!(J::CholeskyJacobiData{T}, inds::UnitRange{Int}) 
     # pre-fill U to prevent expensive step-by-step filling in
     m = inds[end]+1
     partialcholesky!(J.U.data, m)
-    dv, ev, U, X = J.dv, J.ev, J.U, J.X
-
-    UX = @views U[1:m,1:m]*X[1:m,1:m]
+    resizedata!(J.UX, m, m)
+    dv, ev, U, UX = J.dv, J.ev, J.U, J.UX
 
     @inbounds Threads.@threads for k = inds  
         # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
@@ -125,19 +123,20 @@ end
 
 
 """
-qr_jacobimatrix(sqrtw, P)
+qr_jacobimatrix(w, P)
 
 returns the Jacobi matrix `X` associated to a quasi-matrix of polynomials
-orthogonal with respect to `w(x) w_p(x)` where `w_p(x)` is the weight of the polynomials in `P` by computing a QR decomposition of the square root weight modification.
+orthogonal with respect to `w(x)` by computing a QR decomposition of the square root weight modification.
 
-The resulting polynomials are orthonormal on the same domain as `P`. The supplied `P` must be normalized. Accepted inputs for `sqrtw` are the square root of the weight modification as a function or `sqrtW` as an infinite matrix representing multiplication with the function `sqrt(w)` on the basis `P`.
+The resulting polynomials are orthonormal on the same domain as `P`. The supplied `P` must be normalized. Accepted inputs for `w` are the target weight as a function or `sqrtW`, representing the multiplication operator of square root weight modification on the basis `P`.
 
 The underlying QR approach allows two methods, one which uses the Q matrix and one which uses the R matrix. To change between methods, an optional argument :Q or :R may be supplied. The default is to use the Q method.
 """
-function qr_jacobimatrix(sqrtw::Function, P, method = :Q)
+function qr_jacobimatrix(w::Function, P, method = :Q)
     Q = normalized(P)
     x = axes(P,1)
-    sqrtW = (Q \ (sqrtw.(x) .* Q))  # Compute weight multiplication via Clenshaw
+    w_P = orthogonalityweight(P)
+    sqrtW = (Q \ (sqrt.((w ./ w_P)) .* Q))  # Compute weight multiplication via Clenshaw
     return qr_jacobimatrix(sqrtW, Q, method)
 end
 function qr_jacobimatrix(sqrtW::AbstractMatrix{T}, Q, method = :Q) where T
@@ -188,7 +187,7 @@ function QRJacobiData{:R,T}(F, P) where T
     U = F.R
     U = ApplyArray(*,Diagonal(sign.(view(U,band(0)))),U)  # QR decomposition does not force positive diagonals on R by default
     X = jacobimatrix(P)
-    UX = ApplyArray(*,U,X)
+    UX = cache(simplify(Mul(U,X)))
     # compute a length 2 vector on first go and circumvent BigFloat issue
     dv = zeros(T,2) 
     ev = zeros(T,2)
@@ -207,6 +206,13 @@ function getindex(K::QRJacobiData, n::Integer, m::Integer)
     resizedata!(K,n,m)
     m == 1 && return K.dv[n]
     m == 2 && return K.ev[n]
+end
+
+function getindex(C::SymTridiagonal{<:Any, <:SubArray{<:Any, 1, <:QRJacobiData, <:Tuple, false}, <:SubArray{<:Any, 1, <:QRJacobiData, <:Tuple, false}}, kr::UnitRange, jr::UnitRange)
+    m = maximum(max(kr,jr))+1
+    resizedata!(C.dv.parent,m,2)
+    resizedata!(C.ev.parent,m,2)
+    return copy(view(C,kr,jr))
 end
 
 # Resize and filling functions for cached implementation
@@ -258,7 +264,7 @@ function _fillqrbanddata!(J::QRJacobiData{:R,T}, inds::UnitRange{Int}) where T
     resizedata!(J.UX,m,m)
 
     dv, ev, UX, U = J.dv, J.ev, J.UX, J.U
-    @inbounds for k in inds
+    @inbounds Threads.@threads for k in inds
         dv[k] = -U[k-1,k]*UX[k,k-1]/(U[k-1,k-1]*U[k,k])+UX[k,k]./U[k,k] # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
         ev[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  # this is dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
     end

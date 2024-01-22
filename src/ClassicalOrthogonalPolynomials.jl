@@ -17,7 +17,7 @@ import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjoint
                 sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
                 _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
                 AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!,
-                simplifiable, PaddedArray, converteltype
+                simplifiable, PaddedArray, converteltype, simplify
 import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
                         subdiagonaldata, diagonaldata, supdiagonaldata, mul, rowsupport, colsupport
 import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1, AbstractLazyBandedLayout
