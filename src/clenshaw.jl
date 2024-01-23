@@ -308,15 +308,15 @@ getindex(M::Clenshaw, k::Int, j::Int) = M[k:k,j][1]
 
 function getindex(S::Symmetric{T,<:Clenshaw{<:Any}}, k::Integer, jr::AbstractUnitRange) where T
     m = max(jr.start,jr.stop,k)
-    return Symmetric(getindex(S.data,1:m,1:m),S.uplo)[k,jr]
+    return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[k,jr]
 end
 function getindex(S::Symmetric{T,<:Clenshaw{<:Any}}, kr::AbstractUnitRange, j::Integer) where T
     m = max(kr.start,kr.stop,j)
-    return Symmetric(getindex(S.data,1:m,1:m),S.uplo)[kr,j]
+    return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[kr,j]
 end
 function getindex(S::Symmetric{T,<:Clenshaw{<:Any}}, kr::AbstractUnitRange, jr::AbstractUnitRange) where T
     m = max(kr.start,jr.start,kr.stop,jr.stop)
-    return Symmetric(getindex(S.data,1:m,1:m),S.uplo)[kr,jr]
+    return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[kr,jr]
 end
 
 transposelayout(M::ClenshawLayout) = LazyBandedMatrices.LazyBandedLayout()
