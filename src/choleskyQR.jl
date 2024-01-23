@@ -84,8 +84,8 @@ end
 size(::CholeskyJacobiData) = (ℵ₀,2) # Stored as two infinite cached bands
 
 function getindex(C::SymTridiagonal{<:Any, <:SubArray{<:Any, 1, <:CholeskyJacobiData, <:Tuple, false}, <:SubArray{<:Any, 1, <:CholeskyJacobiData, <:Tuple, false}}, kr::UnitRange, jr::UnitRange)
-    m = maximum(max(kr,jr))+1
-    resizedata!(C.dv.parent,m,2)
+    m = 1+max(kr.stop,jr.stop)
+    resizedata!(C.dv.parent,m,1)
     resizedata!(C.ev.parent,m,2)
     return copy(view(C,kr,jr))
 end
@@ -99,7 +99,7 @@ end
 
 # Resize and filling functions for cached implementation
 function resizedata!(K::CholeskyJacobiData, n::Integer, m::Integer)
-    nm = max(n,m)
+    nm = 1+max(n,m)
     νμ = K.datasize
     if nm > νμ
         resize!(K.dv,nm)
@@ -136,12 +136,12 @@ The resulting polynomials are orthonormal on the same domain as `P`. The supplie
 
 The underlying QR approach allows two methods, one which uses the Q matrix and one which uses the R matrix. To change between methods, an optional argument :Q or :R may be supplied. The default is to use the Q method.
 """
-function qr_jacobimatrix(w::Function, P, method = :Q)
+qr_jacobimatrix(w::Function, P, method = :Q) = qr_jacobimatrix(w.(axes(P,1)), P, Symbol(method))
+function qr_jacobimatrix(w::AbstractQuasiVector, P, method = :Q)
     Q = normalized(P)
-    x = axes(P,1)
     w_P = orthogonalityweight(P)
-    sqrtW = (Q \ (sqrt.((w ./ w_P)) .* Q))  # Compute weight multiplication via Clenshaw
-    return qr_jacobimatrix(sqrtW, Q, method)
+    sqrtW = Symmetric(Q \ (sqrt.(w ./ w_P) .* Q)) # Compute weight multiplication via Clenshaw
+    return qr_jacobimatrix(sqrtW, Q, Symbol(method))
 end
 function qr_jacobimatrix(sqrtW::AbstractMatrix{T}, Q, method = :Q) where T
     isnormalized(Q) || error("Polynomials must be orthonormal")
@@ -221,7 +221,7 @@ end
 
 # Resize and filling functions for cached implementation
 function resizedata!(K::QRJacobiData, n::Integer, m::Integer)
-    nm = max(n,m)
+    nm = 1+max(n,m)
     νμ = K.datasize
     if nm > νμ
         resize!(K.dv,nm)
@@ -265,7 +265,7 @@ function _fillqrbanddata!(J::QRJacobiData{:R,T}, inds::UnitRange{Int}) where T
     # pre-fill U and UX to prevent expensive step-by-step filling in of cached U and UX in the loop
     m = inds[end]+1
     resizedata!(J.U,m,m)
-    dv, ev, X, U = J.dv, J.ev, J.X, J.U
+    dv, ev, X, U = J.dv, J.ev, J.UX, J.U
     
     UX = view(U,1:m,1:m)*X[1:m,1:m]
 
