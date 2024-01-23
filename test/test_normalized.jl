@@ -78,6 +78,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
 
             # Clenshaw is symmetric for normalized polynomials
             S = Symmetric(W)
+            @test S[2,1:7] ≈ W[2,1:7]
             @test S[1:10,2] ≈ W[1:10,2]
             @test S[1:10,1:10] ≈ W[1:10,1:10]
             @test S[13,15] ≈ W[13,15]
