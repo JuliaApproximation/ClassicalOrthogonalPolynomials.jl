@@ -2,7 +2,6 @@ using Test, ClassicalOrthogonalPolynomials, BandedMatrices, LinearAlgebra, LazyA
 import ClassicalOrthogonalPolynomials: cholesky_jacobimatrix, qr_jacobimatrix, orthogonalpolynomial
 import LazyArrays: AbstractCachedMatrix, resizedata!
 
-
 @testset "CholeskyQR" begin
     @testset "Comparison of Cholesky with Lanczos and Classical" begin
         @testset "Using Clenshaw for polynomial weights" begin
@@ -28,7 +27,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 P = Normalized(Legendre()[affine(0..1,Inclusion(-1..1)),:])
                 x = axes(P,1)
                 J = jacobimatrix(P)
-                wf(x) = (1-x^2)
+                wf = x -> (1-x^2)
                 # compute Jacobi matrix via cholesky
                 Jchol = cholesky_jacobimatrix(wf, P)
                 # compute Jacobi matrix via Lanczos
@@ -41,7 +40,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 P = Normalized(legendre(0..1))
                 x = axes(P,1)
                 J = jacobimatrix(P)
-                wf(x) = (1-x^4)
+                wf = x-> (1-x^4)
                 # compute Jacobi matrix via cholesky
                 Jchol = cholesky_jacobimatrix(wf, P)
                 # compute Jacobi matrix via Lanczos
@@ -54,7 +53,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 P = Normalized(Legendre()[affine(0..1,Inclusion(-1..1)),:])
                 x = axes(P,1)
                 J = jacobimatrix(P)
-                wf(x) = 1.014-x^4
+                wf = x-> 1.014-x^4
                 # compute Jacobi matrix via cholesky
                 Jchol = cholesky_jacobimatrix(wf, P)
                 # compute Jacobi matrix via Lanczos
@@ -69,7 +68,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 P = Normalized(Legendre()[affine(0..1,Inclusion(-1..1)),:])
                 x = axes(P,1)
                 J = jacobimatrix(P)
-                wf(x) = exp(x)
+                wf = x-> exp(x)
                 # compute Jacobi matrix via cholesky
                 Jchol = cholesky_jacobimatrix(wf, P)
                 # compute Jacobi matrix via Lanczos
@@ -82,7 +81,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 P = Normalized(Legendre()[affine(0..1,Inclusion(-1..1)),:])
                 x = axes(P,1)
                 J = jacobimatrix(P)
-                wf(x) = (1-x)*exp(x)
+                wf = x -> (1-x)*exp(x)
                 # compute Jacobi matrix via cholesky
                 Jchol = cholesky_jacobimatrix(wf, P)
                 # compute Jacobi matrix via Lanczos
@@ -95,7 +94,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 P = Normalized(legendre(0..1))
                 x = axes(P,1)
                 J = jacobimatrix(P)
-                wf(x) = (1-x)^2*exp(x^2)
+                wf = x -> (1-x)^2*exp(x^2)
                 # compute Jacobi matrix via decomp
                 Jchol = cholesky_jacobimatrix(wf, P)
                 # compute Jacobi matrix via Lanczos
@@ -108,7 +107,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 P = Normalized(Legendre()[affine(0..1,Inclusion(-1..1)),:])
                 x = axes(P,1)
                 J = jacobimatrix(P)
-                wf(x) = x*(1-x^2)*exp(-x^2)
+                wf = x-> x*(1-x^2)*exp(-x^2)
                 # compute Jacobi matrix via cholesky
                 Jchol = cholesky_jacobimatrix(wf, P)
                 # compute Jacobi matrix via Lanczos
@@ -121,12 +120,11 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 P = Normalized(legendre(0..1))
                 x = axes(P,1)
                 J = jacobimatrix(P)
-                wf(x) = (1-x)^2
-                sqrtwf(x) = (1-x)
+                wf = x -> (1-x)^2
                 # compute Jacobi matrix via decomp
                 Jchol = cholesky_jacobimatrix(wf, P)
-                JqrQ = qr_jacobimatrix(sqrtwf, P)
-                JqrR = qr_jacobimatrix(sqrtwf, P, :R)
+                JqrQ = qr_jacobimatrix(wf, P)
+                JqrR = qr_jacobimatrix(wf, P, :R)
                 @test (Jchol*Jchol)[1:10,1:10] ≈ ApplyArray(*,Jchol,Jchol)[1:10,1:10]
                 @test (Jchol*Jchol)[1:10,1:10] ≈ (JqrQ*JqrQ)[1:10,1:10]
                 @test (Jchol*Jchol)[1:10,1:10] ≈ (JqrR*JqrR)[1:10,1:10]
@@ -139,12 +137,12 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
             P = Normalized(legendre(0..1))
             x = axes(P,1)
             J = jacobimatrix(P)
-            wf(x) = (1-x)^2
-            sqrtwf(x) = (1-x)
+            wf = x-> (1-x)^2
+            sqrtwf = x-> (1-x)
             # compute Jacobi matrix via decomp
             Jchol = cholesky_jacobimatrix(wf, P)
-            JqrQ = qr_jacobimatrix(sqrtwf, P)
-            JqrR = qr_jacobimatrix(sqrtwf, P, :R)
+            JqrQ = qr_jacobimatrix(wf, P)
+            JqrR = qr_jacobimatrix(wf, P, :R)
             # use alternative inputs
             sqrtW = (P \ (sqrtwf.(x) .* P))
             JqrQalt = qr_jacobimatrix(sqrtW, P)
@@ -162,10 +160,11 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
             P = Normalized(legendre(0..1))
             x = axes(P,1)
             J = jacobimatrix(P)
-            sqrtwf(x) = (1-x)^2
+            wf = x -> (1-x)^4
+            sqrtwf = x -> (1-x)^2
             # compute Jacobi matrix via decomp
-            JqrQ = qr_jacobimatrix(sqrtwf, P)
-            JqrR = qr_jacobimatrix(sqrtwf, P, :R)
+            JqrQ = qr_jacobimatrix(wf, P)
+            JqrR = qr_jacobimatrix(wf, P, :R)
             # use alternative inputs
             sqrtW = (P \ (sqrtwf.(x) .* P))
             JqrQalt = qr_jacobimatrix(sqrtW, P)
@@ -182,10 +181,11 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
             P = Normalized(legendre(0..1))
             x = axes(P,1)
             J = jacobimatrix(P)
-            sqrtwf(x) = (x)*(1-x)^2
+            wf = x-> (x)^2*(1-x)^4
+            sqrtwf = x-> (x)*(1-x)^2
             # compute Jacobi matrix via decomp
-            JqrQ = qr_jacobimatrix(sqrtwf, P)
-            JqrR = qr_jacobimatrix(sqrtwf, P, :R)
+            JqrQ = qr_jacobimatrix(wf, P)
+            JqrR = qr_jacobimatrix(wf, P, :R)
             # use alternative inputs
             sqrtW = (P \ (sqrtwf.(x) .* P))
             JqrQalt = qr_jacobimatrix(sqrtW, P)
@@ -198,7 +198,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
             @test JqrQalt[1:10,1:10] ≈ Jclass[1:10,1:10]
             @test JqrRalt[1:10,1:10] ≈ Jclass[1:10,1:10]
             # test consistency of resizing in succession
-            F = qr_jacobimatrix(sqrtwf, P);
+            F = qr_jacobimatrix(wf, P);
             resizedata!(JqrQ.dv,70)
             resizedata!(JqrQ.ev,70)
             @test JqrQ[1:5,1:5] ≈ F[1:5,1:5]

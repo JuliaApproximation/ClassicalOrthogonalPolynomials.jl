@@ -289,7 +289,7 @@ function _BandedMatrix(::ClenshawLayout, V::SubArray{<:Any,2})
     M = parent(V)
     kr,jr = parentindices(V)
     b = bandwidth(M,1)
-    jkr=max(1,min(first(jr),first(kr))-b÷2):max(last(jr),last(kr))+b÷2
+    jkr = max(1,min(first(jr),first(kr))-b÷2):max(last(jr),last(kr))+b÷2
     # relationship between jkr and kr, jr
     kr2,jr2 = kr.-first(jkr).+1,jr.-first(jkr).+1
     lmul!(M.p0, clenshaw(M.c, M.A, M.B, M.C, M.X[jkr, jkr])[kr2,jr2])
@@ -297,7 +297,7 @@ end
 
 function getindex(M::Clenshaw{T}, kr::AbstractUnitRange, j::Integer) where T
     b = bandwidth(M,1)
-    jkr=max(1,min(j,first(kr))-b÷2):max(j,last(kr))+b÷2
+    jkr = max(1,min(j,first(kr))-b÷2):max(j,last(kr))+b÷2
     # relationship between jkr and kr, jr
     kr2,j2 = kr.-first(jkr).+1,j-first(jkr)+1
     f = [Zeros{T}(j2-1); one(T); Zeros{T}(length(jkr)-j2)]
@@ -305,6 +305,19 @@ function getindex(M::Clenshaw{T}, kr::AbstractUnitRange, j::Integer) where T
 end
 
 getindex(M::Clenshaw, k::Int, j::Int) = M[k:k,j][1]
+
+function getindex(S::Symmetric{T,<:Clenshaw}, k::Integer, jr::AbstractUnitRange) where T
+    m = max(jr.start,jr.stop,k)
+    return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[k,jr]
+end
+function getindex(S::Symmetric{T,<:Clenshaw}, kr::AbstractUnitRange, j::Integer) where T
+    m = max(kr.start,kr.stop,j)
+    return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[kr,j]
+end
+function getindex(S::Symmetric{T,<:Clenshaw}, kr::AbstractUnitRange, jr::AbstractUnitRange) where T
+    m = max(kr.start,jr.start,kr.stop,jr.stop)
+    return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[kr,jr]
+end
 
 transposelayout(M::ClenshawLayout) = LazyBandedMatrices.LazyBandedLayout()
 # TODO: generalise for layout, use Base.PermutedDimsArray
