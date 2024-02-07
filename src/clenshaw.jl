@@ -314,7 +314,7 @@ function getindex(S::Symmetric{T,<:Clenshaw}, kr::AbstractUnitRange, j::Integer)
     m = max(kr.start,kr.stop,j)
     return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[kr,j]
 end
-function getindex(S::Symmetric{T,<:Clenshaw{<:Any}}, kr::AbstractUnitRange, jr::AbstractUnitRange) where T
+function getindex(S::Symmetric{T,<:Clenshaw}, kr::AbstractUnitRange, jr::AbstractUnitRange) where T
     m = max(kr.start,jr.start,kr.stop,jr.stop)
     return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[kr,jr]
 end
