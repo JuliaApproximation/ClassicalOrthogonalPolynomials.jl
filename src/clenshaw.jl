@@ -310,7 +310,7 @@ function getindex(S::Symmetric{T,<:Clenshaw{<:Any}}, k::Integer, jr::AbstractUni
     m = max(jr.start,jr.stop,k)
     return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[k,jr]
 end
-function getindex(S::Symmetric{T,<:Clenshaw{<:Any}}, kr::AbstractUnitRange, j::Integer) where T
+function getindex(S::Symmetric{T,<:Clenshaw}, kr::AbstractUnitRange, j::Integer) where T
     m = max(kr.start,kr.stop,j)
     return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[kr,j]
 end
