@@ -306,7 +306,7 @@ end
 
 getindex(M::Clenshaw, k::Int, j::Int) = M[k:k,j][1]
 
-function getindex(S::Symmetric{T,<:Clenshaw{<:Any}}, k::Integer, jr::AbstractUnitRange) where T
+function getindex(S::Symmetric{T,<:Clenshaw}, k::Integer, jr::AbstractUnitRange) where T
     m = max(jr.start,jr.stop,k)
     return Symmetric(getindex(S.data,1:m,1:m),Symbol(S.uplo))[k,jr]
 end
