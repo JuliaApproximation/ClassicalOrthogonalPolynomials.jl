@@ -96,8 +96,14 @@ function getindex(w::ChebyshevUWeight, x::Number)
     sqrt(1-x^2)
 end
 
-sum(::ChebyshevWeight{1,T}) where T = convert(T,π)
-sum(::ChebyshevWeight{2,T}) where T = convert(T,π)/2
+sum(::ChebyshevTWeight{T}) where T = convert(T,π)
+sum(::ChebyshevUWeight{T}) where T = convert(T,π)/2
+
+function _cumsum(w::ChebyshevTWeight{V}, dims) where V
+    @assert dims == 1
+    x = axes(w,1)
+    (V(π)/2 .+ asin.(x))
+end
 
 normalizationconstant(::ChebyshevT{T}) where T = Vcat(sqrt(inv(convert(T,π))), Fill(sqrt(2/convert(T,π)),∞))
 
@@ -298,10 +304,15 @@ function _sum(::Weighted{T,<:Chebyshev}, dims) where T
     Hcat(convert(T, π), Zeros{T}(1,∞))
 end
 
-function cumsum(T::ChebyshevT{V}; dims::Integer) where V
+function _cumsum(T::ChebyshevT{V}, dims) where V
     @assert dims == 1
     Σ = _BandedMatrix(Vcat(-one(V) ./ (-2:2:∞)', Zeros{V}(1,∞), Hcat(one(V), one(V) ./ (4:2:∞)')), ℵ₀, 0, 2)
     ApplyQuasiArray(*, T, Vcat((-1).^(0:∞)'* Σ, Σ))
+end
+
+function _cumsum(W::Weighted{V, ChebyshevT{V}}, dims) where V
+    @assert dims == 1
+    [cumsum(ChebyshevTWeight{V}()) Weighted(ChebyshevU{V}())] * Diagonal(Vcat(one(V), -inv.(one(V):∞)))
 end
 
 ####
