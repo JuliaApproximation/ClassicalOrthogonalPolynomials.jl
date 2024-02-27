@@ -390,6 +390,9 @@ import BandedMatrices: isbanded
         @test (T \ cumsum(T; dims=1)) * (T \ exp.(x)) ≈ T \ (exp.(x) .- exp(-1))
         f = T * (T \ exp.(x))
         @test T \ cumsum(f) ≈ T \ (exp.(x) .- exp(-1))
+
+        f = expand(Weighted(T), x -> exp(x)/sqrt(1-x^2))
+        @test cumsum(f)[0.1] ≈ 0.9784356617497387
     end
 
     @testset "algebra" begin
