@@ -43,8 +43,8 @@ import QuasiArrays: MulQuasiArray
 
         @test F == F
 
-        @test axes(F,2) isa BlockedUnitRange{InfiniteArrays.InfStepRange{Int,Int}}
-        @test axes(F) isa Tuple{<:Inclusion,BlockedUnitRange{InfiniteArrays.InfStepRange{Int,Int}}}
+        @test axes(F,2) isa BlockedOneTo{Int,InfiniteArrays.InfStepRange{Int,Int}}
+        @test axes(F) isa Tuple{<:Inclusion,BlockedOneTo{Int,InfiniteArrays.InfStepRange{Int,Int}}}
         @test axes(F,2)[Block(2)] == 2:3
         @test F[0.1,1] == 1.0
         @test F[0.1,2] == sin(0.1)
@@ -134,8 +134,8 @@ end
 
         @test F == F
 
-        @test axes(F,2) isa BlockedUnitRange{InfiniteArrays.InfStepRange{Int,Int}}
-        @test axes(F) isa Tuple{<:Inclusion,BlockedUnitRange{InfiniteArrays.InfStepRange{Int,Int}}}
+        @test axes(F,2) isa BlockedOneTo{Int,InfiniteArrays.InfStepRange{Int,Int}}
+        @test axes(F) isa Tuple{<:Inclusion,BlockedOneTo{Int,InfiniteArrays.InfStepRange{Int,Int}}}
         @test axes(F,2)[Block(2)] == 2:3
         @test F[0.1,1] ≡ complex(1.0)
         @test F[0.1,2] == exp(-im*0.1)

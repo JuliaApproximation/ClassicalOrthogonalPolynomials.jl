@@ -16,7 +16,7 @@ padresize!(cfs::PseudoBlockVector, m, ax...) = padresize!(cfs.blocks, m, ax...)
 
 
 increasingtruncations(::OneToInf) = oneto.(2 .^ (4:∞))
-increasingtruncations(::BlockedUnitRange) = broadcast(n -> Block.(oneto(n)), (2 .^ (4:∞)))
+increasingtruncations(::BlockedOneTo) = broadcast(n -> Block.(oneto(n)), (2 .^ (4:∞)))
 
 
 function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}) where {U,V}

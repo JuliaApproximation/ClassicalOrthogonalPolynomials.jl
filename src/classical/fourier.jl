@@ -9,7 +9,7 @@ Laurent() = Laurent{ComplexF64}()
 ==(::Fourier, ::Fourier) = true
 ==(::Laurent, ::Laurent) = true
 
-axes(F::AbstractFourier) = (Inclusion(ℝ), _BlockedUnitRange(1:2:∞))
+axes(F::AbstractFourier) = (Inclusion(ℝ), BlockedOneTo(1:2:∞))
 
 function getindex(F::Fourier{T}, x::Real, j::Int)::T where T
     isodd(j) && return cos((j÷2)*x)
