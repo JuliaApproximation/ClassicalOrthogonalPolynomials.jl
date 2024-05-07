@@ -226,6 +226,9 @@ orthogonalityweight(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVe
 
 weighted(P::AbstractQuasiMatrix) = Weighted(P)
 
+"""
+gives the inner products of OPs with their weight, i.e., Weighted(P)'P.
+"""
 weightedgrammatrix(P) = weightedgrammatrix_layout(MemoryLayout(P), P)
 function weightedgrammatrix_layout(::MappedOPLayout, P)
     Q = parent(P)

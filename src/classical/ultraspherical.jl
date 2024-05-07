@@ -80,6 +80,15 @@ plan_transform(P::Ultraspherical{T}, szs::NTuple{N,Int}, dims...) where {T,N} = 
 Jacobi(C::Ultraspherical{T}) where T = Jacobi(C.λ-one(T)/2,C.λ-one(T)/2)
 
 
+
+######
+# Weighted Gram Matrix
+######
+
+function weightedgrammatrix(P::Ultraspherical)
+
+end
+
 ########
 # Jacobi Matrix
 ########
@@ -129,7 +138,11 @@ function diff(WS::Weighted{T,<:Ultraspherical}; dims=1) where T
     else
         n = (0:∞)
         A = _BandedMatrix((-one(T)/(2*(λ-1)) * ((n.+1) .* (n .+ (2λ-1))))', ℵ₀, 1,-1)
-        ApplyQuasiMatrix(*, Weighted(Ultraspherical{T}(λ-1)), A)
+        if λ == 3/2
+            ApplyQuasiMatrix(*, Legendre{T}(), A)
+        else
+            ApplyQuasiMatrix(*, Weighted(Ultraspherical{T}(λ-1)), A)
+        end
     end
 end
 
@@ -172,6 +185,11 @@ end
 function \(U::Ultraspherical{<:Any,<:Integer}, C::ChebyshevU)
     T = promote_type(eltype(U), eltype(C))
     U\Ultraspherical(C)
+end
+
+
+function \(A::Ultraspherical, w_B::Weighted{<:Any,<:Ultraspherical})
+    (UltrasphericalWeight(one(eltype(A))/2) .* A) \ w_B
 end
 
 \(T::Chebyshev, C::Ultraspherical) = inv(C \ T)
