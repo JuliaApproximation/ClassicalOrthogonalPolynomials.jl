@@ -91,13 +91,13 @@ Base.BroadcastStyle(::Type{<:LanczosConversion}) = LazyArrays.LazyArrayStyle{2}(
 
 struct LanczosConversionLayout <: AbstractLazyLayout end
 
-LazyArrays.simplifiable(::Mul{LanczosConversionLayout,<:PaddedLayout}) = Val(true)
-function copy(M::Mul{LanczosConversionLayout,<:PaddedLayout})
+LazyArrays.simplifiable(::Mul{LanczosConversionLayout,<:AbstractPaddedLayout}) = Val(true)
+function copy(M::Mul{LanczosConversionLayout,<:AbstractPaddedLayout})
     resizedata!(M.A.data, maximum(colsupport(M.B)))
     M.A.data.R * M.B
 end
 
-function copy(M::Ldiv{LanczosConversionLayout,<:PaddedLayout})
+function copy(M::Ldiv{LanczosConversionLayout,<:AbstractPaddedLayout})
     resizedata!(M.A.data, maximum(colsupport(M.B)))
     M.A.data.R \ M.B
 end
@@ -110,7 +110,7 @@ end
 MemoryLayout(::Type{<:LanczosConversion}) = LanczosConversionLayout()
 triangulardata(R::LanczosConversion) = R
 sublayout(::LanczosConversionLayout, ::Type{<:Tuple{KR,Integer}}) where KR = 
-    sublayout(PaddedLayout{UnknownLayout}(), Tuple{KR})
+    sublayout(PaddedColumns{UnknownLayout}(), Tuple{KR})
 
 function sub_paddeddata(::LanczosConversionLayout, S::SubArray{<:Any,1,<:AbstractMatrix,<:Tuple{Any,Integer}})
     P = parent(S)

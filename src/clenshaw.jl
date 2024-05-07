@@ -100,22 +100,22 @@ end
 # Clenshaw
 ###
 
-function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::Number)
+function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:AbstractPaddedLayout}, x::Number)
     P,c = f.A,f.B
     _p0(P)*clenshaw(paddeddata(c), recurrencecoefficients(P)..., x)
 end
 
-function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::Number, jr)
+function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:AbstractPaddedLayout}, x::Number, jr)
     P,c = f.A,f.B
     _p0(P)*clenshaw(view(paddeddata(c),:,jr), recurrencecoefficients(P)..., x)
 end
 
-Base.@propagate_inbounds function getindex(f::Mul{<:AbstractOPLayout,<:PaddedLayout}, x::Number, j...)
+Base.@propagate_inbounds function getindex(f::Mul{<:AbstractOPLayout,<:AbstractPaddedLayout}, x::Number, j...)
     @inbounds checkbounds(ApplyQuasiArray(*,f.A,f.B), x, j...)
     unsafe_getindex(f, x, j...)
 end
 
-Base.@propagate_inbounds getindex(f::Mul{<:WeightedOPLayout,<:PaddedLayout}, x::Number, j...) =
+Base.@propagate_inbounds getindex(f::Mul{<:WeightedOPLayout,<:AbstractPaddedLayout}, x::Number, j...) =
     weight(f.A)[x] * (unweighted(f.A) * f.B)[x, j...]
 
 ###
@@ -324,7 +324,7 @@ transposelayout(M::ClenshawLayout) = LazyBandedMatrices.LazyBandedLayout()
 Base.permutedims(M::Clenshaw{<:Number}) = transpose(M)
 
 
-function materialize!(M::MatMulVecAdd{<:ClenshawLayout,<:PaddedLayout,<:PaddedLayout})
+function materialize!(M::MatMulVecAdd{<:ClenshawLayout,<:AbstractPaddedLayout,<:AbstractPaddedLayout})
     α,A,x,β,y = M.α,M.A,M.B,M.β,M.C
     length(y) == size(A,1) || throw(DimensionMismatch("Dimensions must match"))
     length(x) == size(A,2) || throw(DimensionMismatch("Dimensions must match"))
