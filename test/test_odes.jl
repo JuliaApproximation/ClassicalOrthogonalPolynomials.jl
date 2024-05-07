@@ -6,6 +6,7 @@ import ClassicalOrthogonalPolynomials: oneto
 import ContinuumArrays: MappedBasisLayout, MappedWeightedBasisLayout
 import LazyArrays: arguments, ApplyMatrix, colsupport, MemoryLayout
 import SemiseparableMatrices: VcatAlmostBandedLayout
+import BandedMatrices: isbanded
 
 @testset "ODEs" begin
     @testset "p-FEM" begin
