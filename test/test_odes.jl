@@ -3,7 +3,7 @@ using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatric
 
 import QuasiArrays: MulQuasiMatrix
 import ClassicalOrthogonalPolynomials: oneto
-import ContinuumArrays: MappedBasisLayout, MappedWeightedBasisLayout
+import ContinuumArrays: MappedBasisLayout, MappedWeightedBasisLayout, weaklaplacian
 import LazyArrays: arguments, ApplyMatrix, colsupport, MemoryLayout
 import SemiseparableMatrices: VcatAlmostBandedLayout
 
@@ -244,6 +244,31 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
             c = (Δ + M) \ (Q'exp.(x))
             u = Q * c
             @test u[0.1] ≈ 1.6878004187402804
+        end
+    end
+
+
+    @testset "ultraspherical ODE" begin
+        @testset "strong form" begin
+            C = Ultraspherical(3/2)
+            W = Weighted(C)
+            D² = C \ diff(diff(W))
+            x = axes(W,1)
+            X = C \ (x .* W)
+            L = D² - X
+            c = L \ transform(C, exp)
+            u = W*c
+            @test u[0.0] ≈ -0.536964648316337 # mathematica
+        end
+
+        @testset "weak form" begin
+            Δ = weaklaplacian(W)
+            x = axes(W,1)
+            X = W' * (x .* W)
+            L = Δ - X
+            c = L \ (W'exp.(x))
+            u = W*c
+            @test u[0.0] ≈ -0.536964648316337 # mathematica
         end
     end
 end

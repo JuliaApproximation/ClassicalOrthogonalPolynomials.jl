@@ -28,6 +28,8 @@ end
 
 sum(w::UltrasphericalWeight{T}) where T = sqrt(convert(T,π))*exp(loggamma(one(T)/2 + w.λ)-loggamma(1+w.λ))
 
+hasboundedendpoints(w::UltrasphericalWeight) = 2w.λ ≥ 1
+
 
 struct Ultraspherical{T,Λ} <: AbstractJacobi{T}
     λ::Λ
@@ -85,8 +87,12 @@ Jacobi(C::Ultraspherical{T}) where T = Jacobi(C.λ-one(T)/2,C.λ-one(T)/2)
 # Weighted Gram Matrix
 ######
 
-function weightedgrammatrix(P::Ultraspherical)
-
+# 2^(1-2λ)*π*gamma(n+2λ)/((n+λ)*gamma(λ)^2 * n!)
+function weightedgrammatrix(P::Ultraspherical{T}) where T
+    λ = P.λ
+    n = 0:∞
+    c = 2^(1-2λ) * convert(T,π)/gamma(λ)^2
+    Diagonal(c * exp.(loggamma.(n .+ 2λ) .- loggamma.(n .+ 1) ) ./ (n .+ λ))
 end
 
 ########
@@ -239,17 +245,21 @@ function \(w_A::WeightedUltraspherical, w_B::WeightedUltraspherical)
         _BandedMatrix(Vcat(((2λ:∞) .* ((2λ+1):∞) ./ (4λ .* (λ+1:∞)))',
                             Zeros{T}(1,∞),
                             (-(1:∞) .* (2:∞) ./ (4λ .* (λ+1:∞)))'), ℵ₀, 2,0)
+    elseif wB.λ ≥ wA.λ+1
+        J = UltrasphericalWeight(wB.λ-1) .* Ultraspherical(B.λ-1)
+        (w_A\J) * (J\w_B)
     else
-        error("not implemented for $A and $wB")
+        error("not implemented for $w_A and $w_B")
     end
 end
 
+\(w_A::WeightedUltraspherical, w_B::Weighted{<:Any,<:Ultraspherical}) = w_A \ convert(WeightedBasis,w_B)
 \(w_A::Weighted{<:Any,<:Ultraspherical}, w_B::Weighted{<:Any,<:Ultraspherical}) = convert(WeightedBasis, w_A) \ convert(WeightedBasis, w_B)
+\(w_A::Weighted{<:Any,<:Ultraspherical}, w_B::WeightedUltraspherical) = convert(WeightedBasis,w_A) \ w_B
+\(A::Ultraspherical, w_B::Weighted{<:Any,<:Ultraspherical}) = A \ convert(WeightedBasis,w_B)
 
 \(A::Legendre, wB::WeightedUltraspherical) = Ultraspherical(A) \ wB
 
-function \(A::Ultraspherical, w_B::WeightedUltraspherical) 
-    (UltrasphericalWeight(zero(A.λ)) .* A) \ w_B
-end
+\(A::Ultraspherical, w_B::WeightedUltraspherical) = (UltrasphericalWeight(one(A.λ)/2) .* A) \ w_B
 
 

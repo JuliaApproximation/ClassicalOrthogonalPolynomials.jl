@@ -46,6 +46,8 @@ summary(io::IO, w::JacobiWeight) = print(io, "(1-x)^$(w.a) * (1+x)^$(w.b) on -1.
 
 sum(P::JacobiWeight) = jacobimoment(P.a, P.b)
 
+hasboundedendpoints(w::AbstractJacobiWeight) = w.a ≥ 0 && w.b ≥ 0
+
 
 # support auto-basis determination
 

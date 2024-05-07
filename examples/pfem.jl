@@ -20,32 +20,27 @@ plot(W[:,1:4])
 # We can differentiate using the `diff` command. Unlike arrays, for quasi-arrays `diff(W)` defaults to
 # `diff(W; dims=1)`. 
 
-g = range(-1,1,100)
-plot(g, diff(W)[g,1:4])
+plot(diff(W)[:,1:4])
 
 # We can get out a differentiation matrix via
 
-P = Legendre()
-D_W = P \ diff(W)
+D² = C \ diff(diff(W))
 
-# If we wanted strong-form we hit a missing case for weighted differentiation.
-# But we can differentiate `P` directly:
+# We can construct the multiplication by $x$ with the connection between `W` and `C`
+# via:
 
+x = axes(W,1)
+X = C \ (x .* W)
 
-D_P = C \ diff(P)
-D² = D_P * D_W
+# Thus our operator becomes:
 
-# We can also do a conversion matrix via:
+L = D² - X
 
-R = (C\P)  * (P \ W)
-X = jacobimatrix(C)
-L = D² - X*R
-
-# We can solve a strong form ODE via
+# We can compute the coefficients using:
 
 c = L \ transform(C, exp)
 u = W*c
-plot(g, u[g])
+plot(u)
 
 
 # Weak form for the Laplacian with W as a basis for test/trial  is given by
@@ -64,7 +59,9 @@ L = Δ - X
 
 # We can solve an ODE via:
 
-(W' * P) *  transform(P, exp)
+c = L \ W'exp.(x)
+u = W*c
+plot!(u)
 
 
-
+# The two solvers match!

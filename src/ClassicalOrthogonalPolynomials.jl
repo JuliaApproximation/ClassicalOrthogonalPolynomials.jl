@@ -295,6 +295,16 @@ plotgrid_layout(::AbstractOPLayout, P, n::Integer) = grid(P, min(40n, MAX_PLOT_P
 plotgrid_layout(::MappedOPLayout, P, n::Integer) = plotgrid_layout(MappedBasisLayout(), P, n)
 plotvalues_layout(::ExpansionLayout{MappedOPLayout}, f, x...) = plotvalues_layout(ExpansionLayout{MappedBasisLayout}(), f, x...)
 
+hasboundedendpoints(_) = false # assume blow up
+function plotgrid_layout(::WeightedOPLayout, P, n::Integer)
+    if hasboundedendpoints(weight(P))
+        plotgrid(unweighted(P), n)
+    else
+        grid(unweighted(P), min(40n, MAX_PLOT_POINTS))
+    end
+end
+
+
 function golubwelsch(X::AbstractMatrix)
     D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition
     D, V[1,:].^2
