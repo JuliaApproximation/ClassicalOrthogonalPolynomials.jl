@@ -194,9 +194,6 @@ function \(U::Ultraspherical{<:Any,<:Integer}, C::ChebyshevU)
 end
 
 
-function \(A::Ultraspherical, w_B::Weighted{<:Any,<:Ultraspherical})
-    (UltrasphericalWeight(one(eltype(A))/2) .* A) \ w_B
-end
 
 \(T::Chebyshev, C::Ultraspherical) = inv(C \ T)
 
@@ -233,6 +230,28 @@ function \(C2::Ultraspherical, C1::Ultraspherical)
     end
 end
 
+function \(w_A::Weighted{<:Any,<:Ultraspherical}, w_B::Weighted{<:Any,<:Ultraspherical})
+    A = w_A.P
+    B = w_B.P
+    T = promote_type(eltype(w_A),eltype(w_B))
+
+    if A == B
+        SquareEye{T}(ℵ₀)
+    elseif B.λ == A.λ+1
+        λ = convert(T,A.λ)
+        _BandedMatrix(Vcat(((2λ:∞) .* ((2λ+1):∞) ./ (4λ .* (λ+1:∞)))',
+                            Zeros{T}(1,∞),
+                            (-(1:∞) .* (2:∞) ./ (4λ .* (λ+1:∞)))'), ℵ₀, 2,0)
+    elseif B.λ > A.λ+1
+        J = Weighted(Ultraspherical(B.λ-1))
+        (w_A\J) * (J\w_B)
+    else
+        error("not implemented for $w_A and $w_B")
+    end
+end
+
+
+
 function \(w_A::WeightedUltraspherical, w_B::WeightedUltraspherical)
     wA,A = w_A.args
     wB,B = w_B.args
@@ -240,12 +259,9 @@ function \(w_A::WeightedUltraspherical, w_B::WeightedUltraspherical)
 
     if wA == wB
         A \ B
-    elseif B.λ == A.λ+1 && wB.λ == wA.λ+1 # Lower
-        λ = convert(T,A.λ)
-        _BandedMatrix(Vcat(((2λ:∞) .* ((2λ+1):∞) ./ (4λ .* (λ+1:∞)))',
-                            Zeros{T}(1,∞),
-                            (-(1:∞) .* (2:∞) ./ (4λ .* (λ+1:∞)))'), ℵ₀, 2,0)
-    elseif wB.λ ≥ wA.λ+1
+    elseif wA.λ == A.λ && wB.λ == B.λ # weighted
+        Weighted(A) \ Weighted(B)
+    elseif wB.λ ≥ wA.λ+1 # lower
         J = UltrasphericalWeight(wB.λ-1) .* Ultraspherical(B.λ-1)
         (w_A\J) * (J\w_B)
     else
@@ -254,12 +270,8 @@ function \(w_A::WeightedUltraspherical, w_B::WeightedUltraspherical)
 end
 
 \(w_A::WeightedUltraspherical, w_B::Weighted{<:Any,<:Ultraspherical}) = w_A \ convert(WeightedBasis,w_B)
-\(w_A::Weighted{<:Any,<:Ultraspherical}, w_B::Weighted{<:Any,<:Ultraspherical}) = convert(WeightedBasis, w_A) \ convert(WeightedBasis, w_B)
 \(w_A::Weighted{<:Any,<:Ultraspherical}, w_B::WeightedUltraspherical) = convert(WeightedBasis,w_A) \ w_B
 \(A::Ultraspherical, w_B::Weighted{<:Any,<:Ultraspherical}) = A \ convert(WeightedBasis,w_B)
-
-\(A::Legendre, wB::WeightedUltraspherical) = Ultraspherical(A) \ wB
-
 \(A::Ultraspherical, w_B::WeightedUltraspherical) = (UltrasphericalWeight(one(A.λ)/2) .* A) \ w_B
-
+\(A::Legendre, wB::WeightedUltraspherical) = Ultraspherical(A) \ wB
 

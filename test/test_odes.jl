@@ -1,5 +1,7 @@
 using ClassicalOrthogonalPolynomials, ContinuumArrays, QuasiArrays, BandedMatrices,
-        SemiseparableMatrices, LazyArrays, ArrayLayouts, Test
+        LazyArrays, ArrayLayouts, Test
+
+using SemiseparableMatrices
 
 import QuasiArrays: MulQuasiMatrix
 import ClassicalOrthogonalPolynomials: oneto
@@ -262,6 +264,8 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
         end
 
         @testset "weak form" begin
+            C = Ultraspherical(3/2)
+            W = Weighted(C)
             Δ = weaklaplacian(W)
             x = axes(W,1)
             X = W' * (x .* W)
