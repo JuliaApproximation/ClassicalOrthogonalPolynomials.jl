@@ -226,6 +226,9 @@ orthogonalityweight(P::SubQuasiArray{<:Any,2,<:Any,<:Tuple{AbstractAffineQuasiVe
 
 weighted(P::AbstractQuasiMatrix) = Weighted(P)
 
+"""
+gives the inner products of OPs with their weight, i.e., Weighted(P)'P.
+"""
 weightedgrammatrix(P) = weightedgrammatrix_layout(MemoryLayout(P), P)
 function weightedgrammatrix_layout(::MappedOPLayout, P)
     Q = parent(P)
@@ -291,6 +294,16 @@ grid_layout(::MappedOPLayout, P, n::Integer) = grid_layout(MappedBasisLayout(), 
 plotgrid_layout(::AbstractOPLayout, P, n::Integer) = grid(P, min(40n, MAX_PLOT_POINTS))
 plotgrid_layout(::MappedOPLayout, P, n::Integer) = plotgrid_layout(MappedBasisLayout(), P, n)
 plotvalues_layout(::ExpansionLayout{MappedOPLayout}, f, x...) = plotvalues_layout(ExpansionLayout{MappedBasisLayout}(), f, x...)
+
+hasboundedendpoints(_) = false # assume blow up
+function plotgrid_layout(::WeightedOPLayout, P, n::Integer)
+    if hasboundedendpoints(weight(P))
+        plotgrid(unweighted(P), n)
+    else
+        grid(unweighted(P), min(40n, MAX_PLOT_POINTS))
+    end
+end
+
 
 function golubwelsch(X::AbstractMatrix)
     D, V = eigen(symtridiagonalize(X))  # Eigenvalue decomposition

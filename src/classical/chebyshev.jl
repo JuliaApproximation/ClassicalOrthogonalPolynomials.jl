@@ -12,9 +12,13 @@ ChebyshevWeight() = ChebyshevWeight{1,Float64}()
 AbstractQuasiArray{T}(::ChebyshevWeight{kind}) where {T,kind} = ChebyshevWeight{kind,T}()
 AbstractQuasiVector{T}(::ChebyshevWeight{kind}) where {T,kind} = ChebyshevWeight{kind,T}()
 
+const ChebyshevTWeight = ChebyshevWeight{1}
+const ChebyshevUWeight = ChebyshevWeight{2}
 
-getproperty(w::ChebyshevWeight{1,T}, ::Symbol) where T = -one(T)/2
-getproperty(w::ChebyshevWeight{2,T}, ::Symbol) where T = one(T)/2
+getproperty(w::ChebyshevTWeight{T}, ::Symbol) where T = -one(T)/2
+getproperty(w::ChebyshevUWeight{T}, ::Symbol) where T = one(T)/2
+
+hasboundedendpoints(::ChebyshevUWeight) = true
 
 """
 Chebyshev{kind,T}()
@@ -28,8 +32,6 @@ Chebyshev{kind}() where kind = Chebyshev{kind,Float64}()
 AbstractQuasiArray{T}(::Chebyshev{kind}) where {T,kind} = Chebyshev{kind,T}()
 AbstractQuasiMatrix{T}(::Chebyshev{kind}) where {T,kind} = Chebyshev{kind,T}()
 
-const ChebyshevTWeight = ChebyshevWeight{1}
-const ChebyshevUWeight = ChebyshevWeight{2}
 const ChebyshevT = Chebyshev{1}
 const ChebyshevU = Chebyshev{2}
 
