@@ -71,7 +71,7 @@ abstract type AbstractOPLayout <: AbstractBasisLayout end
 struct OPLayout <: AbstractOPLayout end
 MemoryLayout(::Type{<:OrthogonalPolynomial}) = OPLayout()
 
-
+Base.isassigned(P::OrthogonalPolynomial, x, n) = (x ∈ axes(P,1)) && (n ∈ axes(P,2))
 
 sublayout(::AbstractOPLayout, ::Type{<:Tuple{<:AbstractAffineQuasiVector,<:Slice}}) = MappedOPLayout()
 
