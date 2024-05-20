@@ -1,4 +1,5 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, BandedMatrices, LazyArrays, ForwardDiff, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, BandedMatrices, LazyArrays, Test
+using ForwardDiff
 using LazyArrays: rowsupport, colsupport
 using ClassicalOrthogonalPolynomials: grammatrix
 
@@ -72,8 +73,8 @@ using ClassicalOrthogonalPolynomials: grammatrix
                 @test rowsupport(U\C,5) == rowsupport(T\C,5) == 5:∞
             end
             @testset "Legendre" begin
-                @test Ultraspherical(0.5) \ (UltrasphericalWeight(0.0) .* Ultraspherical(0.5)) == Eye(∞)
-                @test Legendre() \ (UltrasphericalWeight(0.0) .* Ultraspherical(0.5)) == Eye(∞)
+                @test Ultraspherical(0.5) \ (UltrasphericalWeight(0.5) .* Ultraspherical(0.5)) == Eye(∞)
+                @test Legendre() \ (UltrasphericalWeight(0.5) .* Ultraspherical(0.5)) == Eye(∞)
                 @test (Legendre() \ Ultraspherical(1.5))[1:10,1:10] ≈ inv(Ultraspherical(1.5) \ Legendre())[1:10,1:10]
                 @test UltrasphericalWeight(LegendreWeight()) == UltrasphericalWeight(1/2)
             end

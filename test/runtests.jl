@@ -79,3 +79,8 @@ end
     @test_throws ErrorException jacobimatrix(MyIncompleteJacobi())
     @test_throws ErrorException plan_transform(MyIncompleteJacobi(), 5)
 end
+
+@testset "Issue #179" begin
+    @test startswith(sprint(show, MIME"text/plain"(), Chebyshev()[0.3, :]; context=(:compact=>true, :limit=>true)), "ℵ₀-element view(::ChebyshevT{Float64}, 0.3, :)")
+    @test startswith(sprint(show, MIME"text/plain"(), Jacobi(0.2, 0.5)[-0.7, :]; context=(:compact=>true, :limit=>true)), "ℵ₀-element view(::Jacobi{Float64}, -0.7, :)")
+end

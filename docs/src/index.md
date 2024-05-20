@@ -224,6 +224,9 @@ ClassicalOrthogonalPolynomials.ShuffledFFT
 ClassicalOrthogonalPolynomials.legendre_grammatrix
 ```
 ```@docs
+ClassicalOrthogonalPolynomials.weightedgrammatrix
+```
+```@docs
 ClassicalOrthogonalPolynomials.WeightedOPLayout
 ```
 ```@docs
