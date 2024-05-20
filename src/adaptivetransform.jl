@@ -8,11 +8,11 @@ padchop!(cfs, tol, ax...) = pad(chop!(cfs, tol), ax...)
 padchop(cfs, tol, ax...) = pad(chop(cfs, tol), ax...)
 
 # ax will impose block structure for us
-padchop!(cfs::PseudoBlockVector, tol, ax...) = padchop!(cfs.blocks, tol, ax...)
+padchop!(cfs::BlockedVector, tol, ax...) = padchop!(cfs.blocks, tol, ax...)
 
 
 padresize!(cfs, m, ax...) = pad(compatible_resize!(cfs, m), ax...)
-padresize!(cfs::PseudoBlockVector, m, ax...) = padresize!(cfs.blocks, m, ax...)
+padresize!(cfs::BlockedVector, m, ax...) = padresize!(cfs.blocks, m, ax...)
 
 
 increasingtruncations(::OneToInf) = oneto.(2 .^ (4:∞))

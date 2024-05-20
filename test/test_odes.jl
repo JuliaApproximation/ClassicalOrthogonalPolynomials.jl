@@ -220,7 +220,7 @@ import BandedMatrices: isbanded
             u = Q * c
             @test u[0.1] ≈ -0.5922177802211208
 
-            Δ = -((D*Q)'*(D*Q))
+            Δ = -((D*Q)'*(D*Q));
             @test bandwidths(Δ) == (0,0)
             c = Δ \ (Q'*exp.(x))
             u = Q * c
@@ -229,7 +229,7 @@ import BandedMatrices: isbanded
 
         @testset "natural" begin
             Q = [one(x) x W]
-            Δ = -((D*Q)'*(D*Q))
+            Δ = -((D*Q)'*(D*Q));
             M = Q'Q
             @test isbanded(Δ)
             @test isbanded(M)
@@ -242,7 +242,7 @@ import BandedMatrices: isbanded
 
         @testset "one-sided" begin
             Q = [one(x)-x W]
-            Δ = -((D*Q)'*(D*Q))
+            Δ = -((D*Q)'*(D*Q));
             M = Q'Q;
             c = (Δ + M) \ (Q'exp.(x))
             u = Q * c
