@@ -14,7 +14,7 @@ import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /
                 findall, searchsortedfirst, diff
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjointlayout,
-                sub_materialize, arguments, sub_paddeddata, paddeddata, PaddedLayout, resizedata!, LazyVector, ApplyLayout, call,
+                sub_materialize, arguments, sub_paddeddata, paddeddata, AbstractPaddedLayout, PaddedColumns, resizedata!, LazyVector, ApplyLayout, call,
                 _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
                 AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!,
                 simplifiable, PaddedArray, converteltype, simplify

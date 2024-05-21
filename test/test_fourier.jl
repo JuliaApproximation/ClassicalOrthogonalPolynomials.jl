@@ -43,8 +43,8 @@ import QuasiArrays: MulQuasiArray
 
         @test F == F
 
-        @test axes(F,2) isa BlockedUnitRange{InfiniteArrays.InfStepRange{Int,Int}}
-        @test axes(F) isa Tuple{<:Inclusion,BlockedUnitRange{InfiniteArrays.InfStepRange{Int,Int}}}
+        @test axes(F,2) isa BlockedOneTo{Int,InfiniteArrays.InfStepRange{Int,Int}}
+        @test axes(F) isa Tuple{<:Inclusion,BlockedOneTo{Int,InfiniteArrays.InfStepRange{Int,Int}}}
         @test axes(F,2)[Block(2)] == 2:3
         @test F[0.1,1] == 1.0
         @test F[0.1,2] == sin(0.1)
@@ -52,7 +52,7 @@ import QuasiArrays: MulQuasiArray
         @test F[0.1,Block(4)] == [sin(3*0.1),cos(3*0.1)]
         @test F[0.1,Block.(1:3)] == [1,sin(0.1),cos(0.1),sin(2*0.1),cos(2*0.1)]
 
-        u = F * PseudoBlockVector([[1,2,3]; zeros(∞)], (axes(F,2),));
+        u = F * BlockedVector([[1,2,3]; zeros(∞)], (axes(F,2),));
         @test u[0.1] == 1 + 2sin(0.1) + 3cos(0.1)
     end
 
@@ -84,7 +84,7 @@ import QuasiArrays: MulQuasiArray
         @test (F\F)*D̃ isa BlockArray
         @test (F \ (D*F))[Block.(1:3),Block.(1:3)] == [0 0 0 0 0; 0 0.0 -1 0 0; 0 1 0 0 0; 0 0 0 0 -2; 0 0 0 2 0]
 
-        u = F * PseudoBlockVector([[1,2,3,4,5]; zeros(∞)], (axes(F,2),));
+        u = F * BlockedVector([[1,2,3,4,5]; zeros(∞)], (axes(F,2),));
         @test blockisequal(axes(D̃,2),axes(u.args[2],1))
         @test (D*u)[0.1] ≈ 2cos(0.1) - 3sin(0.1) + 8cos(2*0.1) - 10sin(2*0.1)
     end
@@ -134,8 +134,8 @@ end
 
         @test F == F
 
-        @test axes(F,2) isa BlockedUnitRange{InfiniteArrays.InfStepRange{Int,Int}}
-        @test axes(F) isa Tuple{<:Inclusion,BlockedUnitRange{InfiniteArrays.InfStepRange{Int,Int}}}
+        @test axes(F,2) isa BlockedOneTo{Int,InfiniteArrays.InfStepRange{Int,Int}}
+        @test axes(F) isa Tuple{<:Inclusion,BlockedOneTo{Int,InfiniteArrays.InfStepRange{Int,Int}}}
         @test axes(F,2)[Block(2)] == 2:3
         @test F[0.1,1] ≡ complex(1.0)
         @test F[0.1,2] == exp(-im*0.1)
@@ -143,7 +143,7 @@ end
         @test F[0.1,Block(4)] == [exp(-im*3*0.1),exp(im*3*0.1)]
         @test F[0.1,Block.(1:3)] == [1,exp(-im*0.1),exp(im*0.1),exp(-2im*0.1),exp(2im*0.1)]
 
-        u = F * PseudoBlockVector([[1,2,3]; zeros(∞)], (axes(F,2),));
+        u = F * BlockedVector([[1,2,3]; zeros(∞)], (axes(F,2),));
         @test u[0.1] == 1 + 2exp(-im*0.1) + 3exp(im*0.1)
     end
 
@@ -175,7 +175,7 @@ end
         @test (F\F)*D̃ isa Diagonal
         @test (F \ (D*F))[Block.(1:3),Block.(1:3)] == Diagonal([0,-im,im,-2im,2im])
 
-        u = F * PseudoBlockVector([[1,2,3,4,5]; zeros(∞)], (axes(F,2),));
+        u = F * BlockedVector([[1,2,3,4,5]; zeros(∞)], (axes(F,2),));
         @test blockisequal(axes(D̃,2),axes(u.args[2],1))
         @test (D*u)[0.1] ≈ -2im*exp(-im*0.1) + 3im*exp(im*0.1) - 8im*exp(-im*2*0.1) + 10im*exp(im*2*0.1)
     end

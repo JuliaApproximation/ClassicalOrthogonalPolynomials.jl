@@ -8,6 +8,7 @@ import ClassicalOrthogonalPolynomials: oneto
 import ContinuumArrays: MappedBasisLayout, MappedWeightedBasisLayout, weaklaplacian
 import LazyArrays: arguments, ApplyMatrix, colsupport, MemoryLayout
 import SemiseparableMatrices: VcatAlmostBandedLayout
+import BandedMatrices: isbanded
 
 @testset "ODEs" begin
     @testset "p-FEM" begin
@@ -219,7 +220,7 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
             u = Q * c
             @test u[0.1] ≈ -0.5922177802211208
 
-            Δ = -((D*Q)'*(D*Q))
+            Δ = -((D*Q)'*(D*Q));
             @test bandwidths(Δ) == (0,0)
             c = Δ \ (Q'*exp.(x))
             u = Q * c
@@ -228,7 +229,7 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
 
         @testset "natural" begin
             Q = [one(x) x W]
-            Δ = -((D*Q)'*(D*Q))
+            Δ = -((D*Q)'*(D*Q));
             M = Q'Q
             @test isbanded(Δ)
             @test isbanded(M)
@@ -241,7 +242,7 @@ import SemiseparableMatrices: VcatAlmostBandedLayout
 
         @testset "one-sided" begin
             Q = [one(x)-x W]
-            Δ = -((D*Q)'*(D*Q))
+            Δ = -((D*Q)'*(D*Q));
             M = Q'Q;
             c = (Δ + M) \ (Q'exp.(x))
             u = Q * c

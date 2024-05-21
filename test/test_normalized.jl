@@ -1,6 +1,6 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, LinearAlgebra, QuasiArrays, Test
 import ClassicalOrthogonalPolynomials: NormalizedOPLayout, recurrencecoefficients, Normalized, Clenshaw, weighted, grid, plotgrid
-import LazyArrays: CachedVector, PaddedLayout
+import LazyArrays: CachedVector, PaddedColumns
 import ContinuumArrays: MappedWeightedBasisLayout
 
 @testset "Normalized" begin
@@ -37,7 +37,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
             f = Q*[1:5; zeros(∞)]
             @test f[0.1] ≈ Q[0.1,1:5]'*(1:5) ≈ f[[0.1]][1]
             x = axes(f,1)
-            @test MemoryLayout(Q \ (1 .- x.^2)) isa PaddedLayout
+            @test MemoryLayout(Q \ (1 .- x.^2)) isa PaddedColumns
             w = Q * (Q \ (1 .- x.^2));
             @test w[0.1] ≈ (1-0.1^2) ≈ w[[0.1]][1]
         end
@@ -212,7 +212,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
         n = 10
         Pn = Diagonal([Ones(n); Zeros(∞)])
         @test (X*Pn - Pn*X)[1:n,1:n] ≈ zeros(n,n)
-        @test MemoryLayout(Pn * Q[y,:]) isa PaddedLayout
+        @test MemoryLayout(Pn * Q[y,:]) isa PaddedColumns
 
         # @test (x-y) * Q[x,1:n]'*Q[y,1:n] ≈ (x-y) * Q[x,:]'*Pn*Q[y,:] ≈ (x-y) * Q[x,:]'*Pn*Q[y,:]
         # Q[x,:]' * ((X*Pn - Pn*X)* Q[y,:])

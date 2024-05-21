@@ -9,7 +9,7 @@ Laurent() = Laurent{ComplexF64}()
 ==(::Fourier, ::Fourier) = true
 ==(::Laurent, ::Laurent) = true
 
-axes(F::AbstractFourier) = (Inclusion(ℝ), _BlockedUnitRange(1:2:∞))
+axes(F::AbstractFourier) = (Inclusion(ℝ), BlockedOneTo(1:2:∞))
 
 function getindex(F::Fourier{T}, x::Real, j::Int)::T where T
     isodd(j) && return cos((j÷2)*x)
@@ -139,7 +139,7 @@ import BlockBandedMatrices: _BlockSkylineMatrix
 
 @simplify function *(A::QuasiAdjoint{<:Any,<:Fourier}, B::Fourier)
     TV = promote_type(eltype(A),eltype(B))
-    PseudoBlockArray(Diagonal(Vcat(2convert(TV,π),Fill(convert(TV,π),∞))), (axes(A,1),axes(B,2)))
+    BlockedArray(Diagonal(Vcat(2convert(TV,π),Fill(convert(TV,π),∞))), (axes(A,1),axes(B,2)))
 end
 
 @simplify function *(A::QuasiAdjoint{<:Any,<:Laurent}, B::Laurent)
@@ -153,7 +153,7 @@ function diff(F::Fourier{T}; dims=1) where T
 end
 
 function diff(F::Laurent{T}; dims=1) where T
-    D = Diagonal(PseudoBlockVector((((one(real(T)):∞) .÷ 2) .* (1 .- 2 .* iseven.(1:∞))) * convert(T,im), (axes(F,2),)))
+    D = Diagonal(BlockedVector((((one(real(T)):∞) .÷ 2) .* (1 .- 2 .* iseven.(1:∞))) * convert(T,im), (axes(F,2),)))
     F * D
 end
 

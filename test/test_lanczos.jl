@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, BandedMatrices, ArrayLayouts, QuasiArrays, ContinuumArrays, InfiniteArrays, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, orthogonalityweight, golubwelsch, LanczosData
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedColumns, orthogonalityweight, golubwelsch, LanczosData
 
 @testset "Lanczos" begin
     @testset "Legendre" begin
@@ -47,7 +47,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
 
         Q = LanczosPolynomial(exp.(x))
         R = P \ Q
-        @test MemoryLayout(R[:,2]) isa PaddedLayout
+        @test MemoryLayout(R[:,2]) isa PaddedColumns
 
         A,B,C = recurrencecoefficients(Q)
         @test A[1] ≈ 1.903680130866564 # emperical from Mathematica
@@ -63,16 +63,16 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
 
         Q = LanczosPolynomial(  1 ./ (2 .+ x));
         R = P \ Q
-        @test norm(R[1,3:10]) ≤ 1E-14
+        @test norm(R[1,3:10]) ≤ 1E-14
 
         Q = LanczosPolynomial(  1 ./ (2 .+ x).^2);
         R = P \ Q
-        @test norm(R[1,4:10]) ≤ 2E-14
+        @test norm(R[1,4:10]) ≤ 2E-14
 
         # polys
         Q = LanczosPolynomial( 2 .+ x);
         R = P \ Q;
-        @test norm(inv(R)[1,3:10]) ≤ 1E-14
+        @test norm(inv(R)[1,3:10]) ≤ 1E-14
 
         w = P * (P \ (1 .+ x))
         Q = LanczosPolynomial(w)
@@ -80,7 +80,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedLayout, ort
 
         Q = LanczosPolynomial( 1 .+ x.^2);
         R = P \ Q;
-        @test norm(inv(R)[1,4:10]) ≤ 1E-14
+        @test norm(inv(R)[1,4:10]) ≤ 1E-14
     end
 
     @testset "Expansion" begin
