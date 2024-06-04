@@ -174,7 +174,7 @@ import ContinuumArrays: MappedWeightedBasisLayout
         P¹⁰ = Normalized(Jacobi(1, 0))
         L = Jacobi(0, 0) \ Weighted(Jacobi(1, 0))
         L̄ = (Diagonal(P⁰⁰.scaling) \ L) * Diagonal(P¹⁰.scaling)
-        L2 = Normalized(Jacobi(0, 0)) \ Weighted(Normalized(Jacobi(1, 0)))
+        L2 = P⁰⁰ \ Weighted(P¹⁰)
         @test L2[1:100, 1:100] ≈ L̄[1:100, 1:100]
     end
 
