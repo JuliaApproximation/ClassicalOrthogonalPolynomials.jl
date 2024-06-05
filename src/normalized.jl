@@ -198,7 +198,7 @@ copy(L::Ldiv{Lay,<:WeightedBasisLayout{<:AbstractNormalizedOPLayout}}) where Lay
 copy(L::Ldiv{<:WeightedBasisLayout{<:AbstractNormalizedOPLayout},<:WeightedBasisLayout{<:AbstractNormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
 copy(L::Ldiv{<:WeightedOPLayout{<:AbstractNormalizedOPLayout},<:WeightedBasisLayout{<:AbstractNormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
 copy(L::Ldiv{<:WeightedBasisLayout{<:AbstractNormalizedOPLayout},<:WeightedOPLayout{<:AbstractNormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A,L.B))
-
+copy(L::Ldiv{<:AbstractNormalizedOPLayout, <:WeightedOPLayout{<:AbstractNormalizedOPLayout}}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
 
 # function layout_broadcasted(::ExpansionLayout{WeightedOPLayout}, ::OPLayout, ::typeof(*), a, P)
 #     axes(a,1) == axes(P,1) || throw(DimensionMismatch())
