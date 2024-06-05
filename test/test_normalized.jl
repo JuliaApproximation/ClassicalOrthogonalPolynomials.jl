@@ -286,4 +286,10 @@ import ContinuumArrays: MappedWeightedBasisLayout
         g = ApplyQuasiArray(*, W, [1:3; zeros(∞)])
         @test P \ g ≈ transform(P, x -> g[x])
     end
+
+    @testset "inv bug (#182)" begin
+        P = Jacobi(2.0, 0.5)
+        Q = Jacobi(3.0, 0.5)
+        @test (P \ Normalized(Q))[1:10,1:10] ≈ inv((Normalized(Q) \ P)[1:10,1:10])
+    end
 end
