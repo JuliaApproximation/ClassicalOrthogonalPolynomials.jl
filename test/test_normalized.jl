@@ -169,6 +169,13 @@ import ContinuumArrays: MappedWeightedBasisLayout
         @test Q[0.1,1:4] ≈ [0.728237657560985,0.41715052371131806,-0.6523500049588019,-0.5607891513201705]
         w = JacobiWeight(1/2,0)
         @test (Q'*(w .* Q))[1:10,1:10] ≈ I
+
+        P⁰⁰ = Normalized(Jacobi(0, 0))
+        P¹⁰ = Normalized(Jacobi(1, 0))
+        L = Jacobi(0, 0) \ Weighted(Jacobi(1, 0))
+        L̄ = (Diagonal(P⁰⁰.scaling) \ L) * Diagonal(P¹⁰.scaling)
+        L2 = P⁰⁰ \ Weighted(P¹⁰)
+        @test L2[1:100, 1:100] ≈ L̄[1:100, 1:100]
     end
 
     @testset "Mapped" begin
