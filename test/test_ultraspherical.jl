@@ -177,4 +177,10 @@ using ClassicalOrthogonalPolynomials: grammatrix
         @test P[0.1,1:5] ≈ P̃[0.1,1:5] 
         @test (P \ Weighted(C))[1:10,1:10] ≈ (P \ Weighted(Jacobi(1,1)))[1:10,1:10] * (Jacobi(1,1) \ C)[1:10,1:10]
     end
+    @testset "Weighted(Jacobi) \ Weighted(Ultraspherical)" begin
+        L = Weighted(Ultraspherical(1/2)) \ Weighted(Jacobi(1,0))
+        @test L[1:10,1:10] == (Legendre() \ Weighted(Jacobi(1,0)))[1:10,1:10]
+        L = Weighted(Jacobi(1,0)) \ Weighted(Ultraspherical(3/2))
+        @test L[1:10,1:10] == (Weighted(Jacobi(1,0)) \ Weighted(Jacobi(1,1)))[1:10,1:10] * (Jacobi(1,1) \ Ultraspherical(3/2))[1:10,1:10]
+    end
 end
