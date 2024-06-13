@@ -377,9 +377,9 @@ function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
 
     if wA == wB
         A \ B
-    elseif B.a == A.a && B.b == A.b+1 && wB.b == wA.b+1 && wB.a == wA.a
+    elseif B.a ≈ A.a && B.b ≈ A.b+1 && wB.b ≈ wA.b+1 && wB.a ≈ wA.a
         Bidiagonal(((2:2:∞) .+ 2A.b)./((2:2:∞) .+ (A.a+A.b)), (2:2:∞)./((2:2:∞) .+ (A.a+A.b)), :L)
-    elseif B.a == A.a+1 && B.b == A.b && wB.b == wA.b && wB.a == wA.a+1
+    elseif B.a ≈ A.a+1 && B.b ≈ A.b && wB.b ≈ wA.b && wB.a ≈ wA.a+1
         Bidiagonal(((2:2:∞) .+ 2A.a)./((2:2:∞) .+ (A.a+A.b)), -(2:2:∞)./((2:2:∞) .+ (A.a+A.b)), :L)
     elseif wB.a ≥ wA.a+1 && B.a > 0
         J = JacobiWeight(wB.a-1,wB.b) .* Jacobi(B.a-1,B.b)
@@ -405,6 +405,7 @@ end
 \(w_A::Weighted{<:Any,<:Jacobi}, w_B::WeightedJacobi) = convert(WeightedBasis,w_A) \ w_B
 \(A::Jacobi, w_B::Weighted{<:Any,<:Jacobi}) = A \ convert(WeightedBasis,w_B)
 
+\(w_A::Weighted{<:Any,<:Jacobi}, B::Legendre) = w_A \ Weighted(Jacobi(B))
 \(A::Legendre, wB::WeightedJacobi) = Jacobi(A) \ wB
 
 ##########

@@ -183,6 +183,20 @@ function \(A::Jacobi, B::Ultraspherical)
     (A\B̃)*Diagonal(B[1,:]./B̃[1,:])
 end
 
+function \(wA::Weighted{<:Any,<:Ultraspherical}, wB::Weighted{<:Any,<:Jacobi})
+    A = wA.P
+    Ã = Jacobi(A)
+    Diagonal(Ã[1,:]./A[1,:]) * (Weighted(Ã)\wB)
+end
+
+function \(wA::Weighted{<:Any,<:Jacobi}, wB::Weighted{<:Any,<:Ultraspherical})
+    B = wB.P
+    B̃ = Jacobi(B)
+    (wA\Weighted(B̃))*Diagonal(B[1,:]./B̃[1,:])
+end
+
+
+
 function \(U::Ultraspherical{<:Any,<:Integer}, C::ChebyshevT)
     T = promote_type(eltype(U), eltype(C))
     (U\Ultraspherical{T}(1)) * (ChebyshevU{T}()\C)
