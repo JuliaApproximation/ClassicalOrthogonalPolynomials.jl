@@ -118,7 +118,7 @@ function _fillcholeskybanddata!(J::CholeskyJacobiData{T}, inds::UnitRange{Int}) 
 
     UX = view(U,1:m,1:m)*X[1:m,1:m]
 
-    @inbounds Threads.@threads for k = inds  
+    @inbounds for k = inds  
         # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
         dv[k] = -U[k-1,k]*UX[k,k-1]/(U[k-1,k-1]*U[k,k])+UX[k,k]/U[k,k]
         ev[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  
@@ -269,7 +269,7 @@ function _fillqrbanddata!(J::QRJacobiData{:R,T}, inds::UnitRange{Int}) where T
     
     UX = view(U,1:m,1:m)*X[1:m,1:m]
 
-    @inbounds Threads.@threads for k in inds
+    @inbounds for k in inds
         dv[k] = -U[k-1,k]*UX[k,k-1]/(U[k-1,k-1]*U[k,k])+UX[k,k]./U[k,k] # this is dot(view(UX,k,k-1:k), U[k-1:k,k-1:k] \ ek)
         ev[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  # this is dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
     end
