@@ -211,7 +211,7 @@ function clenshaw(c::AbstractVector, A::AbstractVector, B::AbstractVector, C::Ab
     m = size(X,1)
     m == size(X,2) || throw(DimensionMismatch("X must be square"))
     m == length(f) || throw(DimensionMismatch("Dimensions must match"))
-    N == 0 && return zero(T)
+    N == 0 && return [zero(T)]
     bn2 = zeros(T,m)
     bn1 = Vector{T}(undef,m)
     bn1 .= c[N] .* f
