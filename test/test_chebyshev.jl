@@ -561,6 +561,14 @@ import BandedMatrices: isbanded
         f = x -> abs(x) ≤ 1 ? 1 : "hi"
         @test T \ f.(axes(T,1)) ≈ [1; zeros(∞)]
     end
+
+    @testset "empty Clenshaw (#192)" begin
+        a = (x,α) -> α*(1-x^2)
+        T = ChebyshevT()
+        x = axes(T, 1)
+        A = T \ (a.(x, 0.) .* T)
+        @test iszero(A[1,1])
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end
