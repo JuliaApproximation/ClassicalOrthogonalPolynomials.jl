@@ -1,5 +1,6 @@
 using ClassicalOrthogonalPolynomials, QuasiArrays, ContinuumArrays, BandedMatrices, LazyArrays,
-        FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays, LazyBandedMatrices, ForwardDiff
+        FastTransforms, ArrayLayouts, Test, FillArrays, Base64, BlockArrays, LazyBandedMatrices
+using ForwardDiff
 import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clenshaw, paddeddata, jacobimatrix, oneto, Weighted, MappedOPLayout
 import LazyArrays: ApplyStyle
 import QuasiArrays: MulQuasiMatrix
@@ -104,7 +105,7 @@ import BandedMatrices: isbanded
         @testset "ChebyshevU" begin
             U = ChebyshevU()
             @test U == chebyshevu()
-            @test U ≠ ChebyshevT()
+            @test U ≠ ChebyshevT()
             x = axes(U,1)
             F = factorize(U[:,oneto(5)])
             @test @inferred(F \ x) ≈ [0,0.5,0,0,0]
@@ -261,7 +262,7 @@ import BandedMatrices: isbanded
 
             WT̃ = w[2x .- 1] .* T[2x .- 1, :]
             @test MemoryLayout(WT̃) isa WeightedBasisLayout{MappedOPLayout}
-            @test WT̃ ≠ T[2x .- 1, :]
+            @test WT̃ ≠ T[2x .- 1, :]
             v = WT̃ * (WT̃ \ @.(exp(x)/(sqrt(x)*sqrt(1-x))))
             @test v[0.1] ≈ let x = 0.1; exp(x)/(sqrt(x)*sqrt(1-x)) end
 
@@ -364,7 +365,7 @@ import BandedMatrices: isbanded
         @test Chebyshev() == ChebyshevT() == ChebyshevT{Float32}()
         @test ChebyshevU() == ChebyshevU{Float32}()
         @test Chebyshev{3}() == Chebyshev{3,Float32}()
-        @test Chebyshev() ≠ ChebyshevU()
+        @test Chebyshev() ≠ ChebyshevU()
     end
 
     @testset "sum" begin
@@ -568,6 +569,14 @@ import BandedMatrices: isbanded
         x = axes(T, 1)
         A = T \ (a.(x, 0.) .* T)
         @test iszero(A[1,1])
+    end
+
+    @testset "complex rhs (#139)" begin
+        T = Chebyshev()
+        x = axes(T,1)
+        @test T[:,OneTo(5)] \ exp.(im*x) ==  T[:,1:5] \ exp.(im*x) == ChebyshevT{ComplexF64}()[:,1:5] \ exp.(im*x)
+        @test T \ exp.(im*x) ≈ transform(T, x -> exp(im*x))
+        @test expand(T, x -> exp(im*x))[0.1] ≈ exp(im*0.1)
     end
 end
 
