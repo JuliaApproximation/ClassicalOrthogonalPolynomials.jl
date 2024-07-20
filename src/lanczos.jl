@@ -91,14 +91,16 @@ Base.BroadcastStyle(::Type{<:LanczosConversion}) = LazyArrays.LazyArrayStyle{2}(
 
 struct LanczosConversionLayout <: AbstractLazyLayout end
 
+_emptymaximum(arr) =  isempty(arr) ? convert(eltype(arr), firstindex(arr)-1) : maximum(arr) 
+
 LazyArrays.simplifiable(::Mul{LanczosConversionLayout,<:AbstractPaddedLayout}) = Val(true)
 function copy(M::Mul{LanczosConversionLayout,<:AbstractPaddedLayout})
-    resizedata!(M.A.data, maximum(colsupport(M.B)))
+    resizedata!(M.A.data, _emptymaximum(colsupport(M.B)))
     M.A.data.R * M.B
 end
 
 function copy(M::Ldiv{LanczosConversionLayout,<:AbstractPaddedLayout})
-    resizedata!(M.A.data, maximum(colsupport(M.B)))
+    resizedata!(M.A.data, _emptymaximum(colsupport(M.B)))
     M.A.data.R \ M.B
 end
 
