@@ -91,7 +91,7 @@ Base.BroadcastStyle(::Type{<:LanczosConversion}) = LazyArrays.LazyArrayStyle{2}(
 
 struct LanczosConversionLayout <: AbstractLazyLayout end
 
-_emptymaximum(arr) =  isempty(arr) ? zero(eltype(arr)) : maximum(arr) # only valid for one-based containers
+_emptymaximum(arr) =  isempty(arr) ? convert(eltype(arr), firstindex(arr)-1): maximum(arr) 
 
 LazyArrays.simplifiable(::Mul{LanczosConversionLayout,<:AbstractPaddedLayout}) = Val(true)
 function copy(M::Mul{LanczosConversionLayout,<:AbstractPaddedLayout})
