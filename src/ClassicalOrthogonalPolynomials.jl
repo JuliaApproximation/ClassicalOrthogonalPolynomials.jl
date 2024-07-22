@@ -318,6 +318,76 @@ end
 
 golubwelsch(V::SubQuasiArray) = golubwelsch(parent(V), maximum(parentindices(V)[2]))
 
+function gaussradau(P, n::Integer, endpt)
+    ## See Thm 3.2 in Gautschi (2004)'s book
+    # n is the number of interior points
+    J = symtridiagonalize(jacobimatrix(P, n + 1))
+    α = diagonaldata(J) 
+    β = supdiagonaldata(J) 
+    T = eltype(P) 
+    endpt = T(endpt)
+    p0 = zero(T) 
+    p1 = one(T)
+    for i in 1:n 
+        # Evaluate the monic polynomials πₙ₋₁(endpt), πₙ(endpt)
+        _p1 = p0 
+        p0 = p1 
+        p1 = (endpt - α[i]) * p0 
+        i > 1 && (p1 -= β[i - 1]^2 * _p1)
+    end 
+    a = endpt - β[end]^2 * p0 / p1 
+    α′ = vcat(@view(α[begin:end-1]), a)
+    J′ = SymTridiagonal(α′, β)
+    x, w = golubwelsch(J′)
+    w .*= sum(orthogonalityweight(P))
+    if endpt ≤ axes(P, 1)[begin]
+        x[1] = endpt # avoid rounding errors
+    else 
+        x[end] = endpt 
+    end
+    return x, w
+end
+
+function gausslobatto(P, n::Integer)
+    ## See Thm 3.6 of Gautschi (2004)'s book
+    # n is the number of interior points 
+    a, b = axes(P, 1)[begin], axes(P, 1)[end]
+    J = symtridiagonalize(jacobimatrix(P, n + 2))
+    α = diagonaldata(J) 
+    β = supdiagonaldata(J) 
+    T = eltype(P) 
+    a, b = T(a), T(b)
+    p0a = zero(T) 
+    p1a = one(T) 
+    p0b = zero(T) 
+    p1b = one(T) 
+    for i in 1:(n+1)
+        # Evaluate the monic polynomials πₙ₋₁(a), πₙ₋₁(b), πₙ(a), πₙ(b)
+        _p1a = p0a 
+        _p1b = p0b 
+        p0a = p1a 
+        p0b = p1b
+        p1a = (a - α[i]) * p0a 
+        p1b = (b - α[i]) * p0b 
+        if i > 1 
+            p1a -= β[i - 1]^2 * _p1a 
+            p1b -= β[i - 1]^2 * _p1b
+        end
+    end
+    # Solve Eq. 3.1.2.8 
+    Δ = p1a * p0b - p1b * p0a # This could underflow/overflow for large n 
+    aext = (a * p1a * p0b - b * p1b * p0a) / Δ 
+    bext = (b - a) * p1a * p1b / Δ 
+    α′ = vcat(@view(α[begin:end-1]), aext)
+    β′ = vcat(@view(β[begin:end-1]), sqrt(bext)) # LazyBandedMatrices doesn't like when we use Vcat(array, scalar) apparently
+    J′ = LazyBandedMatrices.SymTridiagonal(α′, β′)
+    x, w = golubwelsch(J′)
+    w .*= sum(orthogonalityweight(P))
+    x[1] = a 
+    x[end] = b # avoid rounding errors. Doesn't affect the actual result but avoids e.g. domain errors
+    return x, w 
+end
+
 # Default is Golub–Welsch expansion
 # note this computes the grid an extra time.
 function plan_transform_layout(::AbstractOPLayout, P, szs::NTuple{N,Int}, dims=ntuple(identity,Val(N))) where N

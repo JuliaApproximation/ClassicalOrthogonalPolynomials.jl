@@ -81,7 +81,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
 
             M = P[x,1:3]'Diagonal(w)*P[x,1:3]
             @test M ≈ Diagonal(M)
-            x,w = gaussradau(3,a,b)
+            x,w = FastGaussQuadrature.gaussradau(3,a,b)
             M = P[x,1:3]'Diagonal(w)*P[x,1:3]
             @test M ≈ Diagonal(M)
 
