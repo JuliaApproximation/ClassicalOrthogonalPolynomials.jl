@@ -326,14 +326,13 @@ function gaussradau(P, n::Integer, endpt)
     β = supdiagonaldata(J) 
     T = eltype(P) 
     endpt = T(endpt)
-    p0 = zero(T) 
-    p1 = one(T)
-    for i in 1:n 
+    p0 = one(T) 
+    p1 = (endpt - α[1]) * p0
+    for i in 2:n 
         # Evaluate the monic polynomials πₙ₋₁(endpt), πₙ(endpt)
         _p1 = p0 
         p0 = p1 
-        p1 = (endpt - α[i]) * p0 
-        i > 1 && (p1 -= β[i - 1]^2 * _p1)
+        p1 = (endpt - α[i]) * p0 - β[i - 1]^2 * _p1
     end 
     a = endpt - β[end]^2 * p0 / p1 
     α′ = vcat(@view(α[begin:end-1]), a)
@@ -357,22 +356,18 @@ function gausslobatto(P, n::Integer)
     β = supdiagonaldata(J) 
     T = eltype(P) 
     a, b = T(a), T(b)
-    p0a = zero(T) 
-    p1a = one(T) 
-    p0b = zero(T) 
-    p1b = one(T) 
-    for i in 1:(n+1)
+    p0a = one(T) 
+    p0b = one(T) 
+    p1a = (a - α[1]) * p0a 
+    p1b = (b - α[1]) * p0b
+    for i in 2:(n+1)
         # Evaluate the monic polynomials πₙ₋₁(a), πₙ₋₁(b), πₙ(a), πₙ(b)
         _p1a = p0a 
         _p1b = p0b 
         p0a = p1a 
         p0b = p1b
-        p1a = (a - α[i]) * p0a 
-        p1b = (b - α[i]) * p0b 
-        if i > 1 
-            p1a -= β[i - 1]^2 * _p1a 
-            p1b -= β[i - 1]^2 * _p1b
-        end
+        p1a = (a - α[i]) * p0a - β[i - 1]^2 * _p1a 
+        p1b = (b - α[i]) * p0b - β[i - 1]^2 * _p1b
     end
     # Solve Eq. 3.1.2.8 
     Δ = p1a * p0b - p1b * p0a # This could underflow/overflow for large n 
