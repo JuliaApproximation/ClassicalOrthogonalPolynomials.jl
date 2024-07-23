@@ -346,8 +346,8 @@ function gausslobatto(P::Monic{T}, n::Integer) where {T}
     a, b = axes(P, 1)[begin], axes(P, 1)[end]
     J = jacobimatrix(P.P, n + 2)
     α, β = diagonaldata(J), supdiagonaldata(J)
-    p0a, p0b = P[a, (n+1):(n+2)]
-    p1a, p1b = P[b, (n+1):(n+2)]
+    p0a, p1a = P[a, (n+1):(n+2)]
+    p0b, p1b = P[b, (n+1):(n+2)]
     # Solve Eq. 3.1.2.8 
     Δ = p1a * p0b - p1b * p0a # This could underflow/overflow for large n 
     aext = (a * p1a * p0b - b * p1b * p0a) / Δ
