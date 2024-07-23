@@ -47,7 +47,7 @@ using LinearAlgebra
     @testset "Some numerical integration" begin
         f = x -> 2x + 7x^2 + 10x^3 + exp(-x)
         x, w = COP.gaussradau(Chebyshev(), 10, -1.0)
-        @test dot(f.(x), w) ≈ 14.97303754807069897 # integral of (2x + 7x^2 + 10x^3 + exp(-x))/sqrt(1-x62)
+        @test dot(f.(x), w) ≈ 14.97303754807069897 # integral of (2x + 7x^2 + 10x^3 + exp(-x))/sqrt(1-x^2)
         @test x[1] == -1
         
         f = x -> -1.0 + 5x^6
