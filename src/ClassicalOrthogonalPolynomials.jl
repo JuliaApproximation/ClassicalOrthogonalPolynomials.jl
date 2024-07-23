@@ -325,8 +325,7 @@ function gaussradau(P::Monic{T}, n::Integer, endpt) where {T}
     J = jacobimatrix(P.P, n + 1)
     α, β = diagonaldata(J), supdiagonaldata(J)
     endpt = T(endpt)
-    p0 = P[endpt, n] # πₙ₋₁
-    p1 = P[endpt, n+1] # πₙ. Could be faster by computing p1 from p0 and πₙ₋₂, but the cost is tiny relative to eigen()
+    p0, p1 = P[endpt,n:n+1]
     a = (endpt - β[end]^2 * p0 / p1)::T
     α′ = vcat(@view(α[begin:end-1]), a)
     J′ = SymTridiagonal(α′, β)
@@ -347,8 +346,8 @@ function gausslobatto(P::Monic{T}, n::Integer) where {T}
     a, b = axes(P, 1)[begin], axes(P, 1)[end]
     J = jacobimatrix(P.P, n + 2)
     α, β = diagonaldata(J), supdiagonaldata(J)
-    p0a, p0b = P[a, n+1], P[b, n+1]
-    p1a, p1b = P[a, n+2], P[b, n+2]
+    p0a, p0b = P[a, (n+1):(n+2)]
+    p1a, p1b = P[b, (n+1):(n+2)]
     # Solve Eq. 3.1.2.8 
     Δ = p1a * p0b - p1b * p0a # This could underflow/overflow for large n 
     aext = (a * p1a * p0b - b * p1b * p0a) / Δ
