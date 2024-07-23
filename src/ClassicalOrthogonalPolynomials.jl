@@ -326,7 +326,7 @@ function gaussradau(P::Monic{T}, n::Integer, endpt) where {T}
     α, β = diagonaldata(J), supdiagonaldata(J)
     endpt = T(endpt)
     p0, p1 = P[endpt,n:n+1]
-    a = (endpt - β[end]^2 * p0 / p1)::T
+    a = endpt - β[end]^2 * p0 / p1
     α′ = vcat(@view(α[begin:end-1]), a)
     J′ = SymTridiagonal(α′, β)
     x, w = golubwelsch(J′) # not inferred
