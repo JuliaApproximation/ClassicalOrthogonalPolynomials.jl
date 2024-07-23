@@ -285,6 +285,7 @@ end
 include("clenshaw.jl")
 include("ratios.jl")
 include("normalized.jl")
+include("monic.jl")
 include("lanczos.jl")
 include("choleskyQR.jl")
 
@@ -318,70 +319,50 @@ end
 
 golubwelsch(V::SubQuasiArray) = golubwelsch(parent(V), maximum(parentindices(V)[2]))
 
-function gaussradau(P, n::Integer, endpt)
-    ## See Thm 3.2 in Gautschi (2004)'s book
-    # n is the number of interior points
-    J = symtridiagonalize(jacobimatrix(P, n + 1))
-    α = diagonaldata(J) 
-    β = supdiagonaldata(J) 
-    T = eltype(P) 
+function gaussradau(P::Monic{T}, n::Integer, endpt) where {T}
+    ## See Thm 3.2 in Gautschi (2004)'s book 
+    # n is number of interior points 
+    J = jacobimatrix(P.P, n + 1)
+    α, β = diagonaldata(J), supdiagonaldata(J)
     endpt = T(endpt)
-    p0 = one(T) 
-    p1 = (endpt - α[1]) * p0
-    for i in 2:n 
-        # Evaluate the monic polynomials πₙ₋₁(endpt), πₙ(endpt)
-        _p1 = p0 
-        p0 = p1 
-        p1 = (endpt - α[i]) * p0 - β[i - 1]^2 * _p1
-    end 
-    a = endpt - β[end]^2 * p0 / p1 
+    p0 = P[endpt, n] # πₙ₋₁
+    p1 = P[endpt, n+1] # πₙ. Could be faster by computing p1 from p0 and πₙ₋₂, but the cost is tiny relative to eigen()
+    a = (endpt - β[end]^2 * p0 / p1)::T
     α′ = vcat(@view(α[begin:end-1]), a)
     J′ = SymTridiagonal(α′, β)
-    x, w = golubwelsch(J′)
+    x, w = golubwelsch(J′) # not inferred
     w .*= sum(orthogonalityweight(P))
     if endpt ≤ axes(P, 1)[begin]
         x[1] = endpt # avoid rounding errors
-    else 
-        x[end] = endpt 
+    else
+        x[end] = endpt
     end
     return x, w
 end
+gaussradau(P, n::Integer, endpt) = gaussradau(Monic(P), n, endpt)
 
-function gausslobatto(P, n::Integer)
-    ## See Thm 3.6 of Gautschi (2004)'s book
+function gausslobatto(P::Monic{T}, n::Integer) where {T}
+    ## See Thm 3.6 of Gautschi (2004)'s book 
     # n is the number of interior points 
     a, b = axes(P, 1)[begin], axes(P, 1)[end]
-    J = symtridiagonalize(jacobimatrix(P, n + 2))
-    α = diagonaldata(J) 
-    β = supdiagonaldata(J) 
-    T = eltype(P) 
-    a, b = T(a), T(b)
-    p0a = one(T) 
-    p0b = one(T) 
-    p1a = (a - α[1]) * p0a 
-    p1b = (b - α[1]) * p0b
-    for i in 2:(n+1)
-        # Evaluate the monic polynomials πₙ₋₁(a), πₙ₋₁(b), πₙ(a), πₙ(b)
-        _p1a = p0a 
-        _p1b = p0b 
-        p0a = p1a 
-        p0b = p1b
-        p1a = (a - α[i]) * p0a - β[i - 1]^2 * _p1a 
-        p1b = (b - α[i]) * p0b - β[i - 1]^2 * _p1b
-    end
+    J = jacobimatrix(P.P, n + 2)
+    α, β = diagonaldata(J), supdiagonaldata(J)
+    p0a, p0b = P[a, n+1], P[b, n+1]
+    p1a, p1b = P[a, n+2], P[b, n+2]
     # Solve Eq. 3.1.2.8 
     Δ = p1a * p0b - p1b * p0a # This could underflow/overflow for large n 
-    aext = (a * p1a * p0b - b * p1b * p0a) / Δ 
-    bext = (b - a) * p1a * p1b / Δ 
+    aext = (a * p1a * p0b - b * p1b * p0a) / Δ
+    bext = (b - a) * p1a * p1b / Δ
     α′ = vcat(@view(α[begin:end-1]), aext)
     β′ = vcat(@view(β[begin:end-1]), sqrt(bext)) # LazyBandedMatrices doesn't like when we use Vcat(array, scalar) apparently
     J′ = LazyBandedMatrices.SymTridiagonal(α′, β′)
     x, w = golubwelsch(J′)
     w .*= sum(orthogonalityweight(P))
-    x[1] = a 
+    x[1] = a
     x[end] = b # avoid rounding errors. Doesn't affect the actual result but avoids e.g. domain errors
-    return x, w 
+    return x, w
 end
+gausslobatto(P, n::Integer) = gausslobatto(Monic(P), n)
 
 # Default is Golub–Welsch expansion
 # note this computes the grid an extra time.
