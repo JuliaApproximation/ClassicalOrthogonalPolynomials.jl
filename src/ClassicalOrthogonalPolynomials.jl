@@ -285,6 +285,7 @@ end
 include("clenshaw.jl")
 include("ratios.jl")
 include("normalized.jl")
+include("monic.jl")
 include("lanczos.jl")
 include("choleskyQR.jl")
 
@@ -317,6 +318,50 @@ function golubwelsch(P, n::Integer)
 end
 
 golubwelsch(V::SubQuasiArray) = golubwelsch(parent(V), maximum(parentindices(V)[2]))
+
+function gaussradau(P::Monic{T}, n::Integer, endpt) where {T}
+    ## See Thm 3.2 in Gautschi (2004)'s book 
+    # n is number of interior points 
+    J = jacobimatrix(P.P, n + 1)
+    α, β = diagonaldata(J), supdiagonaldata(J)
+    endpt = T(endpt)
+    p0, p1 = P[endpt,n:n+1]
+    a = endpt - β[end]^2 * p0 / p1
+    α′ = vcat(@view(α[begin:end-1]), a)
+    J′ = SymTridiagonal(α′, β)
+    x, w = golubwelsch(J′) # not inferred
+    w .*= sum(orthogonalityweight(P))
+    if endpt ≤ axes(P, 1)[begin]
+        x[1] = endpt # avoid rounding errors
+    else
+        x[end] = endpt
+    end
+    return x, w
+end
+gaussradau(P, n::Integer, endpt) = gaussradau(Monic(P), n, endpt)
+
+function gausslobatto(P::Monic{T}, n::Integer) where {T}
+    ## See Thm 3.6 of Gautschi (2004)'s book 
+    # n is the number of interior points 
+    a, b = axes(P, 1)[begin], axes(P, 1)[end]
+    J = jacobimatrix(P.P, n + 2)
+    α, β = diagonaldata(J), supdiagonaldata(J)
+    p0a, p1a = P[a, (n+1):(n+2)]
+    p0b, p1b = P[b, (n+1):(n+2)]
+    # Solve Eq. 3.1.2.8 
+    Δ = p1a * p0b - p1b * p0a # This could underflow/overflow for large n 
+    aext = (a * p1a * p0b - b * p1b * p0a) / Δ
+    bext = (b - a) * p1a * p1b / Δ
+    α′ = vcat(@view(α[begin:end-1]), aext)
+    β′ = vcat(@view(β[begin:end-1]), sqrt(bext)) # LazyBandedMatrices doesn't like when we use Vcat(array, scalar) apparently
+    J′ = LazyBandedMatrices.SymTridiagonal(α′, β′)
+    x, w = golubwelsch(J′)
+    w .*= sum(orthogonalityweight(P))
+    x[1] = a
+    x[end] = b # avoid rounding errors. Doesn't affect the actual result but avoids e.g. domain errors
+    return x, w
+end
+gausslobatto(P, n::Integer) = gausslobatto(Monic(P), n)
 
 # Default is Golub–Welsch expansion
 # note this computes the grid an extra time.
