@@ -578,6 +578,10 @@ import BandedMatrices: isbanded
         @test T \ exp.(im*x) ≈ transform(T, x -> exp(im*x))
         @test expand(T, x -> exp(im*x))[0.1] ≈ exp(im*0.1)
     end
+
+    @testset "diff of truncation" begin
+        MemoryLayout(diff(ChebyshevT()[:,1:5]) * randn(5)) isa ExpansionLayout
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end
