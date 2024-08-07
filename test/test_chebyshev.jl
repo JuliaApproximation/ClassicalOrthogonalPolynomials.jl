@@ -5,7 +5,7 @@ import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clensha
 import LazyArrays: ApplyStyle
 import QuasiArrays: MulQuasiMatrix
 import Base: OneTo
-import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
+import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout, ExpansionLayout
 import BandedMatrices: isbanded
 
 @testset "Chebyshev" begin
