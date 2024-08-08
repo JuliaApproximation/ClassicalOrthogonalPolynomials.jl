@@ -5,7 +5,7 @@ import ClassicalOrthogonalPolynomials: Clenshaw, recurrencecoefficients, clensha
 import LazyArrays: ApplyStyle
 import QuasiArrays: MulQuasiMatrix
 import Base: OneTo
-import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout
+import ContinuumArrays: MappedWeightedBasisLayout, Map, WeightedBasisLayout, ExpansionLayout
 import BandedMatrices: isbanded
 
 @testset "Chebyshev" begin
@@ -577,6 +577,10 @@ import BandedMatrices: isbanded
         @test T[:,OneTo(5)] \ exp.(im*x) ==  T[:,1:5] \ exp.(im*x) == ChebyshevT{ComplexF64}()[:,1:5] \ exp.(im*x)
         @test T \ exp.(im*x) ≈ transform(T, x -> exp(im*x))
         @test expand(T, x -> exp(im*x))[0.1] ≈ exp(im*0.1)
+    end
+
+    @testset "diff of truncation" begin
+        MemoryLayout(diff(ChebyshevT()[:,1:5]) * randn(5)) isa ExpansionLayout
     end
 end
 
