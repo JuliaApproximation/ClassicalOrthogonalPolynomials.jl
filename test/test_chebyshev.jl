@@ -580,7 +580,7 @@ import BandedMatrices: isbanded
     end
 
     @testset "diff of truncation" begin
-        MemoryLayout(diff(ChebyshevT()[:,1:5]) * randn(5)) isa ExpansionLayout
+        @test MemoryLayout(diff(ChebyshevT()[:,1:5]) * randn(5)) isa ExpansionLayout
     end
 end
 
