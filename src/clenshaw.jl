@@ -1,4 +1,6 @@
 
+
+
 # Assume 1 normalization
 _p0(A) = one(eltype(A))
 
@@ -123,4 +125,10 @@ function _broadcasted_layout_broadcasted_mul(::Tuple{AbstractWeightLayout,Polyno
     Q = OrthogonalPolynomial(w)
     a = (w .* Q) * (Q \ v)
     a .* P
+end
+
+# constructor for Clenshaw
+function Clenshaw(a::AbstractQuasiVector, X::AbstractQuasiMatrix)
+    P,c = arguments(a)
+    Clenshaw(paddeddata(c), recurrencecoefficients(P)..., jacobimatrix(X), _p0(P))
 end
