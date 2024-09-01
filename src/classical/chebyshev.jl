@@ -159,7 +159,7 @@ weightedgrammatrix(::ChebyshevU{V}) where V = Diagonal(Fill(convert(V,π)/2,∞)
 @simplify *(A::QuasiAdjoint{<:Any,<:Weighted{<:Any,<:ChebyshevU}}, B::ChebyshevU) = weightedgrammatrix(ChebyshevU{promote_type(eltype(A),eltype(B))}())
 
 function grammatrix(A::ChebyshevT{T}) where T
-    f = (k,j) -> isodd(j-k) ? zero(T) : -(((1 + (-1)^(j + k))*(-1 + j^2 + k^2))/(j^4 + (-1 + k^2)^2 - 2j^2*(1 + k^2)))
+    f = (k,j) -> isodd(j-k) ? zero(T) : -((T(2)*(-1 + j^2 + k^2))/((-1 + j - k)*(-1 + j + k)*(1 + j - k)*(1 + j + k))
     BroadcastMatrix{T}(f, 0:∞, (0:∞)')
 end
 
@@ -170,13 +170,13 @@ end
 
 @simplify function *(A::QuasiAdjoint{<:Any,<:ChebyshevT}, B::ChebyshevU)
     T = promote_type(eltype(A), eltype(B))
-    f = (k,j) -> isodd(j-k) ? zero(T) : ((one(T) + (-1)^(j + k))*(1 + j))/((1 + j - k)*(1 + j + k))
+    f = (k,j) -> isodd(j-k) ? zero(T) : (T(2)*(1 + j))/((1 + j - k)*(1 + j + k))
     BroadcastMatrix{T}(f, 0:∞, (0:∞)')
 end
 
 
 function grammatrix(A::Weighted{T,<:ChebyshevU}) where T
-    f = (k,j) ->  isodd(j-k) ? zero(T) : -((2*(one(T) + (-1)^(j + k))*(1 + j)*(1 + k))/((-1 + j - k)*(1 + j - k)*(1 + j + k)*(3 + j + k)))
+    f = (k,j) ->  isodd(j-k) ? zero(T) : -((T(4)*(1 + j)*(1 + k))/((-1 + j - k)*(1 + j - k)*(1 + j + k)*(3 + j + k)))
     BroadcastMatrix{T}(f, 0:∞, (0:∞)')
 end
 
