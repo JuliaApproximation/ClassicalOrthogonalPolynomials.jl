@@ -31,7 +31,7 @@ function forwardrecurrence_copyto!(dest::AbstractMatrix, V)
     Ã,B̃,C̃ = A[shift:∞],B[shift:∞],C[shift:∞]
     for (k,x) = enumerate(xr)
         p0, p1 = initiateforwardrecurrence(shift, A, B, C, x, _p0(P))
-        _forwardrecurrence!(view(dest,k,:), Ã, B̃, C̃, x, p0, p1)
+        forwardrecurrence!(view(dest,k,:), Ã, B̃, C̃, x, p0, p1)
     end
     dest
 end
@@ -46,7 +46,7 @@ function copyto!(dest::AbstractVector, V::SubArray{<:Any,1,<:OrthogonalPolynomia
     shift = first(jr)
     Ã,B̃,C̃ = A[shift:∞],B[shift:∞],C[shift:∞]
     p0, p1 = initiateforwardrecurrence(shift, A, B, C, x, _p0(P))
-    _forwardrecurrence!(dest, Ã, B̃, C̃, x, p0, p1)
+    forwardrecurrence!(dest, Ã, B̃, C̃, x, p0, p1)
     dest
 end
 
