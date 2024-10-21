@@ -1,6 +1,4 @@
 
-
-
 # Assume 1 normalization
 _p0(A) = one(eltype(A))
 
