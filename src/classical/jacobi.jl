@@ -288,34 +288,17 @@ function _jacobi_convert_b(a, b) # Jacobi(a, b+1) \ Jacobi(a, b)
     end
 end
 
-# TODO: implement ApplyArray(*, A) in LazyArrays.jl, then these can be simplified
-# the type specification is also because LazyArrays.jl is slow otherwise
-# getindex and print could be very slow. This needs to be fixed by LazyArrays.jl
 function _jacobi_convert_a(a, b, k, T) # Jacobi(a+k, b) \ Jacobi(a, b)
     j = round(k)
     @assert j ≈ k
     k = Integer(j)
-    if iszero(k)
-        Eye{T}(∞)
-    elseif isone(k)
-        _jacobi_convert_a(a, b)
-    else
-        list = tuple([_jacobi_convert_a(a+j, b) for j in k-1:-1:0]...)
-        ApplyArray{T,2,typeof(*),typeof(list)}(*, list)
-    end
+    reduce(*, [_jacobi_convert_a(a+j, b) for j in k-1:-1:0], init=Eye{T}(∞))
 end
 function _jacobi_convert_b(a, b, k, T) # Jacobi(a, b+k) \ Jacobi(a, b)
     j = round(k)
     @assert j ≈ k
     k = Integer(j)
-    if iszero(k)
-        Eye{T}(∞)
-    elseif isone(k)
-        _jacobi_convert_b(a, b)
-    else
-        list = tuple([_jacobi_convert_b(a, b+j) for j in k-1:-1:0]...)
-        ApplyArray{T,2,typeof(*),typeof(list)}(*, list)
-    end
+    reduce(*, [_jacobi_convert_b(a, b+j) for j in k-1:-1:0], init=Eye{T}(∞))
 end
 
 function \(A::Jacobi, B::Jacobi)
@@ -331,15 +314,7 @@ function \(A::Jacobi, B::Jacobi)
         else
             C2 = inv(_jacobi_convert_b(ba, ab, -kb, T))
         end
-        if iszero(ka)
-            C2
-        elseif iszero(kb)
-            C1
-        else
-            list = (C1, C2)
-            ApplyArray{T,2,typeof(*),typeof(list)}(*, list)
-            C1 * C2
-        end
+        C1 * C2
     else
         inv(B \ A)
     end
@@ -355,14 +330,8 @@ function \(w_A::WeightedJacobi, B::Jacobi)
     w_A \ (JacobiWeight(zero(a),zero(b)) .* B)
 end
 
-function \(A::AbstractJacobi, w_B::WeightedJacobi)
-    Ã = Jacobi(A)
-    (A \ Ã) * (Ã \ w_B)
-end
-function \(w_A::WeightedJacobi, B::AbstractJacobi)
-    B̃ = Jacobi(B)
-    (w_A \ B̃) * (B̃ \ B)
-end
+\(A::AbstractJacobi, w_B::WeightedJacobi) = Jacobi(A) \ w_B
+\(w_A::WeightedJacobi, B::AbstractJacobi) = w_A \ Jacobi(B)
 
 
 function broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::WeightedJacobi)
