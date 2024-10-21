@@ -312,12 +312,25 @@ function _jacobi_convert_b(a, b, k, T) # Jacobi(a, b+k) \ Jacobi(a, b)
     end
 end
 
+"""
+    _approx_integer(x; kw...)
+
+Returns `y::Integer` such that `isapprox(x,y; kw...)` is `true`. Throws `InexactError` if `y` does not exist.
+"""
+function _approx_integer(x; kw...)
+    y = round(x)
+    if !isapprox(x,y; kw...)
+        throw(InexactError(_approx_integer, x))
+    end
+    Integer(y)
+end
+
 function \(A::Jacobi, B::Jacobi)
     T = promote_type(eltype(A), eltype(B))
     aa, ab = A.a, A.b
     ba, bb = B.a, B.b
-    ka = Integer(aa-ba)
-    kb = Integer(ab-bb)
+    ka = _approx_integer(aa-ba)
+    kb = _approx_integer(ab-bb)
     if ka >= 0
         C1 = _jacobi_convert_a(ba, ab, ka, T)
         if kb >= 0
