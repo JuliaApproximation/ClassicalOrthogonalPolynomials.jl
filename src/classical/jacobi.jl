@@ -292,6 +292,9 @@ end
 # the type specification is also because LazyArrays.jl is slow otherwise
 # getindex and print could be very slow. This needs to be fixed by LazyArrays.jl
 function _jacobi_convert_a(a, b, k, T) # Jacobi(a+k, b) \ Jacobi(a, b)
+    j = round(k)
+    @assert j ≈ k
+    k = Integer(j)
     if iszero(k)
         Eye{T}(∞)
     elseif isone(k)
@@ -302,6 +305,9 @@ function _jacobi_convert_a(a, b, k, T) # Jacobi(a+k, b) \ Jacobi(a, b)
     end
 end
 function _jacobi_convert_b(a, b, k, T) # Jacobi(a, b+k) \ Jacobi(a, b)
+    j = round(k)
+    @assert j ≈ k
+    k = Integer(j)
     if iszero(k)
         Eye{T}(∞)
     elseif isone(k)
@@ -329,8 +335,8 @@ function \(A::Jacobi, B::Jacobi)
     T = promote_type(eltype(A), eltype(B))
     aa, ab = A.a, A.b
     ba, bb = B.a, B.b
-    ka = _approx_integer(aa-ba)
-    kb = _approx_integer(ab-bb)
+    ka = aa - ba
+    kb = ab - bb
     if ka >= 0
         C1 = _jacobi_convert_a(ba, ab, ka, T)
         if kb >= 0
@@ -345,6 +351,7 @@ function \(A::Jacobi, B::Jacobi)
         else
             list = (C1, C2)
             ApplyArray{T,2,typeof(*),typeof(list)}(*, list)
+            C1 * C2
         end
     else
         inv(B \ A)
