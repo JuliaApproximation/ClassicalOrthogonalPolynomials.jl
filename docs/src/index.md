@@ -233,9 +233,6 @@ ClassicalOrthogonalPolynomials.WeightedOPLayout
 ClassicalOrthogonalPolynomials.interlace!
 ```
 ```@docs
-ClassicalOrthogonalPolynomials._approx_integer
-```
-```@docs
 ClassicalOrthogonalPolynomials._tritrunc
 ```
 ```@docs
