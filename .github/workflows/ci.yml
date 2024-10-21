@@ -20,7 +20,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10'
+          - 'lts'
+          - '1'
         os:
           - ubuntu-latest
           - macOS-latest
