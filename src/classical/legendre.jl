@@ -37,7 +37,6 @@ for op in (:+, :-, :*)
 end
 singularitiesbroadcast(::typeof(^), L::LegendreWeight, ::NoSingularities) = L
 singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # can't find roots
-singularitiesbroadcast(::typeof(*), V::Union{NoSingularities,SubQuasiArray,LegendreWeight}...) = singularitiesbroadcast(*, map(_parent,V)...)[_parentindices(V...)...]
 
 singularities(::AbstractJacobi{T}) where T = LegendreWeight{T}()
 singularities(::Inclusion{T,<:ChebyshevInterval}) where T = LegendreWeight{T}()
