@@ -211,9 +211,12 @@ singularitiesview(w, ::Inclusion) = w # for now just assume it doesn't change
 singularitiesview(w, ind) = view(w, ind)
 singularities(S::SubQuasiArray) = singularitiesview(singularities(parent(S)), parentindices(S)[1])
 
-basis_axes(::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{eltype(v)}, basis_singularities(singularities(v)))
-
 struct NoSingularities end
+
+basis_singularities(ax, ::NoSingularities) = basis(ax)
+basis_singularities(ax, sing) = basis_singularities(sing)
+basis_axes(ax::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{eltype(v)}, basis_singularities(ax, singularities(v)))
+
 
 singularities(::Number) = NoSingularities()
 singularities(r::Base.RefValue) = r[] # pass through
