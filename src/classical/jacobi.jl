@@ -122,6 +122,7 @@ OrthogonalPolynomial(w::JacobiWeight) = Jacobi(w.a, w.b)
 orthogonalityweight(P::Jacobi) = JacobiWeight(P.a, P.b)
 
 const WeightedJacobi{T} = WeightedBasis{T,<:JacobiWeight,<:Jacobi}
+WeightedJacobi(P::Jacobi{T}) where T = JacobiWeight(zero(T),zero(T)) .* P
 
 """
     HalfWeighted{lr}(Jacobi(a,b))
@@ -320,16 +321,8 @@ function \(A::Jacobi, B::Jacobi)
     end
 end
 
-function \(A::Jacobi, w_B::WeightedJacobi)
-    a,b = A.a,A.b
-    (JacobiWeight(zero(a),zero(b)) .* A) \ w_B
-end
-
-function \(w_A::WeightedJacobi, B::Jacobi)
-    a,b = B.a,B.b
-    w_A \ (JacobiWeight(zero(a),zero(b)) .* B)
-end
-
+\(A::Jacobi, w_B::WeightedJacobi) = WeightedJacobi(A) \ w_B
+\(w_A::WeightedJacobi, B::Jacobi) = w_A \ WeightedJacobi(B)
 \(A::AbstractJacobi, w_B::WeightedJacobi) = Jacobi(A) \ w_B
 \(w_A::WeightedJacobi, B::AbstractJacobi) = w_A \ Jacobi(B)
 
