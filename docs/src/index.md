@@ -180,9 +180,6 @@ ClassicalOrthogonalPolynomials.normalizationconstant
 ClassicalOrthogonalPolynomials.OrthogonalPolynomialRatio
 ```
 ```@docs
-ClassicalOrthogonalPolynomials.Clenshaw
-```
-```@docs
 ClassicalOrthogonalPolynomials.singularities
 ```
 ```@docs
