@@ -5,7 +5,7 @@ using IntervalSets: UnitRange
 using ContinuumArrays, QuasiArrays, LazyArrays, FillArrays, BandedMatrices, BlockArrays,
     IntervalSets, DomainSets, ArrayLayouts, SpecialFunctions,
     InfiniteLinearAlgebra, InfiniteArrays, LinearAlgebra, FastGaussQuadrature, FastTransforms, FFTW,
-    LazyBandedMatrices, HypergeometricFunctions
+    LazyBandedMatrices, HypergeometricFunctions, RecurrenceRelationships
 
 import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /, \, +, -,
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy, setindex,
@@ -18,7 +18,7 @@ import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjoint
                 _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
                 AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!,
                 simplifiable, PaddedArray, converteltype, simplify
-import ArrayLayouts: MatMulVecAdd, materialize!, _fill_lmul!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
+import ArrayLayouts: MatMulVecAdd, materialize!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
                         subdiagonaldata, diagonaldata, supdiagonaldata, mul, rowsupport, colsupport
 import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1, AbstractLazyBandedLayout
 import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot, mul!, reflectorApply!
@@ -39,9 +39,10 @@ import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, Abstract
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, broadcastbasis_layout,
     plan_grid_transform, plan_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout, _cumsum
-import FastTransforms: Λ, forwardrecurrence, forwardrecurrence!, _forwardrecurrence!, clenshaw, clenshaw!,
-                        _forwardrecurrence_next, _clenshaw_next, check_clenshaw_recurrences, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg
-
+import FastTransforms: Λ, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg
+import RecurrenceRelationships: forwardrecurrence, forwardrecurrence!, clenshaw, clenshaw!,
+                        check_clenshaw_recurrences
+import RecurrenceRelationshipArrays: initiateforwardrecurrence, Clenshaw
 import FastGaussQuadrature: jacobimoment
 
 import BlockArrays: blockedrange, _BlockedUnitRange, unblock, _BlockArray, block, blockindex, BlockSlice, blockvec
