@@ -38,13 +38,10 @@ end
 singularitiesbroadcast(::typeof(^), L::LegendreWeight, ::NoSingularities) = L
 singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # can't find roots
 
-singularities(::AbstractJacobi{T}) where T = LegendreWeight{T}()
-singularities(::Inclusion{T,<:ChebyshevInterval}) where T = LegendreWeight{T}()
-singularities(d::Inclusion{T,<:AbstractInterval}) where T = LegendreWeight{T}()[affine(d,ChebyshevInterval{T}())]
-singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
 
-basis_singularities(::LegendreWeight{T}) where T = Legendre{T}()
-basis_singularities(v::SubQuasiArray) = view(basis_singularities(parent(v)), parentindices(v)[1], :)
+singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
+singularities(::Legendre) = NoSingularities()
+basis_singularities(ax::Inclusion, ::NoSingularities) = legendre(ax)
 
 struct Legendre{T} <: AbstractJacobi{T} end
 Legendre() = Legendre{Float64}()
