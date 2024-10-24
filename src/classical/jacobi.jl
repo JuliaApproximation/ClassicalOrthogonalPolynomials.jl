@@ -54,6 +54,9 @@ hasboundedendpoints(w::AbstractJacobiWeight) = w.a ≥ 0 && w.b ≥ 0
 singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
 
 
+singularities(w::JacobiWeight) = w
+
+
 ## default is to just assume no singularities
 singularitiesbroadcast(_...) = NoSingularities()
 
@@ -61,16 +64,14 @@ for op in (:+, :*)
     @eval singularitiesbroadcast(::typeof($op), A, B, C, D...) = singularitiesbroadcast(*, singularitiesbroadcast(*, A, B), C, D...)
 end
 
-singularitiesbroadcast(::typeof(*), V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(*, map(_parent,V)...)[_parentindices(V...)...]
+singularitiesbroadcast(::typeof(*), V::SubQuasiArray...) = singularitiesbroadcast(*, map(parent,V)...)[parentindices(V...)...]
 
 
-_parent(::NoSingularities) = NoSingularities()
-_parent(a) = parent(a)
-_parentindices(a::NoSingularities, b...) = _parentindices(b...)
-_parentindices(a, b...) = parentindices(a)
+
 # for singularitiesbroadcast(literal_pow), ^, ...)
 singularitiesbroadcast(F::Function, G::Function, V::SubQuasiArray, K) = singularitiesbroadcast(F, G, parent(V), K)[parentindices(V)...]
-singularitiesbroadcast(F, V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(F, map(_parent,V)...)[_parentindices(V...)...]
+singularitiesbroadcast(F, V::SubQuasiArray...) = singularitiesbroadcast(F, map(parent,V)...)[parentindices(V...)...]
+singularitiesbroadcast(F, V::NoSingularities...) = NoSingularities() # default is to assume smooth
 
 
 abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
@@ -107,10 +108,11 @@ AbstractQuasiMatrix{T}(w::Jacobi) where T = Jacobi{T}(w.a, w.b)
 
 jacobi(a,b) = Jacobi(a,b)
 jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi{float(promote_type(eltype(a),eltype(b),T))}(a,b)[affine(d,ChebyshevInterval{T}()), :]
+jacobi(a,b, d::ChebyshevInterval{T}) where T = Jacobi{float(promote_type(eltype(a),eltype(b),T))}(a,b)
 
 Jacobi(P::Legendre{T}) where T = Jacobi(zero(T), zero(T))
 
-basis_singularities(w::JacobiWeight) = Weighted(Jacobi(w.a, w.b))
+
 
 
 """
