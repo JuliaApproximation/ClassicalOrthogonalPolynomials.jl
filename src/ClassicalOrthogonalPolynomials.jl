@@ -205,14 +205,17 @@ singularities_layout(lay::BroadcastLayout, a) = singularitiesbroadcast(call(a), 
 singularities_layout(::WeightedBasisLayouts, a) = singularities(BroadcastLayout{typeof(*)}(), a)
 singularities_layout(::WeightedOPLayout, a) = singularities(weight(a))
 singularities_layout(::ExpansionLayout, f) = singularities(basis(f))
-singularities_layout(::PolynomialLayout, a) = NoSingularities()
+singularities_layout(lay, a) = NoSingularities() # assume no singularities
 singularities(w) = singularities_layout(MemoryLayout(w), w)
+
+struct NoSingularities end
 
 singularitiesview(w, ::Inclusion) = w # for now just assume it doesn't change
 singularitiesview(w, ind) = view(w, ind)
+singularitiesview(::NoSingularities, ind) = NoSingularities()
+singularitiesview(::NoSingularities, ::Inclusion) = NoSingularities()
 singularities(S::SubQuasiArray) = singularitiesview(singularities(parent(S)), parentindices(S)[1])
 
-struct NoSingularities end
 
 basis_axes(ax::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{eltype(v)}, basis_singularities(ax, singularities(v)))
 

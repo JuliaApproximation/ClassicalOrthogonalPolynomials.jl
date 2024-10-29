@@ -40,7 +40,6 @@ singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # 
 
 
 singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
-singularities(::Legendre) = NoSingularities()
 basis_singularities(ax::Inclusion, ::NoSingularities) = legendre(ax)
 
 struct Legendre{T} <: AbstractJacobi{T} end

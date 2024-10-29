@@ -56,16 +56,18 @@ singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
 
 singularities(w::JacobiWeight) = w
 
-
 ## default is to just assume no singularities
 singularitiesbroadcast(_...) = NoSingularities()
 
 for op in (:+, :*)
     @eval singularitiesbroadcast(::typeof($op), A, B, C, D...) = singularitiesbroadcast(*, singularitiesbroadcast(*, A, B), C, D...)
+    @eval singularitiesbroadcast(::typeof($op), ::NoSingularities, ::NoSingularities) = NoSingularities()
+    @eval singularitiesbroadcast(::typeof($op), ::NoSingularities, ::NoSingularities, ::NoSingularities) = NoSingularities()
 end
 
 singularitiesbroadcast(::typeof(*), V::SubQuasiArray...) = singularitiesbroadcast(*, map(parent,V)...)[parentindices(V...)...]
-
+singularitiesbroadcast(::typeof(*), ::NoSingularities, b) = b
+singularitiesbroadcast(::typeof(*), a, ::NoSingularities) = a
 
 
 # for singularitiesbroadcast(literal_pow), ^, ...)
@@ -89,9 +91,6 @@ size(P::JacobiTransformPlan, k...) = size(P.chebtransform, k...)
 
 
 include("legendre.jl")
-
-singularitiesbroadcast(::typeof(*), ::LegendreWeight, b::AbstractJacobiWeight) = b
-singularitiesbroadcast(::typeof(*), a::AbstractJacobiWeight, ::LegendreWeight) = a
 
 
 struct Jacobi{T} <: AbstractJacobi{T}
