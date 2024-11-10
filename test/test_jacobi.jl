@@ -520,4 +520,17 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test Weighted(Q) \ (w .* Q) isa Diagonal
         end
     end
+
+    @testset "higher order diff" begin
+        P = Jacobi(0.1,0.2)
+        P¹ = Jacobi(1.1,1.2)
+        P² = Jacobi(2.1,2.2)
+        P³ = Jacobi(3.1,3.2)
+        @test (P¹ \ diff(P,1))[1:10,1:10] == (P¹ \ diff(P))[1:10,1:10]
+        @test (P² \ diff(P,2))[1:10,1:10] ≈ (P² \ diff(diff(P)))[1:10,1:10]
+        @test (P³ \ diff(P,3))[1:10,1:10] ≈ (P³ \ diff(diff(diff(P))))[1:10,1:10]
+
+        @test (P² \ diff(P¹,1))[1:10,1:10] ≈ (P² \ diff(P¹))[1:10,1:10]
+        @test (P³ \ diff(P¹,2))[1:10,1:10] ≈ (P³ \ diff(diff(P¹)))[1:10,1:10]
+    end
 end

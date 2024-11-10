@@ -208,4 +208,14 @@ import QuasiArrays: MulQuasiArray
         @test @inferred(T \ P[:,1]) == Vcat([1], Zeros(∞))
         @test @inferred(P \ P[:,1]) == Vcat([1], Zeros(∞))
     end
+
+    @testset "higher order diff" begin
+        P = Legendre()
+        P¹ = Ultraspherical(3/2)
+        P² = Ultraspherical(5/2)
+        P³ = Ultraspherical(7/2)
+        @test (P¹ \ diff(P,1))[1:10,1:10] == (P¹ \ diff(P))[1:10,1:10]
+        @test (P² \ diff(P,2))[1:10,1:10] ≈ (P² \ diff(diff(P)))[1:10,1:10]
+        @test (P³ \ diff(P,3))[1:10,1:10] ≈ (P³ \ diff(diff(diff(P))))[1:10,1:10]
+    end
 end
