@@ -194,16 +194,15 @@ end
 ##########
 
 # Ultraspherical(1)\(D*Chebyshev())
-function diff(S::ChebyshevT{T}; dims=1) where T
+function diff(::ChebyshevT{T}; dims=1) where T
     D = _BandedMatrix((zero(T):∞)', ℵ₀, -1,1)
     ApplyQuasiMatrix(*, ChebyshevU{T}(), D)
 end
 
-function diff(W::Weighted{T,<:ChebyshevU}; dims=1) where T
+function diff(::Weighted{T,<:ChebyshevU}; dims=1) where T
     D =  _BandedMatrix((-one(T):-one(T):(-∞))', ℵ₀, 1,-1)
     ApplyQuasiMatrix(*, Weighted(ChebyshevT{T}()), D)
 end
-
 
 #####
 # Conversion

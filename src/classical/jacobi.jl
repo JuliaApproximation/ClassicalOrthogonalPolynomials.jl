@@ -316,12 +316,18 @@ function _jacobi_convert_b(a, b, k, T) # Jacobi(a, b+k) \ Jacobi(a, b)
     end
 end
 
+isapproxinteger(x) = isinteger(x) || isapprox(x,round(Int,x)) || isapprox(x+1,round(Int,x+1))
+
+
 function \(A::Jacobi, B::Jacobi)
     T = promote_type(eltype(A), eltype(B))
     aa, ab = A.a, A.b
     ba, bb = B.a, B.b
-    ka = Integer(aa-ba)
-    kb = Integer(ab-bb)
+    if !isapproxinteger(aa-ba) || !isapproxinteger(ab-bb)
+        throw(ArgumentError("non-integer conversions not supported"))
+    end
+    ka = round(Integer, aa-ba)
+    kb = round(Integer, ab-bb)
     if ka >= 0
         C1 = _jacobi_convert_a(ba, ab, ka, T)
         if kb >= 0
@@ -418,6 +424,11 @@ end
 
 # Jacobi(a+1,b+1)\(D*Jacobi(a,b))
 diff(S::Jacobi; dims=1) = ApplyQuasiMatrix(*, Jacobi(S.a+1,S.b+1), _BandedMatrix((((1:∞) .+ (S.a + S.b))/2)', ℵ₀, -1,1))
+
+function diff(S::Jacobi{T}, m::Integer; dims=1) where T
+    D = _BandedMatrix((pochhammer.((S.a + S.b+1):∞, m)/convert(T, 2)^m)', ℵ₀, -m, m)
+    ApplyQuasiMatrix(*, Jacobi(S.a+m,S.b+m), D)
+end
 
 
 #L_6^t
