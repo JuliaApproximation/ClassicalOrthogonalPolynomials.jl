@@ -316,8 +316,7 @@ function _jacobi_convert_b(a, b, k, T) # Jacobi(a, b+k) \ Jacobi(a, b)
     end
 end
 
-isapproxinteger(::Integer) = true
-isapproxinteger(x) = isinteger(x) || isapprox(x,round(Int,x))  || isapprox(x+1,round(Int,x+1))
+isapproxinteger(x) = isinteger(x) || isapprox(x,round(Int,x)) || isapprox(x+1,round(Int,x+1))
 
 
 function \(A::Jacobi, B::Jacobi)

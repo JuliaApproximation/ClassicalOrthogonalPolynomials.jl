@@ -533,4 +533,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test (P² \ diff(P¹,1))[1:10,1:10] ≈ (P² \ diff(P¹))[1:10,1:10]
         @test (P³ \ diff(P¹,2))[1:10,1:10] ≈ (P³ \ diff(diff(P¹)))[1:10,1:10]
     end
+
+    @testset "conversion not implemented" begin 
+        @test_throws ArgumentError Jacobi(0,0) \ Jacobi(1.1,2.1)
+    end
 end
