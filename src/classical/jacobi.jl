@@ -295,13 +295,17 @@ end
 
 function _jacobi_convert_a(a, b, k, T) # Jacobi(a+k, b) \ Jacobi(a, b)
     j = round(k)
-    @assert j ≈ k
+    if j ≉ k
+        throw(ArgumentError("non-integer conversions not supported"))
+    end
     k = Integer(j)
     reduce(*, [_jacobi_convert_a(a+j, b) for j in k-1:-1:0], init=Eye{T}(∞))
 end
 function _jacobi_convert_b(a, b, k, T) # Jacobi(a, b+k) \ Jacobi(a, b)
     j = round(k)
-    @assert j ≈ k
+    if j ≉ k
+        throw(ArgumentError("non-integer conversions not supported"))
+    end
     k = Integer(j)
     reduce(*, [_jacobi_convert_b(a, b+j) for j in k-1:-1:0], init=Eye{T}(∞))
 end
