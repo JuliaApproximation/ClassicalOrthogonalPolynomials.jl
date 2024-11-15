@@ -1,7 +1,7 @@
 name = "ClassicalOrthogonalPolynomials"
 uuid = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
 authors = ["Sheehan Olver <solver@mac.com>"]
-version = "0.13.5"
+version = "0.13.7"
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
@@ -22,6 +22,8 @@ LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
 LazyBandedMatrices = "d7e5e226-e90b-4449-9968-0f923699bf6f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 QuasiArrays = "c4ea9172-b204-11e9-377d-29865faadc5c"
+RecurrenceRelationships = "807425ed-42ea-44d6-a357-6771516d7b2c"
+RecurrenceRelationshipArrays = "b889d2dc-af3c-4820-88a8-238fa91d3518"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
@@ -33,7 +35,7 @@ ContinuumArrays = "0.18.3"
 DomainSets = "0.6, 0.7"
 FFTW = "1.1"
 FastGaussQuadrature = "1"
-FastTransforms = "0.15.15, 0.16"
+FastTransforms = "0.16.6"
 FillArrays = "1"
 HypergeometricFunctions = "0.3.4"
 InfiniteArrays = " 0.14"
@@ -42,6 +44,8 @@ IntervalSets = "0.7"
 LazyArrays = "2.2"
 LazyBandedMatrices = "0.10"
 QuasiArrays = "0.11"
+RecurrenceRelationships = "0.1"
+RecurrenceRelationshipArrays = "0.1"
 SpecialFunctions = "1.0, 2"
 julia = "1.10"
 

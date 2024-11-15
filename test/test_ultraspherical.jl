@@ -183,4 +183,25 @@ using ClassicalOrthogonalPolynomials: grammatrix
         L = Weighted(Jacobi(1,0)) \ Weighted(Ultraspherical(3/2))
         @test L[1:10,1:10] == (Weighted(Jacobi(1,0)) \ Weighted(Jacobi(1,1)))[1:10,1:10] * (Jacobi(1,1) \ Ultraspherical(3/2))[1:10,1:10]
     end
+
+    @testset "expand w/ no singularities" begin
+        z = 2
+        P = Legendre()
+        C = Ultraspherical(-1/2)
+        x = axes(P,1)
+        @test sum(@.(ultrasphericalc(1, -1/2, x)/(z-x))) ≈ sum(C[:,2] ./ (z .- x))
+    end
+
+    @testset "higher order diff" begin
+        T = ChebyshevT()
+        U = ChebyshevU()
+        C = Ultraspherical(2)
+        C³ = Ultraspherical(3)
+        @test (U \ diff(T,1))[1:10,1:10] == (U \ diff(T))[1:10,1:10]
+        @test (C \ diff(T,2))[1:10,1:10] == (C \ diff(diff(T)))[1:10,1:10]
+        @test (C³ \ diff(T,3))[1:10,1:10] == (C³ \ diff(diff(diff(T))))[1:10,1:10]
+
+        @test (C \ diff(U,1))[1:10,1:10] == (C \ diff(U))[1:10,1:10]
+        @test (C³ \ diff(U,2))[1:10,1:10] == (C³ \ diff(diff(U)))[1:10,1:10]
+    end
 end

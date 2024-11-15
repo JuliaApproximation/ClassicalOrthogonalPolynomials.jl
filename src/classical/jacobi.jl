@@ -54,9 +54,14 @@ hasboundedendpoints(w::AbstractJacobiWeight) = w.a ≥ 0 && w.b ≥ 0
 singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
 
 
+## default is to just assume no singularities
+singularitiesbroadcast(_...) = NoSingularities()
+
 for op in (:+, :*)
     @eval singularitiesbroadcast(::typeof($op), A, B, C, D...) = singularitiesbroadcast(*, singularitiesbroadcast(*, A, B), C, D...)
 end
+
+singularitiesbroadcast(::typeof(*), V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(*, map(_parent,V)...)[_parentindices(V...)...]
 
 
 _parent(::NoSingularities) = NoSingularities()
@@ -66,7 +71,6 @@ _parentindices(a, b...) = parentindices(a)
 # for singularitiesbroadcast(literal_pow), ^, ...)
 singularitiesbroadcast(F::Function, G::Function, V::SubQuasiArray, K) = singularitiesbroadcast(F, G, parent(V), K)[parentindices(V)...]
 singularitiesbroadcast(F, V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(F, map(_parent,V)...)[_parentindices(V...)...]
-singularitiesbroadcast(::typeof(*), V::Union{NoSingularities,SubQuasiArray}...) = singularitiesbroadcast(*, map(_parent,V)...)[_parentindices(V...)...]
 
 
 abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
@@ -383,6 +387,11 @@ end
 
 # Jacobi(a+1,b+1)\(D*Jacobi(a,b))
 diff(S::Jacobi; dims=1) = ApplyQuasiMatrix(*, Jacobi(S.a+1,S.b+1), _BandedMatrix((((1:∞) .+ (S.a + S.b))/2)', ℵ₀, -1,1))
+
+function diff(S::Jacobi{T}, m::Integer; dims=1) where T
+    D = _BandedMatrix((pochhammer.((S.a + S.b+1):∞, m)/convert(T, 2)^m)', ℵ₀, -m, m)
+    ApplyQuasiMatrix(*, Jacobi(S.a+m,S.b+m), D)
+end
 
 
 #L_6^t
