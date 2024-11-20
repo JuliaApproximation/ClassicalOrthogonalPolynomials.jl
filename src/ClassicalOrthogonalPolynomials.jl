@@ -201,21 +201,22 @@ recurrencecoefficients(Q) = recurrencecoefficients_layout(MemoryLayout(Q), Q)
 gives the singularity structure of an expansion, e.g.,
 `JacobiWeight`.
 """
-singularities(::AbstractWeightLayout, w) = w
-singularities(lay::BroadcastLayout, a) = singularitiesbroadcast(call(a), map(singularities, arguments(lay, a))...)
-singularities(::WeightedBasisLayouts, a) = singularities(BroadcastLayout{typeof(*)}(), a)
-singularities(::WeightedOPLayout, a) = singularities(weight(a))
-singularities(w) = singularities(MemoryLayout(w), w)
-singularities(::ExpansionLayout, f) = singularities(basis(f))
-
-singularitiesview(w, ::Inclusion) = w # for now just assume it doesn't change
-singularitiesview(w, ind) = view(w, ind)
-singularities(S::SubQuasiArray) = singularitiesview(singularities(parent(S)), parentindices(S)[1])
+singularities_layout(lay::BroadcastLayout, a) = singularitiesbroadcast(call(a), map(singularities, arguments(lay, a))...)
+singularities_layout(::WeightedBasisLayouts, a) = singularities(BroadcastLayout{typeof(*)}(), a)
+singularities_layout(::WeightedOPLayout, a) = singularities(weight(a))
+singularities_layout(::ExpansionLayout, f) = singularities(basis(f))
+singularities_layout(lay, a) = NoSingularities() # assume no singularities
+singularities(w) = singularities_layout(MemoryLayout(w), w)
 
 struct NoSingularities end
 
-basis_singularities(ax, ::NoSingularities) = basis(ax)
-basis_singularities(ax, sing) = basis_singularities(sing)
+singularitiesview(w, ::Inclusion) = w # for now just assume it doesn't change
+singularitiesview(w, ind) = view(w, ind)
+singularitiesview(::NoSingularities, ind) = NoSingularities()
+singularitiesview(::NoSingularities, ::Inclusion) = NoSingularities()
+singularities(S::SubQuasiArray) = singularitiesview(singularities(parent(S)), parentindices(S)[1])
+
+
 basis_axes(ax::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{eltype(v)}, basis_singularities(ax, singularities(v)))
 
 

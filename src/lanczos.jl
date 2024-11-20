@@ -165,7 +165,7 @@ function LanczosPolynomial(w_in::AbstractQuasiVector, P::AbstractQuasiMatrix)
     LanczosPolynomial(w, Q, LanczosData(w, Q))
 end
 
-LanczosPolynomial(w::AbstractQuasiVector) = LanczosPolynomial(w, normalized(orthogonalpolynomial(singularities(w))))
+LanczosPolynomial(w::AbstractQuasiVector) = LanczosPolynomial(w, normalized(orthogonalpolynomial(axes(w,1), singularities(w))))
 
 ==(A::LanczosPolynomial, B::LanczosPolynomial) = A.w == B.w
 ==(::LanczosPolynomial, ::OrthogonalPolynomial) = false # TODO: fix
