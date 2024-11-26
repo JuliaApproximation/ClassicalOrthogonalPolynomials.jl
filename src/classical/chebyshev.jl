@@ -61,13 +61,13 @@ chebyshevu(S::AbstractQuasiMatrix) = chebyshevu(axes(S,1))
 
 computes the `n`-th Chebyshev polynomial of the first kind at `z`.
 """
-chebyshevt(n::Integer, z::Number) = Base.unsafe_getindex(ChebyshevT{typeof(z)}(), z, n+1)
+chebyshevt(n::Integer, z) = Base.unsafe_getindex(ChebyshevT{typeof(z)}(), z, n+1)
 """
      chebyshevt(n, z)
 
 computes the `n`-th Chebyshev polynomial of the second kind at `z`.
 """
-chebyshevu(n::Integer, z::Number) = Base.unsafe_getindex(ChebyshevU{typeof(z)}(), z, n+1)
+chebyshevu(n::Integer, z) = Base.unsafe_getindex(ChebyshevU{typeof(z)}(), z, n+1)
 
 chebysevtweight(d::AbstractInterval{T}) where T = ChebyshevTWeight{float(T)}[affine(d,ChebyshevInterval{T}())]
 chebysevuweight(d::AbstractInterval{T}) where T = ChebyshevUWeight{float(T)}[affine(d,ChebyshevInterval{T}())]
