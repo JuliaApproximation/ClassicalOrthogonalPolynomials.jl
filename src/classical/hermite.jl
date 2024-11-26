@@ -54,7 +54,7 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::HermiteWeight{T}, ::Hermite
 # 1/2 * H_{n+1} + n H_{n-1} = x H_n 
 # x*[H_0 H_1 H_2 …] = [H_0 H_1 H_2 …] * [0    1; 1/2  0     2; 1/2   0  3; …]   
 jacobimatrix(H::Hermite{T}) where T = Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(∞), one(T):∞)
-recurrencecoefficients(H::Hermite) where T = Fill(2,∞), Zeros{Int}(∞), 0:2:∞
+recurrencecoefficients(H::Hermite) = Fill(2,∞), Zeros{Int}(∞), 0:2:∞
 
 weightedgrammatrix(::Hermite{T}) where T = Diagonal(sqrt(convert(T,π)) .* convert(T,2) .^ (0:∞) .* gamma.(one(T):∞))
 
