@@ -21,6 +21,23 @@ broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(sqrt), w::AbstractJacobiWeight) =
 broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(Base.literal_pow), ::Base.RefValue{typeof(^)}, w::AbstractJacobiWeight, ::Base.RefValue{Val{k}}) where k =
     JacobiWeight(k * w.a, k * w.b)
 
+"""
+    JacobiWeight{T}(a,b)
+    JacobiWeight(a,b)
+
+The quasi-vector representing the Jacobi weight function ``(1-x)^a (1+x)^b`` on ``[-1,1]``. See also [`jacobiweight`](@ref) and [`Jacobi`](@ref).
+# Examples
+```jldoctest
+julia> J=JacobiWeight(1.0,1.0)
+(1-x)^1.0 * (1+x)^1.0 on -1..1
+
+julia> J[0.5]
+0.75
+
+julia> axes(J)
+(Inclusion(-1.0 .. 1.0 (Chebyshev)),)
+```
+"""
 struct JacobiWeight{T} <: AbstractJacobiWeight{T}
     a::T
     b::T
@@ -28,6 +45,24 @@ struct JacobiWeight{T} <: AbstractJacobiWeight{T}
 end
 
 JacobiWeight(a::V, b::T) where {T,V} = JacobiWeight{promote_type(T,V)}(a,b)
+
+"""
+    jacobiweight(a,b, d::AbstractInterval)
+
+The [`JacobiWeight`](@ref) affine-mapped to interval `d`.
+
+# Examples
+```jldoctest
+julia> J = jacobiweight(1, 1, 0..1)
+(1-x)^1 * (1+x)^1 on -1..1 affine mapped to 0 .. 1
+
+julia> axes(J)
+(Inclusion(0 .. 1),)
+
+julia> J[0.5]
+1.0
+```
+"""
 jacobiweight(a,b, d::AbstractInterval{T}) where T = JacobiWeight(a,b)[affine(d,ChebyshevInterval{T}())]
 
 AbstractQuasiArray{T}(w::JacobiWeight) where T = JacobiWeight{T}(w.a, w.b)
@@ -92,7 +127,41 @@ include("legendre.jl")
 singularitiesbroadcast(::typeof(*), ::LegendreWeight, b::AbstractJacobiWeight) = b
 singularitiesbroadcast(::typeof(*), a::AbstractJacobiWeight, ::LegendreWeight) = a
 
+"""
+    Jacobi{T}(a,b)
+    Jacobi(a,b)
 
+The quasi-matrix representing Jacobi polynomials, where the first axes represents the interval and the second axes represents the polynomial index (starting from 1). See also [`jacobi`](@ref), [`jacobip`](@ref) and [`JacobiWeight`](@ref).
+
+The eltype, when not specified, will be converted to a floating point data type.
+# Examples
+```jldoctest
+julia> J=Jacobi(0,0) # The eltype will be converted to float
+Jacobi(0.0, 0.0)
+
+julia> axes(J)
+(Inclusion(-1.0 .. 1.0 (Chebyshev)), OneToInf())
+
+julia> J[0,:] # Values of polynomials at x=0
+ℵ₀-element view(::Jacobi{Float64}, 0.0, :) with eltype Float64 with indices OneToInf():
+  1.0
+  0.0
+ -0.5
+ -0.0
+  0.375
+  0.0
+ -0.3125
+ -0.0
+  0.2734375
+  0.0
+  ⋮
+
+julia> J0=J[:,1]; # J0 is the first Jacobi polynomial which is constant.
+
+julia> J0[0],J0[0.5]
+(1.0, 1.0)
+```
+"""
 struct Jacobi{T} <: AbstractJacobi{T}
     a::T
     b::T
@@ -104,7 +173,34 @@ Jacobi(a::V, b::T) where {T,V} = Jacobi{float(promote_type(T,V))}(a, b)
 AbstractQuasiArray{T}(w::Jacobi) where T = Jacobi{T}(w.a, w.b)
 AbstractQuasiMatrix{T}(w::Jacobi) where T = Jacobi{T}(w.a, w.b)
 
+"""
+    jacobi(a,b, d::AbstractInterval)
 
+The [`Jacobi`](@ref) polynomials affine-mapped to interval `d`.
+
+# Examples
+```jldoctest
+julia> J = jacobi(1, 1, 0..1)
+Jacobi(1.0, 1.0) affine mapped to 0 .. 1
+
+julia> axes(J)
+(Inclusion(0 .. 1), OneToInf())
+
+julia> J[0,:]
+ℵ₀-element view(::Jacobi{Float64}, -1.0, :) with eltype Float64 with indices OneToInf():
+   1.0
+  -2.0
+   3.0
+  -4.0
+   5.0
+  -6.0
+   7.0
+  -8.0
+   9.0
+ -10.0
+   ⋮
+```
+"""
 jacobi(a,b) = Jacobi(a,b)
 jacobi(a,b, d::AbstractInterval{T}) where T = Jacobi{float(promote_type(eltype(a),eltype(b),T))}(a,b)[affine(d,ChebyshevInterval{T}()), :]
 

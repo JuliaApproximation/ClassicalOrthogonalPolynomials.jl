@@ -1,5 +1,40 @@
+"""
+    LegendreWeight{T}()
+    LegendreWeight()
+
+The quasi-vector representing the Legendre weight function (const 1) on [-1,1]. See also [`legendreweight`](@ref) and [`Legendre`](@ref).
+# Examples
+```jldoctest
+julia> w = LegendreWeight()
+LegendreWeight{Float64}()
+
+julia> w[0.5]
+1.0
+
+julia> axes(w)
+(Inclusion(-1.0 .. 1.0 (Chebyshev)),)
+```
+"""
 struct LegendreWeight{T} <: AbstractJacobiWeight{T} end
 LegendreWeight() = LegendreWeight{Float64}()
+
+"""
+    legendreweight(d::AbstractInterval)
+
+The [`LegendreWeight`](@ref) affine-mapped to interval `d`.
+
+# Examples
+```jldoctest
+julia> w = legendreweight(0..1)
+LegendreWeight{Float64}() affine mapped to 0 .. 1
+
+julia> axes(w)
+(Inclusion(0 .. 1),)
+
+julia> w[0]
+1.0
+```
+"""
 legendreweight(d::AbstractInterval{T}) where T = LegendreWeight{float(T)}()[affine(d,ChebyshevInterval{T}())]
 
 AbstractQuasiArray{T}(::LegendreWeight) where T = LegendreWeight{T}()
@@ -46,6 +81,41 @@ singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
 basis_singularities(::LegendreWeight{T}) where T = Legendre{T}()
 basis_singularities(v::SubQuasiArray) = view(basis_singularities(parent(v)), parentindices(v)[1], :)
 
+"""
+    Legendre{T=Float64}(a,b)
+
+The quasi-matrix representing Legendre polynomials, where the first axes represents the interval and the second axes represents the polynomial index (starting from 1). See also [`legendre`](@ref), [`legendrep`](@ref), [`LegendreWeight`](@ref) and [`Jacobi`](@ref).
+# Examples
+```jldoctest
+julia> P = Legendre()
+Legendre()
+
+julia> typeof(P) # default eltype
+Legendre{Float64}
+
+julia> axes(P)
+(Inclusion(-1.0 .. 1.0 (Chebyshev)), OneToInf())
+
+julia> P[0,:] # Values of polynomials at x=0
+ℵ₀-element view(::Legendre{Float64}, 0.0, :) with eltype Float64 with indices OneToInf():
+  1.0
+  0.0
+ -0.5
+ -0.0
+  0.375
+  0.0
+ -0.3125
+ -0.0
+  0.2734375
+  0.0
+  ⋮
+
+julia> P₀=P[:,1]; # P₀ is the first Legendre polynomial which is constant.
+
+julia> P₀[0],P₀[0.5]
+(1.0, 1.0)
+```
+"""
 struct Legendre{T} <: AbstractJacobi{T} end
 Legendre() = Legendre{Float64}()
 
@@ -57,6 +127,34 @@ weighted(P::Normalized{<:Any,<:Legendre}) = P
 weighted(P::SubQuasiArray{<:Any,2,<:Legendre}) = P
 weighted(P::SubQuasiArray{<:Any,2,<:Normalized{<:Any,<:Legendre}}) = P
 
+"""
+    legendre(d::AbstractInterval)
+
+The [`Legendre`](@ref) polynomials affine-mapped to interval `d`.
+
+# Examples
+```jldoctest
+julia> P = legendre(0..1)
+Legendre() affine mapped to 0 .. 1
+
+julia> axes(P)
+(Inclusion(0 .. 1), OneToInf())
+
+julia> P[0.5,:]
+ℵ₀-element view(::Legendre{Float64}, 0.0, :) with eltype Float64 with indices OneToInf():
+  1.0
+  0.0
+ -0.5
+ -0.0
+  0.375
+  0.0
+ -0.3125
+ -0.0
+  0.2734375
+  0.0
+  ⋮
+```
+"""
 legendre() = Legendre()
 legendre(d::AbstractInterval{T}) where T = Legendre{float(T)}()[affine(d,ChebyshevInterval{T}()), :]
 legendre(d::ChebyshevInterval{T}) where T = Legendre{float(T)}()
