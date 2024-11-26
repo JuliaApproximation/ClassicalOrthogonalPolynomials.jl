@@ -119,8 +119,8 @@ basis_singularities(w::JacobiWeight) = Weighted(Jacobi(w.a, w.b))
 computes the `n`-th Jacobi polynomial, orthogonal with
 respec to `(1-x)^a*(1+x)^b`, at `z`.
 """
-jacobip(n::Integer, a, b, z::Number) = Base.unsafe_getindex(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b), z, n+1)
-normalizedjacobip(n::Integer, a, b, z::Number) = Base.unsafe_getindex(Normalized(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b)), z, n+1)
+jacobip(n::Integer, a, b, z) = Base.unsafe_getindex(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b), z, n+1)
+normalizedjacobip(n::Integer, a, b, z) = Base.unsafe_getindex(Normalized(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b)), z, n+1)
 
 OrthogonalPolynomial(w::JacobiWeight) = Jacobi(w.a, w.b)
 orthogonalityweight(P::Jacobi) = JacobiWeight(P.a, P.b)

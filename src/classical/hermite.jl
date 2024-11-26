@@ -46,7 +46,7 @@ axes(::Hermite{T}) where T = (Inclusion{T}(ℝ), oneto(∞))
 computes the `n`-th Hermite polynomial, orthogonal with 
 respec to `exp(-x^2)`, at `z`.
 """
-hermiteh(n::Integer, z::Number) = Base.unsafe_getindex(Hermite{typeof(z)}(), z, n+1)
+hermiteh(n::Integer, z) = Base.unsafe_getindex(Hermite{typeof(z)}(), z, n+1)
 
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::HermiteWeight{T}, ::Hermite{V}) where {T,V} = Weighted(Hermite{promote_type(T,V)}())
 
@@ -54,7 +54,7 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::HermiteWeight{T}, ::Hermite
 # 1/2 * H_{n+1} + n H_{n-1} = x H_n 
 # x*[H_0 H_1 H_2 …] = [H_0 H_1 H_2 …] * [0    1; 1/2  0     2; 1/2   0  3; …]   
 jacobimatrix(H::Hermite{T}) where T = Tridiagonal(Fill(one(T)/2,∞), Zeros{T}(∞), one(T):∞)
-recurrencecoefficients(H::Hermite{T}) where T = Fill{T}(2,∞), Zeros{T}(∞), zero(T):2:∞
+recurrencecoefficients(H::Hermite) where T = Fill(2,∞), Zeros{Int}(∞), 0:2:∞
 
 weightedgrammatrix(::Hermite{T}) where T = Diagonal(sqrt(convert(T,π)) .* convert(T,2) .^ (0:∞) .* gamma.(one(T):∞))
 
