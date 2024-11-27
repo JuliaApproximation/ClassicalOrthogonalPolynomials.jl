@@ -1,5 +1,9 @@
 using Documenter, ClassicalOrthogonalPolynomials
 
+DocMeta.setdocmeta!(ClassicalOrthogonalPolynomials,
+    :DocTestSetup,
+    :(using ClassicalOrthogonalPolynomials))
+
 makedocs(
     modules = [ClassicalOrthogonalPolynomials],
     sitename="ClassicalOrthogonalPolynomials.jl",

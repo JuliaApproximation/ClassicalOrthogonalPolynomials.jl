@@ -126,17 +126,15 @@ U\T
 
 ```@docs
 ClassicalOrthogonalPolynomials.Chebyshev
-```
-```@docs
 ClassicalOrthogonalPolynomials.chebyshevt
-```
-```@docs
 ClassicalOrthogonalPolynomials.chebyshevu
 ```
 ```@docs
+ClassicalOrthogonalPolynomials.Legendre
 ClassicalOrthogonalPolynomials.legendrep
 ```
 ```@docs
+ClassicalOrthogonalPolynomials.Jacobi
 ClassicalOrthogonalPolynomials.jacobip
 ```
 ```@docs
@@ -145,8 +143,6 @@ ClassicalOrthogonalPolynomials.laguerrel
 ```@docs
 ClassicalOrthogonalPolynomials.hermiteh
 ```
-
-
 
 
 ### Weights
@@ -161,7 +157,9 @@ ClassicalOrthogonalPolynomials.HermiteWeight
 ClassicalOrthogonalPolynomials.Weighted
 ```
 ```@docs
+ClassicalOrthogonalPolynomials.LegendreWeight
 ClassicalOrthogonalPolynomials.ChebyshevWeight
+ClassicalOrthogonalPolynomials.JacobiWeight
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.LaguerreWeight
@@ -170,6 +168,13 @@ ClassicalOrthogonalPolynomials.LaguerreWeight
 ClassicalOrthogonalPolynomials.HalfWeighted
 ```
 
+### Affine-mapped
+```@docs
+ClassicalOrthogonalPolynomials.legendre
+ClassicalOrthogonalPolynomials.jacobi
+ClassicalOrthogonalPolynomials.legendreweight
+ClassicalOrthogonalPolynomials.jacobiweight
+```
 
 ### Recurrences
 
@@ -190,41 +195,28 @@ ClassicalOrthogonalPolynomials.recurrencecoefficients
 ```
 
 
-
 ### Internal
 
 ```@docs
+ClassicalOrthogonalPolynomials.ShuffledFFT
+ClassicalOrthogonalPolynomials.ShuffledIFFT
+ClassicalOrthogonalPolynomials.ShuffledR2HC
 ClassicalOrthogonalPolynomials.ShuffledIR2HC
 ```
 ```@docs
-ClassicalOrthogonalPolynomials.ShuffledR2HC
-```
-```@docs
-ClassicalOrthogonalPolynomials.ShuffledIFFT
-```
-```@docs
 ClassicalOrthogonalPolynomials.qr_jacobimatrix
-```
-```@docs
-ClassicalOrthogonalPolynomials.MappedOPLayout
-```
-```@docs
 ClassicalOrthogonalPolynomials.cholesky_jacobimatrix
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.AbstractNormalizedOPLayout
-```
-```@docs
-ClassicalOrthogonalPolynomials.ShuffledFFT
+ClassicalOrthogonalPolynomials.MappedOPLayout
+ClassicalOrthogonalPolynomials.WeightedOPLayout
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.legendre_grammatrix
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.weightedgrammatrix
-```
-```@docs
-ClassicalOrthogonalPolynomials.WeightedOPLayout
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.interlace!
