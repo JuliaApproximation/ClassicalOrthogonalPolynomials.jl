@@ -41,7 +41,7 @@ import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, Abstract
     plan_grid_transform, plan_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout, _cumsum
 import FastTransforms: Λ, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg, pochhammer
 import RecurrenceRelationships: forwardrecurrence, forwardrecurrence!, clenshaw, clenshaw!,
-                        check_clenshaw_recurrences
+                        check_clenshaw_recurrences, polynomialtype
 import RecurrenceRelationshipArrays: initiateforwardrecurrence, Clenshaw
 import FastGaussQuadrature: jacobimoment
 
@@ -252,7 +252,6 @@ function layout_broadcasted(::Tuple{PolynomialLayout,AbstractOPLayout}, ::typeof
     x == axes(C,1) || throw(DimensionMismatch())
     C*jacobimatrix(C)
 end
-
 
 
 # function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::BroadcastQuasiVector, C::OrthogonalPolynomial)
