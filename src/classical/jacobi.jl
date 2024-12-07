@@ -136,8 +136,8 @@ The quasi-matrix representing Jacobi polynomials, where the first axes represent
 The eltype, when not specified, will be converted to a floating point data type.
 # Examples
 ```jldoctest
-julia> J=Jacobi(0,0) # The eltype will be converted to float
-Jacobi(0.0, 0.0)
+julia> J=Jacobi(0, 0) # The eltype will be converted to float
+Jacobi(0, 0)
 
 julia> axes(J)
 (Inclusion(-1.0 .. 1.0 (Chebyshev)), OneToInf())
