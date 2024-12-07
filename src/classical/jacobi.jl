@@ -183,7 +183,7 @@ The [`Jacobi`](@ref) polynomials affine-mapped to interval `d`.
 # Examples
 ```jldoctest
 julia> J = jacobi(1, 1, 0..1)
-Jacobi(1.0, 1.0) affine mapped to 0 .. 1
+Jacobi(1, 1) affine mapped to 0 .. 1
 
 julia> axes(J)
 (Inclusion(0 .. 1), OneToInf())
