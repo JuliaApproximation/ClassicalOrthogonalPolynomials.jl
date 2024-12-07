@@ -143,7 +143,7 @@ julia> axes(J)
 (Inclusion(-1.0 .. 1.0 (Chebyshev)), OneToInf())
 
 julia> J[0,:] # Values of polynomials at x=0
-ℵ₀-element view(::Jacobi{Float64}, 0.0, :) with eltype Float64 with indices OneToInf():
+ℵ₀-element view(::Jacobi{Float64, $Int}, 0.0, :) with eltype Float64 with indices OneToInf():
   1.0
   0.0
  -0.5
@@ -189,7 +189,7 @@ julia> axes(J)
 (Inclusion(0 .. 1), OneToInf())
 
 julia> J[0,:]
-ℵ₀-element view(::Jacobi{Float64}, -1.0, :) with eltype Float64 with indices OneToInf():
+ℵ₀-element view(::Jacobi{Float64, $Int}, -1.0, :) with eltype Float64 with indices OneToInf():
    1.0
   -2.0
    3.0
