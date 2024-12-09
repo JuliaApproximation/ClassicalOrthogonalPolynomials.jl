@@ -136,14 +136,14 @@ The quasi-matrix representing Jacobi polynomials, where the first axes represent
 The eltype, when not specified, will be converted to a floating point data type.
 # Examples
 ```jldoctest
-julia> J=Jacobi(0,0) # The eltype will be converted to float
-Jacobi(0.0, 0.0)
+julia> J=Jacobi(0, 0) # The eltype will be converted to float
+Jacobi(0, 0)
 
 julia> axes(J)
 (Inclusion(-1.0 .. 1.0 (Chebyshev)), OneToInf())
 
 julia> J[0,:] # Values of polynomials at x=0
-ℵ₀-element view(::Jacobi{Float64}, 0.0, :) with eltype Float64 with indices OneToInf():
+ℵ₀-element view(::Jacobi{Float64, $Int}, 0.0, :) with eltype Float64 with indices OneToInf():
   1.0
   0.0
  -0.5
@@ -162,12 +162,14 @@ julia> J0[0],J0[0.5]
 (1.0, 1.0)
 ```
 """
-struct Jacobi{T} <: AbstractJacobi{T}
-    a::T
-    b::T
-    Jacobi{T}(a, b) where T = new{T}(convert(T,a), convert(T,b))
+struct Jacobi{T,V} <: AbstractJacobi{T}
+    a::V
+    b::V
+    Jacobi{T,V}(a, b) where {T,V} = new{T,V}(convert(V,a), convert(V,b))
 end
 
+Jacobi{T}(a::V, b::V) where {T,V} = Jacobi{T,V}(a, b)
+Jacobi{T}(a, b) where T = Jacobi{T}(promote(a,b)...)
 Jacobi(a::V, b::T) where {T,V} = Jacobi{float(promote_type(T,V))}(a, b)
 
 AbstractQuasiArray{T}(w::Jacobi) where T = Jacobi{T}(w.a, w.b)
@@ -181,13 +183,13 @@ The [`Jacobi`](@ref) polynomials affine-mapped to interval `d`.
 # Examples
 ```jldoctest
 julia> J = jacobi(1, 1, 0..1)
-Jacobi(1.0, 1.0) affine mapped to 0 .. 1
+Jacobi(1, 1) affine mapped to 0 .. 1
 
 julia> axes(J)
 (Inclusion(0 .. 1), OneToInf())
 
 julia> J[0,:]
-ℵ₀-element view(::Jacobi{Float64}, -1.0, :) with eltype Float64 with indices OneToInf():
+ℵ₀-element view(::Jacobi{Float64, $Int}, -1.0, :) with eltype Float64 with indices OneToInf():
    1.0
   -2.0
    3.0
@@ -215,8 +217,8 @@ basis_singularities(w::JacobiWeight) = Weighted(Jacobi(w.a, w.b))
 computes the `n`-th Jacobi polynomial, orthogonal with
 respec to `(1-x)^a*(1+x)^b`, at `z`.
 """
-jacobip(n::Integer, a, b, z) = Base.unsafe_getindex(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b), z, n+1)
-normalizedjacobip(n::Integer, a, b, z) = Base.unsafe_getindex(Normalized(Jacobi{promote_type(typeof(a), typeof(b), typeof(z))}(a,b)), z, n+1)
+jacobip(n::Integer, a, b, z) = Base.unsafe_getindex(Jacobi{polynomialtype(typeof(a), typeof(b), typeof(z))}(a,b), z, n+1)
+normalizedjacobip(n::Integer, a, b, z) = Base.unsafe_getindex(Normalized(Jacobi{polynomialtype(typeof(a), typeof(b), typeof(z))}(a,b)), z, n+1)
 
 OrthogonalPolynomial(w::JacobiWeight) = Jacobi(w.a, w.b)
 orthogonalityweight(P::Jacobi) = JacobiWeight(P.a, P.b)
@@ -273,15 +275,16 @@ axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()),
 ==(P::Legendre, Q::Jacobi) = Jacobi(P) == Q
 ==(P::Jacobi, Q::Legendre) = P == Jacobi(Q)
 ==(A::WeightedJacobi, B::WeightedJacobi) = A.args == B.args
-==(A::WeightedJacobi, B::Jacobi{T}) where T = A == JacobiWeight(zero(T),zero(T)).*B
+==(A::WeightedJacobi, B::Jacobi{T,V}) where {T,V} = A == JacobiWeight(zero(V),zero(V)).*B
 ==(A::WeightedJacobi, B::Legendre) = A == Jacobi(B)
 ==(A::Legendre, B::WeightedJacobi) = Jacobi(A) == B
-==(A::Jacobi{T}, B::WeightedJacobi) where T = JacobiWeight(zero(T),zero(T)).*A == B
+==(A::Jacobi{T,V}, B::WeightedJacobi) where {T,V} = JacobiWeight(zero(V),zero(V)).*A == B
 ==(A::Legendre, B::Weighted{<:Any,<:AbstractJacobi}) = A == B.P
 ==(A::Weighted{<:Any,<:AbstractJacobi}, B::Legendre) = A.P == B
 
 show(io::IO, P::Jacobi) = summary(io, P)
-summary(io::IO, P::Jacobi) = print(io, "Jacobi($(P.a), $(P.b))")
+summary(io::IO, P::Jacobi{Float64}) = print(io, "Jacobi($(P.a), $(P.b))")
+summary(io::IO, P::Jacobi{T}) where T = print(io, "Jacobi{$T}($(P.a), $(P.b))")
 
 ###
 # transforms
@@ -523,22 +526,22 @@ diff(S::Jacobi; dims=1) = ApplyQuasiMatrix(*, Jacobi(S.a+1,S.b+1), _BandedMatrix
 
 function diff(S::Jacobi{T}, m::Integer; dims=1) where T
     D = _BandedMatrix((pochhammer.((S.a + S.b+1):∞, m)/convert(T, 2)^m)', ℵ₀, -m, m)
-    ApplyQuasiMatrix(*, Jacobi(S.a+m,S.b+m), D)
+    ApplyQuasiMatrix(*, Jacobi{T}(S.a+m,S.b+m), D)
 end
 
 
 #L_6^t
-function diff(WS::HalfWeighted{:a,<:Any,<:Jacobi}; dims=1)
+function diff(WS::HalfWeighted{:a,T,<:Jacobi}; dims=1) where T
     S = WS.P
     a,b = S.a, S.b
-    ApplyQuasiMatrix(*, HalfWeighted{:a}(Jacobi(a-1,b+1)), Diagonal(-(a:∞)))
+    ApplyQuasiMatrix(*, HalfWeighted{:a}(Jacobi{T}(a-1,b+1)), Diagonal(-(a:∞)))
 end
 
 #L_6
-function diff(WS::HalfWeighted{:b,<:Any,<:Jacobi}; dims=1)
+function diff(WS::HalfWeighted{:b,T,<:Jacobi}; dims=1) where T
     S = WS.P
     a,b = S.a, S.b
-    ApplyQuasiMatrix(*, HalfWeighted{:b}(Jacobi(a+1,b-1)), Diagonal(b:∞))
+    ApplyQuasiMatrix(*, HalfWeighted{:b}(Jacobi{T}(a+1,b-1)), Diagonal(b:∞))
 end
 
 for ab in (:(:a), :(:b))
@@ -549,7 +552,7 @@ for ab in (:(:a), :(:b))
 end
 
 
-function diff(WS::Weighted{<:Any,<:Jacobi}; dims=1)
+function diff(WS::Weighted{T,<:Jacobi}; dims=1) where T
     # L_1^t
     S = WS.P
     a,b = S.a, S.b
@@ -560,13 +563,13 @@ function diff(WS::Weighted{<:Any,<:Jacobi}; dims=1)
     elseif iszero(b)
         diff(HalfWeighted{:a}(S))
     else
-        ApplyQuasiMatrix(*, Weighted(Jacobi(a-1, b-1)), _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1))
+        ApplyQuasiMatrix(*, Weighted(Jacobi{T}(a-1, b-1)), _BandedMatrix((-2*(1:∞))', ℵ₀, 1,-1))
     end
 end
 
 
 # Jacobi(a-1,b-1)\ (D*w*Jacobi(a,b))
-function diff(WS::WeightedJacobi; dims=1)
+function diff(WS::WeightedJacobi{T}; dims=1) where T
     w,S = WS.args
     a,b = S.a, S.b
     if isorthogonalityweighted(WS) # L_1^t
@@ -582,22 +585,22 @@ function diff(WS::WeightedJacobi; dims=1)
         # D * ((1+x)^w.b * P^(a,b)) == D * ((1+x)^(w.b-b) * (1+x)^b * P^(a,b))
         #    == (1+x)^(w.b-1) * (w.b-b) * P^(a,b) + (1+x)^(w.b-b) * D*((1+x)^b*P^(a,b))
         #    == (1+x)^(w.b-1) * P^(a+1,b) ((w.b-b) * C2 + C1 * W)
-        W = HalfWeighted{:b}(Jacobi(a+1, b-1)) \ diff(HalfWeighted{:b}(S))
-        J = Jacobi(a+1,b) # range Jacobi
-        C1 = J \ Jacobi(a+1, b-1)
-        C2 = J \ Jacobi(a,b)
+        W = HalfWeighted{:b}(Jacobi{T}(a+1, b-1)) \ diff(HalfWeighted{:b}(S))
+        J = Jacobi{T}(a+1,b) # range Jacobi
+        C1 = J \ Jacobi{T}(a+1, b-1)
+        C2 = J \ Jacobi{T}(a,b)
         ApplyQuasiMatrix(*, JacobiWeight(w.a,w.b-1) .* J, (w.b-b) * C2 + C1 * W)
     elseif iszero(w.b)
-        W = HalfWeighted{:a}(Jacobi(a-1, b+1)) \ diff(HalfWeighted{:a}(S))
-        J = Jacobi(a,b+1) # range Jacobi
-        C1 = J \ Jacobi(a-1, b+1)
-        C2 = J \ Jacobi(a,b)
+        W = HalfWeighted{:a}(Jacobi{T}(a-1, b+1)) \ diff(HalfWeighted{:a}(S))
+        J = Jacobi{T}(a,b+1) # range Jacobi
+        C1 = J \ Jacobi{T}(a-1, b+1)
+        C2 = J \ Jacobi{T}(a,b)
         ApplyQuasiMatrix(*, JacobiWeight(w.a-1,w.b) .* J, -(w.a-a) * C2 + C1 * W)
     elseif iszero(a) && iszero(b) # Legendre
         # D * ((1+x)^w.b * (1-x)^w.a * P))
         #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b) * P - (1+x) * w.a * P + (1-x^2) * D * P)
         #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b) * P - (1+x) * w.a * P + P * L * W)
-        J = Jacobi(a+1,b+1) # range space
+        J = Jacobi{T}(a+1,b+1) # range space
         W = J \ diff(S)
         X = jacobimatrix(S)
         L = S \ Weighted(J)
@@ -608,9 +611,9 @@ function diff(WS::WeightedJacobi; dims=1)
         #    == (1+x)^(w.b-1) * (1-x)^(w.a-1) * ((1-x) * (w.b-b) * P^(a,b) + (1+x) * (a-w.a) * P^(a,b))
         #        + (1+x)^(w.b-b) * (1-x)^(w.a-a) * D * ((1+x)^b * (1-x)^a * P^(a,b)))
         
-        W = Weighted(Jacobi(a-1,b-1)) \ diff(Weighted(S))
+        W = Weighted(Jacobi{T}(a-1,b-1)) \ diff(Weighted(S))
         X = jacobimatrix(S)
-        C = S \ Jacobi(a-1,b-1)
+        C = S \ Jacobi{T}(a-1,b-1)
         (JacobiWeight(w.a-1,w.b-1) .* S) *  (((w.b-b+a-w.a)*I+(a-w.a-w.b+b) * X) + C*W)
     end
 end

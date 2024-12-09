@@ -46,7 +46,7 @@ axes(::Hermite{T}) where T = (Inclusion{T}(ℝ), oneto(∞))
 computes the `n`-th Hermite polynomial, orthogonal with 
 respec to `exp(-x^2)`, at `z`.
 """
-hermiteh(n::Integer, z) = Base.unsafe_getindex(Hermite{typeof(z)}(), z, n+1)
+hermiteh(n::Integer, z) = Base.unsafe_getindex(Hermite{polynomialtype(typeof(z))}(), z, n+1)
 
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::HermiteWeight{T}, ::Hermite{V}) where {T,V} = Weighted(Hermite{promote_type(T,V)}())
 
