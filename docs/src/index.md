@@ -17,6 +17,17 @@ which defines the following classical orthogonal polynomials:
 5. Laguerre: `L_n^{(α)}(x)`
 6. Hermite: `H_n(x)`
 
+These special polynomials have many applications and can be used as a basis for any function given their domain conditions are met, however these polynomials have some advantages due to their formulation:
+
+- Because of their relation to Laplace’s equation, **Legendre polynomials** can be useful as a basis for functions with spherical symmetry.
+- **Chebyshev polynomials** are generally effective in reducing errors from numerical methods such as quadrature, interpolation, and approximation.
+- Due to the flexibility of its parameters, **Jacobi polynomials** are capable of tailoring the behavior of an approximation around its endpoints, making these polynomials particularly useful in boundary value problems.
+- **Ultraspherical polynomials** are advantageous in spectral methods for solving differential equations.
+- **Laguerre polynomials** have a semi-infinite domain, therefore they are beneficial for problems involving exponential decay.
+- Because of its weight function, **Hermite polynomials** can be useful in situations where functions display a Gaussian-like distribution.
+
+These are just a few applications of these polynomials. They have many more uses across mathematics, physics, and engineering.
+
 ## Evaluation
 
 The simplest usage of this package is to evaluate classical
