@@ -10,12 +10,12 @@ CurrentModule = ClassicalOrthogonalPolynomials
 We follow the [Digital Library of Mathematical Functions](https://dlmf.nist.gov/18.3),
 which defines the following classical orthogonal polynomials:
 
-1. Legendre: `P_n(x)`
-2. Chebyshev (1st kind, 2nd kind): `T_n(x)`, `U_n(x)`
-3. Ultraspherical: `C_n^{(λ)}(x)`
-4. Jacobi: `P_n^{(a,b)}(x)`
-5. Laguerre: `L_n^{(α)}(x)`
-6. Hermite: `H_n(x)`
+1. Legendre: $P_n(x)$, defined over $[-1, 1]$ with weight $w(x) = 1$.
+2. Chebyshev (1st kind, 2nd kind): $T_n(x)$ and $U_n(x)$, defined over $[-1, 1]$ with weights $w(x) = 1/\sqrt{1-x^2}$ and $w(x) = \sqrt{1-x^2}$, respectively.
+3. Ultraspherical: $C_n^{(\lambda)}(x)$, defined over $[-1, 1]$ with weight $w(x) = (1-x^2)^{\lambda-1/2}$.
+4. Jacobi: $P_n^{(a,b)}(x)$, defined over $[-1, 1]$ with weight $w(x) = (1-x)^a(1+x)^b$.
+5. Laguerre: $L_n^{(\alpha)}(x)$, defined over $[0, ∞)$ with weight $w(x) = x^\alpha \mathrm{e}^{-x}$.
+6. Hermite: $H_n(x)$, defined over $(-∞, ∞)$ with weight $w(x) = \mathrm{e}^{-x^2}$.
 
 These special polynomials have many applications and can be used as a basis for any function given their domain conditions are met, however these polynomials have some advantages due to their formulation:
 
