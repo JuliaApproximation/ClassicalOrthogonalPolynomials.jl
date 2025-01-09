@@ -294,7 +294,7 @@ grid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{1,T}(n)
 plotgrid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{2,T}(min(40n, MAX_PLOT_POINTS))
 
 plan_transform(::AbstractJacobi{T}, szs::NTuple{N,Int}, dims...) where {T,N} = error("Override")
-plan_transform(P::Jacobi{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_cheb2jac!(T, szs, P.a, P.b, dims), plan_chebyshevtransform(T, szs, dims...))
+plan_transform(P::Jacobi{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_cheb2jac!(T, szs, P.a, P.b, dims...), plan_chebyshevtransform(T, szs, dims...))
 
 ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
 ldiv(P::Jacobi{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
