@@ -35,7 +35,6 @@ isnormalized(_) = false
 represents OPs that are of the form P * R where P is another family of OPs and R is upper-triangular.
 """
 abstract type AbstractNormalizedOPLayout <: AbstractOPLayout end
-struct ConvertedOPLayout <: AbstractNormalizedOPLayout end
 struct NormalizedOPLayout{LAY<:AbstractBasisLayout} <: AbstractNormalizedOPLayout end
 
 MemoryLayout(::Type{<:Normalized{<:Any, OPs}}) where OPs = NormalizedOPLayout{typeof(MemoryLayout(OPs))}()

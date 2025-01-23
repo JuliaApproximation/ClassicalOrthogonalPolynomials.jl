@@ -8,15 +8,21 @@ struct ConvertedOrthogonalPolynomial{T, WW<:AbstractQuasiVector{T}, XX, UU, PP} 
     P::PP
 end
 
-_p0(Q::ConvertedOrthogonalPolynomial) = _p0(Q.P)
+_p0(Q::ConvertedOrthogonalPolynomial) = _p0(Q.P)/Q.U[1,1]
 
 axes(Q::ConvertedOrthogonalPolynomial) = axes(Q.P)
+
+
+struct ConvertedOPLayout <: AbstractOPLayout end
 MemoryLayout(::Type{<:ConvertedOrthogonalPolynomial}) = ConvertedOPLayout()
+equals_layout(::ConvertedOPLayout, ::ConvertedOPLayout, P, Q) =  orthogonalityweight(P) == orthogonalityweight(Q)
+
+
 jacobimatrix(Q::ConvertedOrthogonalPolynomial) = Q.X
 orthogonalityweight(Q::ConvertedOrthogonalPolynomial) = Q.weight
 
 
-# transform to P * U if needed for differentiation, etc.
+# transform to P * inv(U) if needed for differentiation, etc.
 arguments(::ApplyLayout{typeof(*)}, Q::ConvertedOrthogonalPolynomial) = Q.P, ApplyArray(inv, Q.U)
 
 OrthogonalPolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w, orthogonalpolynomial(singularities(w)))
@@ -31,6 +37,12 @@ orthogonalpolynomial(w::SubQuasiArray) = orthogonalpolynomial(parent(w))[parenti
 
 OrthogonalPolynomial(w::Function, P::AbstractQuasiMatrix) = OrthogonalPolynomial(w.(axes(P,1)), P)
 orthogonalpolynomial(w::Function, P::AbstractQuasiMatrix) = orthogonalpolynomial(w.(axes(P,1)), P)
+
+
+simplifiable(L::Ldiv{ConvertedOPLayout,ConvertedOPLayout}) = simplifiable(Ldiv{ApplyLayout{typeof(*)}, ApplyLayout{typeof(*)}}(L.A, L.B))
+copy(L::Ldiv{ConvertedOPLayout,ConvertedOPLayout}) = copy(Ldiv{ApplyLayout{typeof(*)}, ApplyLayout{typeof(*)}}(L.A, L.B))
+copy(L::Ldiv{ConvertedOPLayout,Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)}, Lay}(L.A, L.B))
+copy(L::Ldiv{ConvertedOPLayout,Lay}) where Lay<:AbstractNormalizedOPLayout = copy(Ldiv{ApplyLayout{typeof(*)}, Lay}(L.A, L.B))
 
 
 """
@@ -274,3 +286,6 @@ function _fillqrbanddata!(J::QRJacobiData{:R,T}, inds::UnitRange{Int}) where T
         ev[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  # this is dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
     end
 end
+
+
+diff_layout(::ConvertedOPLayout, P::AbstractQuasiMatrix, dims...) = diff_layout(ApplyLayout{typeof(*)}(), P, dims...)
