@@ -15,7 +15,11 @@ axes(Q::ConvertedOrthogonalPolynomial) = axes(Q.P)
 
 struct ConvertedOPLayout <: AbstractOPLayout end
 MemoryLayout(::Type{<:ConvertedOrthogonalPolynomial}) = ConvertedOPLayout()
-equals_layout(::ConvertedOPLayout, ::ConvertedOPLayout, P, Q) =  orthogonalityweight(P) == orthogonalityweight(Q)
+equals_layout(::ConvertedOPLayout, ::ConvertedOPLayout, P, Q) = orthogonalityweight(P) == orthogonalityweight(Q)
+equals_layout(::ConvertedOPLayout, ::AbstractOPLayout, P, Q) = false # fix
+equals_layout(::AbstractOPLayout, ::ConvertedOPLayout, P, Q) = false # fix
+
+
 
 
 jacobimatrix(Q::ConvertedOrthogonalPolynomial) = Q.X
