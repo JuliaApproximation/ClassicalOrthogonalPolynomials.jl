@@ -299,6 +299,6 @@ _sum(p::SubQuasiArray{T,1,<:Weighted,<:Tuple{Inclusion,Int}}, ::Colon) where T =
 demap(W::Weighted) = Weighted(demap(W.P))
 basismap(W::Weighted) = basismap(W.P)
 const MappedOPLayouts = Union{MappedOPLayout,WeightedOPLayout{MappedOPLayout}}
-diff_layout(::MappedOPLayouts, A, dims...) = diff_layout(MappedBasisLayout(), A, dims...)
+diff_layout(::MappedOPLayouts, A, order...; dims...) = diff_layout(MappedBasisLayout(), A, order...; dims...)
 
-diff_layout(::NormalizedOPLayout, A, dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, dims...)
+diff_layout(::NormalizedOPLayout, A, order...; dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, order...; dims...)
