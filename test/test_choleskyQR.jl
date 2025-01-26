@@ -1,5 +1,5 @@
 using Test, ClassicalOrthogonalPolynomials, BandedMatrices, LinearAlgebra, LazyArrays, ContinuumArrays, LazyBandedMatrices, InfiniteLinearAlgebra
-import ClassicalOrthogonalPolynomials: cholesky_jacobimatrix, qr_jacobimatrix, orthogonalpolynomial
+import ClassicalOrthogonalPolynomials: cholesky_jacobimatrix, qr_jacobimatrix, orthogonalpolynomial, _p0
 import LazyArrays: AbstractCachedMatrix, resizedata!
 
 @testset "CholeskyQR" begin
@@ -228,7 +228,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
         @test Q == Q̃
         @test Q̃ == Q
         
-        @test Q[0.1,1] ≈ 1/sqrt(2)
+        @test Q[0.1,1] ≈ _p0(Q) ≈ 1/sqrt(2)
         @test Q[0.1,1:10] ≈ Q̃[0.1,1:10]
         @test Q[0.1,10_000] ≈ Q̃[0.1,10_000]
 
@@ -246,6 +246,9 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
     @testset "Chebyshev" begin
          U = ChebyshevU()
          Q = orthogonalpolynomial(x -> (1+x^2)*sqrt(1-x^2), U)
+         x = axes(U,1)
+         
+         @test Q[0.1,1] ≈ _p0(Q) ≈ 1/sqrt(sum(expand(Weighted(U),x -> (1+x^2)*sqrt(1-x^2))))
          @test bandwidths(Q\U) == (0,2)
 
          Q̃ = OrthogonalPolynomial(x -> (1+x^2)*sqrt(1-x^2), U)
