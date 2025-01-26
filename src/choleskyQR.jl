@@ -40,12 +40,6 @@ OrthogonalPolynomial(w::Function, P::AbstractQuasiMatrix) = OrthogonalPolynomial
 orthogonalpolynomial(w::Function, P::AbstractQuasiMatrix) = orthogonalpolynomial(w.(axes(P,1)), P)
 
 
-simplifiable(L::Ldiv{ConvertedOPLayout,ConvertedOPLayout}) = simplifiable(Ldiv{ApplyLayout{typeof(*)}, ApplyLayout{typeof(*)}}(L.A, L.B))
-copy(L::Ldiv{ConvertedOPLayout,ConvertedOPLayout}) = copy(Ldiv{ApplyLayout{typeof(*)}, ApplyLayout{typeof(*)}}(L.A, L.B))
-copy(L::Ldiv{ConvertedOPLayout,Lay}) where Lay<:AbstractBasisLayout = copy(Ldiv{ApplyLayout{typeof(*)}, Lay}(L.A, L.B))
-copy(L::Ldiv{ConvertedOPLayout,Lay}) where Lay<:AbstractNormalizedOPLayout = copy(Ldiv{ApplyLayout{typeof(*)}, Lay}(L.A, L.B))
-
-
 """
 cholesky_jacobimatrix(w, P)
 
@@ -287,6 +281,3 @@ function _fillqrbanddata!(J::QRJacobiData{:R,T}, inds::UnitRange{Int}) where T
         ev[k] = UX[k,k-1]/U[k+1,k+1]*(-U[k-1,k+1]/U[k-1,k-1]+U[k-1,k]*U[k,k+1]/(U[k-1,k-1]*U[k,k]))+UX[k,k]/U[k+1,k+1]*(-U[k,k+1]/U[k,k])+UX[k,k+1]/U[k+1,k+1]  # this is dot(view(UX,k,k-1:k+1), U[k-1:k+1,k-1:k+1] \ ek)
     end
 end
-
-
-diff_layout(::ConvertedOPLayout, P::AbstractQuasiMatrix, dims...) = diff_layout(ApplyLayout{typeof(*)}(), P, dims...)
