@@ -1,5 +1,5 @@
 """
-Represent an Orthogonal polynomial which has a conversion operator from P, that is, Q = P * inv(U).
+Represents orthonormal polynomials defined via a conversion operator from P, that is, Q = P * inv(U).
 """
 struct ConvertedOrthogonalPolynomial{T, WW<:AbstractQuasiVector{T}, XX, UU, PP} <: OrthonormalPolynomial{T}
     weight::WW
@@ -13,11 +13,8 @@ _p0(Q::ConvertedOrthogonalPolynomial) = _p0(Q.P)/Q.U[1,1]
 axes(Q::ConvertedOrthogonalPolynomial) = axes(Q.P)
 
 
-struct ConvertedOPLayout <: AbstractOPLayout end
+struct ConvertedOPLayout <: AbstractNormalizedOPLayout end
 MemoryLayout(::Type{<:ConvertedOrthogonalPolynomial}) = ConvertedOPLayout()
-equals_layout(::ConvertedOPLayout, ::ConvertedOPLayout, P, Q) = orthogonalityweight(P) == orthogonalityweight(Q)
-equals_layout(::ConvertedOPLayout, ::AbstractOPLayout, P, Q) = false # fix
-equals_layout(::AbstractOPLayout, ::ConvertedOPLayout, P, Q) = false # fix
 
 
 

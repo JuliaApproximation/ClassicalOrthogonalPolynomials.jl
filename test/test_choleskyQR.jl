@@ -230,7 +230,6 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
         
         @test Q[0.1,1] ≈ 1/sqrt(2)
         @test Q[0.1,1:10] ≈ Q̃[0.1,1:10]
-        # AWESOME, thanks TSGUT!!
         @test Q[0.1,10_000] ≈ Q̃[0.1,10_000]
 
         R = P \ Q
