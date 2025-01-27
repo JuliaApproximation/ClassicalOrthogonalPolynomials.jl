@@ -76,7 +76,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 # Comparison with Lanczos
                 @test Jchol[1:500,1:500] ≈ Jlanc[1:500,1:500]
             end
-            
+
             @testset "w(x) = (1-x)*exp(x)" begin
                 P = Normalized(Legendre()[affine(0..1,Inclusion(-1..1)),:])
                 x = axes(P,1)
@@ -89,7 +89,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 # Comparison with Lanczos
                 @test Jchol[1:500,1:500] ≈ Jlanc[1:500,1:500]
             end
-            
+
             @testset "w(x) = (1-x^2)*exp(x^2)" begin
                 P = Normalized(legendre(0..1))
                 x = axes(P,1)
@@ -102,7 +102,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
                 # Comparison with Lanczos
                 @test Jchol[1:500,1:500] ≈ Jlanc[1:500,1:500]
             end
-            
+
             @testset "w(x) = x*(1-x^2)*exp(-x^2)" begin
                 P = Normalized(Legendre()[affine(0..1,Inclusion(-1..1)),:])
                 x = axes(P,1)
@@ -227,7 +227,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
         @test Q ≠ P
         @test Q == Q̃
         @test Q̃ == Q
-        
+
         @test Q[0.1,1] ≈ _p0(Q) ≈ 1/sqrt(2)
         @test Q[0.1,1:10] ≈ Q̃[0.1,1:10]
         @test Q[0.1,10_000] ≈ Q̃[0.1,10_000]
@@ -247,11 +247,20 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
          U = ChebyshevU()
          Q = orthogonalpolynomial(x -> (1+x^2)*sqrt(1-x^2), U)
          x = axes(U,1)
-         
+
          @test Q[0.1,1] ≈ _p0(Q) ≈ 1/sqrt(sum(expand(Weighted(U),x -> (1+x^2)*sqrt(1-x^2))))
          @test bandwidths(Q\U) == (0,2)
 
          Q̃ = OrthogonalPolynomial(x -> (1+x^2)*sqrt(1-x^2), U)
          @test jacobimatrix(Q)[1:10,1:10] == jacobimatrix(Q̃)[1:10,1:10]
+    end
+
+    @testset "diff" begin
+        P = Legendre()
+        x = axes(P,1)
+        Q = OrthogonalPolynomial(1 .- x)
+        Q̃ = Normalized(Jacobi(1,0))
+        @test_skip diff(Q)[0.1,1:5] ≈ diff(Q̃)[0.1,1:5] # broken due to lazy array issues
+        @test [diff(Q)[0.1,k] for k=1:5] ≈ diff(Q̃)[0.1,1:5]
     end
 end
