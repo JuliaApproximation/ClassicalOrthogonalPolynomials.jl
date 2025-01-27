@@ -301,4 +301,4 @@ basismap(W::Weighted) = basismap(W.P)
 const MappedOPLayouts = Union{MappedOPLayout,WeightedOPLayout{MappedOPLayout}}
 diff_layout(::MappedOPLayouts, A, dims...) = diff_layout(MappedBasisLayout(), A, dims...)
 
-diff_layout(::NormalizedOPLayout, A, dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, dims...)
+diff_layout(::AbstractNormalizedOPLayout, A, dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, dims...)
