@@ -139,7 +139,9 @@ end
 
 # higher order 
 
-function diff(::ChebyshevT{T}, m::Integer; dims=1) where T
+function diff(S::ChebyshevT{T}, m::Integer; dims=1) where T
+    iszero(m) && return S
+    isone(m) && return diff(S)
     μ = pochhammer(one(T),m-1)*convert(T,2)^(m-1)
     D = _BandedMatrix((μ * (0:∞))', ℵ₀, -m, m)
     ApplyQuasiMatrix(*, Ultraspherical{T}(m), D)
