@@ -73,7 +73,7 @@ ultraspherical(λ, d::AbstractInterval{T}) where T = Ultraspherical{float(promot
 # transforms
 ###
 
-plan_transform(P::Ultraspherical{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_ultra2ultra!(T, szs, one(P.λ), P.λ, dims), plan_chebyshevutransform(T, szs, dims...))
+plan_transform(P::Ultraspherical{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_ultra2ultra!(T, szs, one(P.λ), P.λ, dims...), plan_chebyshevutransform(T, szs, dims...))
 
 ###
 # interrelationships

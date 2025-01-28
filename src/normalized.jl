@@ -35,7 +35,6 @@ isnormalized(_) = false
 represents OPs that are of the form P * R where P is another family of OPs and R is upper-triangular.
 """
 abstract type AbstractNormalizedOPLayout <: AbstractOPLayout end
-struct ConvertedOPLayout <: AbstractNormalizedOPLayout end
 struct NormalizedOPLayout{LAY<:AbstractBasisLayout} <: AbstractNormalizedOPLayout end
 
 MemoryLayout(::Type{<:Normalized{<:Any, OPs}}) where OPs = NormalizedOPLayout{typeof(MemoryLayout(OPs))}()
@@ -302,4 +301,4 @@ basismap(W::Weighted) = basismap(W.P)
 const MappedOPLayouts = Union{MappedOPLayout,WeightedOPLayout{MappedOPLayout}}
 diff_layout(::MappedOPLayouts, A, dims...) = diff_layout(MappedBasisLayout(), A, dims...)
 
-diff_layout(::NormalizedOPLayout, A, dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, dims...)
+diff_layout(::AbstractNormalizedOPLayout, A, dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, dims...)
