@@ -38,13 +38,16 @@ julia> axes(J)
 (Inclusion(-1.0 .. 1.0 (Chebyshev)),)
 ```
 """
-struct JacobiWeight{T} <: AbstractJacobiWeight{T}
-    a::T
-    b::T
-    JacobiWeight{T}(a, b) where T = new{T}(convert(T,a), convert(T,b))
+struct JacobiWeight{T,V} <: AbstractJacobiWeight{T}
+    a::V
+    b::V
+    JacobiWeight{T,V}(a, b) where {T,V} = new{T,V}(convert(V,a), convert(V,b))
 end
 
-JacobiWeight(a::V, b::T) where {T,V} = JacobiWeight{promote_type(T,V)}(a,b)
+JacobiWeight{T}(a::V, b::V) where {T,V} = JacobiWeight{T,V}(a, b)
+JacobiWeight{T}(a, b) where T = JacobiWeight{T}(promote(a,b)...)
+JacobiWeight(a::V, b::T) where {T,V} = JacobiWeight{float(promote_type(T,V))}(a, b)
+
 
 """
     jacobiweight(a,b, d::AbstractInterval)
@@ -71,9 +74,9 @@ AbstractQuasiVector{T}(w::JacobiWeight) where T = JacobiWeight{T}(w.a, w.b)
 
 ==(A::JacobiWeight, B::JacobiWeight) = A.b == B.b && A.a == B.a
 
-function getindex(w::JacobiWeight, x::Number)
+function getindex(w::JacobiWeight{T}, x::Number) where T
     x ∈ axes(w,1) || throw(BoundsError())
-    (1-x)^w.a * (1+x)^w.b
+    convert(T, (1-x)^w.a * (1+x)^w.b)
 end
 
 show(io::IO, P::JacobiWeight) = summary(io, P)
@@ -479,6 +482,8 @@ end
 broadcastbasis(::typeof(+), w_A::Weighted{<:Any,<:Jacobi}, w_B::Weighted{<:Any,<:Jacobi}) = broadcastbasis(+, convert(WeightedBasis,w_A), convert(WeightedBasis,w_B))
 broadcastbasis(::typeof(+), w_A::Weighted{<:Any,<:Jacobi}, w_B::WeightedJacobi) = broadcastbasis(+, convert(WeightedBasis,w_A), w_B)
 broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::Weighted{<:Any,<:Jacobi}) = broadcastbasis(+, w_A, convert(WeightedBasis,w_B))
+broadcastbasis(::typeof(+), A::Jacobi, B::Weighted{<:Any,<:Jacobi}) = A # assume B can be lowered to Legendre... for now
+broadcastbasis(::typeof(+), A::Weighted{<:Any,<:Jacobi}, B::Jacobi) = B # assume B can be lowered to Legendre... for now
 
 function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
     wA,A = w_A.args
