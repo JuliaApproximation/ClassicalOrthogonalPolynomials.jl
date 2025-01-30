@@ -482,8 +482,8 @@ end
 broadcastbasis(::typeof(+), w_A::Weighted{<:Any,<:Jacobi}, w_B::Weighted{<:Any,<:Jacobi}) = broadcastbasis(+, convert(WeightedBasis,w_A), convert(WeightedBasis,w_B))
 broadcastbasis(::typeof(+), w_A::Weighted{<:Any,<:Jacobi}, w_B::WeightedJacobi) = broadcastbasis(+, convert(WeightedBasis,w_A), w_B)
 broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::Weighted{<:Any,<:Jacobi}) = broadcastbasis(+, w_A, convert(WeightedBasis,w_B))
-broadcastbasis(::typeof(+), A::Jacobi, B::Weighted{<:Any,<:Jacobi}) = A # assume B can be lowered to Legendre... for now
-broadcastbasis(::typeof(+), A::Weighted{<:Any,<:Jacobi}, B::Jacobi) = B # assume B can be lowered to Legendre... for now
+broadcastbasis(::typeof(+), A::Jacobi, B::Weighted{<:Any,<:Jacobi{<:Any,<:Integer}}) = A
+broadcastbasis(::typeof(+), A::Weighted{<:Any,<:Jacobi{<:Any,<:Integer}}, B::Jacobi) = B
 
 function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
     wA,A = w_A.args
