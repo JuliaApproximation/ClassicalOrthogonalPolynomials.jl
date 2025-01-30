@@ -34,7 +34,7 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!, partialcholesky!
-import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
+import ContinuumArrays: Basis, Weight, basis_axes, @simplify, AbstractAffineQuasiVector, ProjectionFactorization,
     grid, plotgrid, plotgrid_layout, plotvalues_layout, grid_layout, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, broadcastbasis_layout,
@@ -89,6 +89,8 @@ struct MappedOPLayout <: AbstractOPLayout end
 represents an OP multiplied by its orthogonality weight.
 """
 struct WeightedOPLayout{Lay<:AbstractOPLayout} <: AbstractWeightedBasisLayout end
+
+grid_layout(::WeightedOPLayout, P, n) = grid(unweighted(P), n)
 
 isorthogonalityweighted(::WeightedOPLayout, _) = true
 function isorthogonalityweighted(::AbstractWeightedBasisLayout, wS)
@@ -246,7 +248,7 @@ grammatrix_layout(::WeightedOPLayout{MappedOPLayout}, P) = grammatrix_layout(Map
 
 OrthogonalPolynomial(w::Weight) =error("Override for $(typeof(w))")
 
-@simplify *(B::Identity, C::OrthogonalPolynomial) = ApplyQuasiMatrix(*, C, jacobimatrix(C))
+@simplify *(B::QuasiDiagonal{<:Any,<:Inclusion}, C::OrthogonalPolynomial) = ApplyQuasiMatrix(*, C, jacobimatrix(C))
 
 function layout_broadcasted(::Tuple{PolynomialLayout,AbstractOPLayout}, ::typeof(*), x::Inclusion, C)
     x == axes(C,1) || throw(DimensionMismatch())

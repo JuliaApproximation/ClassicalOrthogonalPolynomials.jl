@@ -303,16 +303,23 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, PaddedColumns, or
         @test jacobimatrix(Q)[1,1] ≈ 1/3
         @test Q[0.5,1:3] ≈ [1, 1.369306393762913, 0.6469364618834543]
     end
-end
 
-@testset "#197" begin
-    @test _emptymaximum(1:5) == 5 
-    @test _emptymaximum(1:0) == 0
-    x = Inclusion(ChebyshevInterval())
-    f = exp.(x)
-    QQ = LanczosPolynomial(f)
-    R = LanczosConversion(QQ.data)
-    v = cache(Zeros(∞))
-    @test (R \ v)[1:500] == zeros(500)
-    @test (R * v)[1:500] == zeros(500)
+    @testset "#197" begin
+        @test _emptymaximum(1:5) == 5 
+        @test _emptymaximum(1:0) == 0
+        x = Inclusion(ChebyshevInterval())
+        f = exp.(x)
+        QQ = LanczosPolynomial(f)
+        R = LanczosConversion(QQ.data)
+        v = cache(Zeros(∞))
+        @test (R \ v)[1:500] == zeros(500)
+        @test (R * v)[1:500] == zeros(500)
+    end
+
+    @testset "diff" begin
+        P = Normalized(Legendre())
+        x = axes(P,1)
+        Q = LanczosPolynomial(exp.(x))
+        @test diff(Q)[0.1,3] ≈ -0.1637907411174539
+    end
 end
