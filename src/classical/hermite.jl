@@ -48,6 +48,14 @@ respec to `exp(-x^2)`, at `z`.
 """
 hermiteh(n::Integer, z) = Base.unsafe_getindex(Hermite{polynomialtype(typeof(z))}(), z, n+1)
 
+"""
+     normalizedhermiteh(n, z)
+
+computes the normalized `n`-th Hermite polynomial, orthogonal with 
+respec to `exp(-x^2)`, at `z`.
+"""
+normalizedhermiteh(n::Integer, z) = Base.unsafe_getindex(Normalized(Hermite{polynomialtype(typeof(z))}()), z, n+1)
+
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::HermiteWeight{T}, ::Hermite{V}) where {T,V} = Weighted(Hermite{promote_type(T,V)}())
 
 # H_{n+1} = 2x H_n - 2n H_{n-1}
