@@ -56,7 +56,7 @@ function cholesky_jacobimatrix(w::AbstractQuasiVector, P)
     W = Symmetric(Q \ ((w ./ w_P) .* Q)) # Compute weight multiplication via Clenshaw
     return cholesky_jacobimatrix(W, jacobimatrix(Q))
 end
-function cholesky_jacobimatrix(W::AbstractMatrix, X)
+function cholesky_jacobimatrix(W::AbstractMatrix, X::AbstractMatrix)
     U = cholesky(W).U
     return SymTridiagonalConjugation(U, X), U
 end
@@ -79,7 +79,7 @@ function qr_jacobimatrix(w::AbstractQuasiVector, P)
     sqrtW = Symmetric(Q \ (sqrt.(w ./ w_P) .* Q)) # Compute weight multiplication via Clenshaw
     return qr_jacobimatrix(sqrtW, jacobimatrix(Q))
 end
-function qr_jacobimatrix(sqrtW::AbstractMatrix{T}, X) where T
+function qr_jacobimatrix(sqrtW::AbstractMatrix{T}, X::AbstractMatrix) where T
     R = qr(sqrtW).R
     return SymTridiagonalConjugation(R, X), R
 end
