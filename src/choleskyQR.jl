@@ -52,7 +52,7 @@ The resulting polynomials are orthonormal on the same domain as `P`. The supplie
 """
 cholesky_jacobimatrix(w::Function, P) = cholesky_jacobimatrix(w.(axes(P,1)), P)
 
-function cholesky_jacobimatrix(w::AbstractQuasiVector, P)
+function cholesky_jacobimatrix(w::AbstractQuasiVector, P::AbstractQuasiMatrix)
     Q = normalized(P)
     w_P = orthogonalityweight(P)
     W = Symmetric(Q \ ((w ./ w_P) .* Q)) # Compute weight multiplication via Clenshaw

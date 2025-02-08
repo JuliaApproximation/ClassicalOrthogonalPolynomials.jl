@@ -1,5 +1,3 @@
-resizedata!(P::OrthogonalPolynomial, x, n) = P # default is no-op
-
 
 # Assume 1 normalization
 _p0(A) = one(eltype(A))
@@ -27,7 +25,7 @@ function forwardrecurrence_copyto!(dest::AbstractMatrix, V)
     checkbounds(dest, axes(V)...)
     P = parent(V)
     xr,jr = parentindices(V)
-    resizedata!(P, :, maximum(jr))
+    resizedata!(P, :, maximum(jr; init=0))
     A,B,C = recurrencecoefficients(P)
     shift = first(jr)
     Ã,B̃,C̃ = A[shift:∞],B[shift:∞],C[shift:∞]
@@ -66,8 +64,8 @@ unsafe_layout_getindex(A...) = sub_materialize(Base.unsafe_view(A...))
 
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::AbstractUnitRange) = unsafe_layout_getindex(P, x, n)
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractUnitRange) = unsafe_layout_getindex(P, x, n)
-Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n)))[n]
-Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n)))[:,n]
+Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n; init=0)))[n]
+Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n; init=0)))[:,n]
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::Number) = Base.unsafe_getindex(P, x, 1:n)[:,end]
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, ::Colon) = Base.unsafe_getindex(P, x, axes(P,2))
 function Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::Number)
@@ -99,7 +97,7 @@ end
 function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:AbstractPaddedLayout}, x::Number, jr)
     P,c = f.A,f.B
     data = paddeddata(c)
-    resizedata!(P, :, maximum(jr))
+    resizedata!(P, :, maximum(jr; init=0))
     _p0(P)*clenshaw(view(paddeddata(c),:,jr), recurrencecoefficients(P)..., x)
 end
 
