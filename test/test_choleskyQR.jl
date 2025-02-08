@@ -193,7 +193,7 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
             P = Normalized(legendre(big(0)..big(1)))
             X = jacobimatrix(P)
             Xr,R = qr_jacobimatrix(t*I-X, X)
-            @test_broken Xr[1:20,1:20] ≈ cholesky_jacobimatrix(Symmetric((t*I-X)^2), X)[1:20,1:20]
+            @test Xr[1:20,1:20] ≈ cholesky_jacobimatrix(Symmetric((t*I-X)^2), X)[1][1:20,1:20]
         end
     end
 
@@ -208,6 +208,8 @@ import LazyArrays: AbstractCachedMatrix, resizedata!
         @test Q ≠ P
         @test Q == Q̃
         @test Q̃ == Q
+
+        @test jacobimatrix(Q)[1:10,1:10] ≈ jacobimatrix(Q̃)[1:10,1:10]
 
         @test Q[0.1,1] ≈ _p0(Q) ≈ 1/sqrt(2)
         @test Q[0.1,1:10] ≈ Q̃[0.1,1:10]
