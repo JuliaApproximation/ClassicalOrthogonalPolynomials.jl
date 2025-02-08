@@ -39,6 +39,8 @@ orthogonalpolynomial(w::SubQuasiArray) = orthogonalpolynomial(parent(w))[parenti
 OrthogonalPolynomial(w::Function, P::AbstractQuasiMatrix) = OrthogonalPolynomial(w.(axes(P,1)), P)
 orthogonalpolynomial(w::Function, P::AbstractQuasiMatrix) = orthogonalpolynomial(w.(axes(P,1)), P)
 
+resizedata!(P::ConvertedOrthogonalPolynomial, ::Colon, n::Int) = resizedata!(P.X.dv, n)
+
 
 """
 cholesky_jacobimatrix(w, P)
