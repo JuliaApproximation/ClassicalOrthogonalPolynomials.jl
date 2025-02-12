@@ -29,11 +29,11 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
                     QuasiDiagonal, MulQuasiArray, MulQuasiMatrix, MulQuasiVector, QuasiMatMulMat,
                     ApplyQuasiArray, ApplyQuasiMatrix, LazyQuasiArrayApplyStyle, AbstractQuasiArrayApplyStyle,
                     LazyQuasiArray, LazyQuasiVector, LazyQuasiMatrix, LazyLayout, LazyQuasiArrayStyle,
-                    _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector,
+                    _getindex, layout_getindex, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector,
                     AbstractQuasiFill, equals_layout, QuasiArrayLayout, PolynomialLayout, diff_layout
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
-import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!, partialcholesky!
+import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!, partialcholesky!, SymTridiagonalConjugation, TridiagonalConjugation
 import ContinuumArrays: Basis, Weight, basis_axes, @simplify, AbstractAffineQuasiVector, ProjectionFactorization,
     grid, plotgrid, plotgrid_layout, plotvalues_layout, grid_layout, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
