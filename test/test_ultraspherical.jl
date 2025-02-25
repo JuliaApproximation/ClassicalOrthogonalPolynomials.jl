@@ -214,12 +214,24 @@ using ClassicalOrthogonalPolynomials: grammatrix, OrthonormalWeighted
         Q = Normalized(Legendre()) \ (JacobiWeight(1,1) .* Normalized(Jacobi(2,2)))
         @test Q[1:12,1:10]'Q[1:12,1:10] ≈ I
 
+        X = jacobimatrix(Normalized(Legendre()))
+        @test Q[1:10,1:10] ≈ -qr(I - X^2).Q[1:10,1:10]
+
         c = sqrt.(2*(5:2:∞) ./ ((3:∞) .* (4:∞) ))
         s = sqrt.(((1:∞) .* (2:∞)) ./ ((3:∞) .* (4:∞) ))
 
-        @test (c.^2 + s.^2)[1:10] ≈ ones(10)
-        G₁
+        n = 10
+        @test (c.^2 + s.^2)[1:n] ≈ ones(n)
+        G = [Matrix(1.0I,n,n) for k=1:n-2]
+        for k = 1:n-2
+            G[k][[k,k+2],[k,k+2]] = [c[k] s[k]; -s[k] c[k]] 
+        end
 
-    
+        @test Q[1:n,1:n-2] ≈  *(G...)[:,1:n-2]
+        
+        @test qr(I - X^2).τ[1:10] ≈ c[1:10] .+ 1
+        @test qr(I - X^2).factors[band(-2)][1:10] ≈ -(s ./ (c .+ 1))[1:10]
+
+        MatrixFactorizations.QRPackedQ(BandedMatrix(-2 => -(s ./ (c .+ 1))), c .+ 1)[1:10,1:10]
     end
 end
