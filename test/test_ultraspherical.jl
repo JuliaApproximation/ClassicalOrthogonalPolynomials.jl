@@ -1,7 +1,7 @@
 using ClassicalOrthogonalPolynomials, ContinuumArrays, BandedMatrices, LazyArrays, Test
 using ForwardDiff
 using LazyArrays: rowsupport, colsupport
-using ClassicalOrthogonalPolynomials: grammatrix
+using ClassicalOrthogonalPolynomials: grammatrix, OrthonormalWeighted
 
 @testset "Ultraspherical" begin
     @testset "Conversion" begin
@@ -203,5 +203,23 @@ using ClassicalOrthogonalPolynomials: grammatrix
 
         @test (C \ diff(U,1))[1:10,1:10] == (C \ diff(U))[1:10,1:10]
         @test (C³ \ diff(U,2))[1:10,1:10] == (C³ \ diff(diff(U)))[1:10,1:10]
+    end
+
+    @testset "orthonormal" begin
+        P = OrthonormalWeighted(Ultraspherical(1/2))
+        W = OrthonormalWeighted(Ultraspherical(3/2))
+        @test P'P == W'W == I
+        P\W
+
+        Q = Normalized(Legendre()) \ (JacobiWeight(1,1) .* Normalized(Jacobi(2,2)))
+        @test Q[1:12,1:10]'Q[1:12,1:10] ≈ I
+
+        c = sqrt.(2*(5:2:∞) ./ ((3:∞) .* (4:∞) ))
+        s = sqrt.(((1:∞) .* (2:∞)) ./ ((3:∞) .* (4:∞) ))
+
+        @test (c.^2 + s.^2)[1:10] ≈ ones(10)
+        G₁
+
+    
     end
 end
