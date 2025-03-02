@@ -552,4 +552,30 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test expand(W, x -> (1-x^2)*exp(x))[0.1] ≈ (1-0.1^2)*exp(0.1)
         @test grid(W, 5) == grid(W.P, 5)
     end
+
+    @testset "ladder operators" begin
+        a,b = 0.1,0.2
+        P = Jacobi(a,b)
+        A₊,A₋ = Jacobi(a+1,b),Jacobi(a-1,b)
+        B₊,B₋ = Jacobi(a,b+1),Jacobi(a,b-1)
+        C₊,C₋ = Jacobi(a+1,b+1),Jacobi(a-1,b-1)
+        D₊,D₋ = Jacobi(a+1,b-1), Jacobi(a-1,b+1)
+        t,n = 0.3,5
+        x = axes(P,1)
+        D = Derivative(P)
+
+        @test (D*P)[t,n+1] ≈ (n+a+b+1)/2 * C₊[t,n] # L₁
+        @test (((a+b+n+1)*I + (1 .+ x) .* D)*P)[t,n+1] ≈ (JacobiWeight(0,-(a+b+n)) .* D * (JacobiWeight(0,a+b+n+1) .* P))[t,n+1] ≈ (n+a+b+1) * A₊[t,n+1] # L₂
+        @test (((a+b+n+1)*I - (1 .- x) .* D)*P)[t,n+1] ≈ -(JacobiWeight(-(a+b+n),0) .* D * (JacobiWeight(a+b+n+1,0) .* P))[t,n+1] ≈ (n+a+b+1) * B₊[t,n+1] # L₃
+        @test ((1 .+ t)*a - (1 .- t)*(b+n+1))*P[t,n+1] - (((1 .- x.^2) .* D)*P)[t,n+1] ≈ -(JacobiWeight(1-a,-(b+n)) .* D * (JacobiWeight(a,b+n+1) .* P))[t,n+1] ≈ 2*(n+1) * A₋[t,n+2] # L₄
+        @test ((1 .+ t)*(a+n+1) - (1 .- t)*b)*P[t,n+1] - (((1 .- x.^2) .* D)*P)[t,n+1] ≈ -(JacobiWeight(-(a+n),1-b) .* D * (JacobiWeight(a+n+1,b) .* P))[t,n+1] ≈ 2*(n+1) * B₋[t,n+2] # L₅
+        @test ((b*I + (1 .+ x) .* D)*P)[t,n+1] ≈ (JacobiWeight(0,1-b) .* D * (JacobiWeight(0,b) .* P))[t,n+1] ≈ (n+b) * D₊[t,n+1] # L₆
+
+        @test ((1 .+ t)*a - (1 .- t)*b)*P[t,n+1] - (((1 .- x.^2) .* D)*P)[t,n+1] ≈ -(JacobiWeight(1-a,1-b) .* D * (JacobiWeight(a,b) .* P))[t,n+1] ≈ 2*(n+1) * C₋[t,n+2] # L₁'
+        @test (2a + (1 .- t)*n)*P[t,n+1] - (((1 .- x.^2) .* D)*P)[t,n+1] ≈ -(JacobiWeight(1-a,1+a+n) .* D * (JacobiWeight(a,-a-n) .* P))[t,n+1] ≈ 2*(n+a) * A₋[t,n+1] # L₂'
+        @test (2b + (1 .+ t)*n)*P[t,n+1] + (((1 .- x.^2) .* D)*P)[t,n+1] ≈ (JacobiWeight(1+b+n,1-b) .* D * (JacobiWeight(-b-n,b) .* P))[t,n+1] ≈ 2*(n+b) * B₋[t,n+1] # L₃'
+        @test ((-n*I + (1 .+ x) .* D)*P)[t,n+1] ≈ (JacobiWeight(0,n+1) .* D * (JacobiWeight(0,-n) .* P))[t,n+1] ≈ (n+b) * A₊[t,n] # L₄'
+        @test ((n*I + (1 .- x) .* D)*P)[t,n+1] ≈ (JacobiWeight(n+1,0) .* D * (JacobiWeight(-n,0) .* P))[t,n+1] ≈ (n+a) * B₊[t,n] # L₅'
+        @test ((a*I - (1 .- x) .* D)*P)[t,n+1] ≈ -(JacobiWeight(1-a,0) .* D * (JacobiWeight(a,0) .* P))[t,n+1] ≈ (n+a) * D₋[t,n+1] # L₆'
+    end
 end
