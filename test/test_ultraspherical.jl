@@ -204,4 +204,16 @@ using ClassicalOrthogonalPolynomials: grammatrix
         @test (C \ diff(U,1))[1:10,1:10] == (C \ diff(U))[1:10,1:10]
         @test (C³ \ diff(U,2))[1:10,1:10] == (C³ \ diff(diff(U)))[1:10,1:10]
     end
+
+    @testset "ladder" begin
+        λ = 3/4
+        P = Jacobi(λ-1/2,λ-1/2)
+        W = Jacobi(λ-1-1/2,λ-1-1/2)
+        Q = Jacobi(λ+1-1/2,λ+1-1/2)
+        D = Derivative(P)
+        t,n = 0.3,5
+        @test (D*P)[t,n+1] ≈ (n+2λ)/2 * Q[t,n] # L₁
+        # L₃L₂
+        -(JacobiWeight(-(a+b+n),0) .* (D * (JacobiWeight(a+b+n+1,-(a+b+n)) .* D * (JacobiWeight(0,a+b+n+1) .* P))))[t,n+1]
+    end
 end
