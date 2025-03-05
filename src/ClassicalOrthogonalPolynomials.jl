@@ -255,6 +255,10 @@ function layout_broadcasted(::Tuple{PolynomialLayout,AbstractOPLayout}, ::typeof
     C*jacobimatrix(C)
 end
 
+function layout_broadcasted(::Tuple{ScalarLayout,AbstractOPLayout}, ::typeof(*), c, C)
+    C * c
+end
+
 
 # function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::BroadcastQuasiVector, C::OrthogonalPolynomial)
 #     axes(a,1) == axes(C,1) || throw(DimensionMismatch())

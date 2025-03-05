@@ -485,6 +485,10 @@ broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::Weighted{<:Any,<:Jacobi}) 
 broadcastbasis(::typeof(+), A::Jacobi, B::Weighted{<:Any,<:Jacobi{<:Any,<:Integer}}) = A
 broadcastbasis(::typeof(+), A::Weighted{<:Any,<:Jacobi{<:Any,<:Integer}}, B::Jacobi) = B
 
+broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), w::AbstractJacobiWeight, v::WeightedJacobi) =
+    (w .* v.args[1]) .* v.args[2]
+
+
 function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
     wA,A = w_A.args
     wB,B = w_B.args

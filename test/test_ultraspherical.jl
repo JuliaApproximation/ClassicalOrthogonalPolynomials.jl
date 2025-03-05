@@ -204,4 +204,35 @@ using ClassicalOrthogonalPolynomials: grammatrix
         @test (C \ diff(U,1))[1:10,1:10] == (C \ diff(U))[1:10,1:10]
         @test (C³ \ diff(U,2))[1:10,1:10] == (C³ \ diff(diff(U)))[1:10,1:10]
     end
+
+    @testset "ladder" begin
+        λ = 3/4
+        P = Jacobi(λ-1/2,λ-1/2)
+        W = Jacobi(λ-1-1/2,λ-1-1/2)
+        Q = Jacobi(λ+1-1/2,λ+1-1/2)
+        # a+ b = 2λ-1
+        D = Derivative(P)
+        x,n = 0.3,5
+        # L₁
+        @test (D*P)[t,n+1] ≈ (n+2λ)/2 * Q[t,n] # L₁
+        # L₃L₂
+        @test -(JacobiWeight(-(2λ+n),0) .* (D * (JacobiWeight(2λ+n+1,-(2λ+n-1)) .* D * (JacobiWeight(0,2λ+n) .* P))))[x,n+1] ≈ 
+        (n + 2λ)*(1 + n + 2λ) * P[x,n+1] + 2x*(1+n+2λ)* diff(P)[x,n+1] + (x^2-1) * diff(P,2)[x,n+1] ≈ (n+2λ)*(n+2λ+1)*Q[x,n+1]
+        # L₄'L₃ == L₅'L₂
+        @test -(JacobiWeight(0,n+1) .* (D * (JacobiWeight(-(2λ+n-1),-n) .* D * (JacobiWeight(2λ+n,0) .* P))))[x,n+1] ≈ 
+        (JacobiWeight(n+1,0) .* (D * (JacobiWeight(-n,-(2λ+n-1)) .* D * (JacobiWeight(0,2λ+n) .* P))))[x,n+1] ≈ 
+        -n * (n + 2λ) * P[x,n+1] + (1 + 2n + x + 2λ + 2x*λ)* diff(P)[x,n+1] + (x^2-1) * diff(P,2)[x,n+1] ≈
+        n * (n + 2λ) * P[x,n+1] + (1 + 2n - x + 2λ - 2x*λ)* diff(P)[x,n+1] + (1-x^2) * diff(P,2)[x,n+1] ≈ (n+2λ)*(n+λ+1/2)*Q[x,n]
+        # L₅'L₄' == L₄'L₅'
+        @test (JacobiWeight(n,0) .* (D * (JacobiWeight(1-n,n+1) .* D * (JacobiWeight(0,-n) .* P))))[x,n+1] ≈ 
+            (JacobiWeight(0,n) .* (D * (JacobiWeight(n+1,1-n) .* D * (JacobiWeight(-n,0) .* P))))[x,n+1] ≈ 
+            -n * (n - 1) * P[x,n+1] + 2x * (n-1)* diff(P)[x,n+1] - (x^2-1) * diff(P,2)[x,n+1] ≈
+            (n+λ-1/2)^2*Q[x,n-1]
+
+        P = Ultraspherical(λ)
+        Q = Ultraspherical(λ+1)
+        # L₃L₂
+        @test (n + 2λ)*(1 + n + 2λ) * P[t,n+1] + 2t*(1+n+2λ)* diff(P)[t,n+1] + (t^2-1) * diff(P,2)[t,n+1] ≈ 2λ*(1 + 2n + 2λ)Q[t,n+1]
+        
+    end
 end
