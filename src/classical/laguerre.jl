@@ -55,6 +55,22 @@ respec to `exp(-x)`, at `z`.
 """
 laguerrel(n::Integer, z::Number) = laguerrel(n, 0, z)
 
+"""
+     normalizedlaguerrel(n, α, z)
+
+computes the normalized `n`-th generalized Laguerre polynomial, orthogonal with 
+respec to `x^α * exp(-x)`, at `z`.
+"""
+normalizedlaguerrel(n::Integer, α, z::Number) = Base.unsafe_getindex(Normalized(Laguerre{polynomialtype(typeof(α), typeof(z))}(α)), z, n+1)
+
+"""
+     normalizedlaguerrel(n, z)
+
+computes the normalized `n`-th Laguerre polynomial, orthogonal with 
+respec to `exp(-x)`, at `z`.
+"""
+normalizedlaguerrel(n::Integer, z::Number) = normalizedlaguerrel(n, 0, z)
+
 
 # L_{n+1} = (-1/(n+1) x + (2n+α+1)/(n+1)) L_n - (n+α)/(n+1) L_{n-1}
 # - (n+α) L_{n-1} + (2n+α+1)* L_n -(n+1) L_{n+1} = x  L_n

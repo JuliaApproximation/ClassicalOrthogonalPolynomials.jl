@@ -54,7 +54,8 @@ export OrthogonalPolynomial, Normalized, LanczosPolynomial,
             WeightedUltraspherical, WeightedChebyshev, WeightedChebyshevT, WeightedChebyshevU, WeightedJacobi,
             ∞, Derivative, .., Inclusion,
             chebyshevt, chebyshevu, legendre, jacobi, ultraspherical,
-            legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh, normalizedjacobip,
+            legendrep, jacobip, ultrasphericalc, laguerrel,hermiteh,
+            normalizedlegendrep, normalizedjacobip, normalizedultrasphericalc, normalizedlaguerrel, normalizedhermiteh,
             jacobimatrix, jacobiweight, legendreweight, chebyshevtweight, chebyshevuweight, Weighted, PiecewiseInterlace, plan_transform,
             expand, transform
 

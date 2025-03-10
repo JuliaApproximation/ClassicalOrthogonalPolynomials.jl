@@ -54,6 +54,7 @@ const WeightedUltraspherical{T} = WeightedBasis{T,<:UltrasphericalWeight,<:Ultra
 
 orthogonalityweight(C::Ultraspherical) = UltrasphericalWeight(C.λ)
 
+normalizedultrasphericalc(n::Integer, λ, z) = Base.unsafe_getindex(Normalized(Ultraspherical{polynomialtype(typeof(λ),typeof(z))}(λ)), z, n+1)
 ultrasphericalc(n::Integer, λ, z) = Base.unsafe_getindex(Ultraspherical{polynomialtype(typeof(λ),typeof(z))}(λ), z, n+1)
 ultraspherical(λ, d::AbstractInterval{T}) where T = Ultraspherical{float(promote_type(eltype(λ),T))}(λ)[affine(d,ChebyshevInterval{T}()), :]
 

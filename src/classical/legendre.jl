@@ -167,6 +167,15 @@ computes the `n`-th Legendre polynomial at `z`.
 """
 legendrep(n::Integer, z) = Base.unsafe_getindex(Legendre{typeof(z)}(), z, n+1)
 
+"""
+     normalizedlegendrep(n, z)
+
+computes the normalized `n`-th Legendre polynomial at `z`.
+"""
+normalizedlegendrep(n::Integer, z) = Base.unsafe_getindex(Normalized(Legendre{typeof(z)}()), z, n+1)
+
+
+
 
 show(io::IO, w::Legendre{Float64}) = summary(io, w)
 summary(io::IO, ::Legendre{Float64}) = print(io, "Legendre()")
