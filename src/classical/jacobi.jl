@@ -28,13 +28,13 @@ broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(Base.literal_pow), ::Base.RefValu
 The quasi-vector representing the Jacobi weight function ``(1-x)^a (1+x)^b`` on ``[-1,1]``. See also [`jacobiweight`](@ref) and [`Jacobi`](@ref).
 # Examples
 ```jldoctest
-julia> J=JacobiWeight(1.0,1.0)
+julia> w = JacobiWeight(1.0,1.0)
 (1-x)^1.0 * (1+x)^1.0 on -1..1
 
-julia> J[0.5]
+julia> w[0.5]
 0.75
 
-julia> axes(J)
+julia> axes(w)
 (Inclusion(-1.0 .. 1.0 (Chebyshev)),)
 ```
 """
@@ -56,13 +56,13 @@ The [`JacobiWeight`](@ref) affine-mapped to interval `d`.
 
 # Examples
 ```jldoctest
-julia> J = jacobiweight(1, 1, 0..1)
+julia> w = jacobiweight(1, 1, 0..1)
 (1-x)^1 * (1+x)^1 on -1..1 affine mapped to 0 .. 1
 
-julia> axes(J)
+julia> axes(w)
 (Inclusion(0 .. 1),)
 
-julia> J[0.5]
+julia> w[0.5]
 1.0
 ```
 """

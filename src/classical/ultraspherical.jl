@@ -1,10 +1,23 @@
 
 
 
-##
-# Ultraspherical
-##
+"""
+    UltrasphericalWeight{T}(a,b)
+    UltrasphericalWeight(a,b)
 
+The quasi-vector representing the Ultraspherical weight function ``(1-x^2)^{λ-1/2}`` on ``[-1,1]``. See also [`Ultraspherical`](@ref).
+# Examples
+```jldoctest
+julia> w = UltrasphericalWeight(1.0)
+(1-x^2)^0.5 on -1..1
+
+julia> w[0.5]
+0.8660254037844386
+
+julia> axes(w)
+(Inclusion(-1.0 .. 1.0 (Chebyshev)),)
+```
+"""
 struct UltrasphericalWeight{T,Λ} <: AbstractJacobiWeight{T}
     λ::Λ
 end
@@ -17,7 +30,7 @@ AbstractQuasiArray{T}(w::UltrasphericalWeight) where T = UltrasphericalWeight{T}
 AbstractQuasiVector{T}(w::UltrasphericalWeight) where T = UltrasphericalWeight{T}(w.λ)
 
 show(io::IO, w::UltrasphericalWeight) = summary(io, w)
-summary(io::IO, w::UltrasphericalWeight) = print(io, "UltrasphericalWeight($(w.λ))")
+summary(io::IO, w::UltrasphericalWeight) = print(io, "(1-x^2)^$(w.λ-1/2) on -1..1")
 
 ==(a::UltrasphericalWeight, b::UltrasphericalWeight) = a.λ == b.λ
 
@@ -29,6 +42,8 @@ end
 sum(w::UltrasphericalWeight{T}) where T = sqrt(convert(T,π))*exp(loggamma(one(T)/2 + w.λ)-loggamma(1+w.λ))
 
 hasboundedendpoints(w::UltrasphericalWeight) = 2w.λ ≥ 1
+
+broadcasted(::LazyQuasiArrayStyle{1}, ::typeof(sqrt), w::UltrasphericalWeight) = UltrasphericalWeight(w.λ/2 + one(w.λ)/4)
 
 
 struct Ultraspherical{T,Λ} <: AbstractJacobi{T}
@@ -308,3 +323,10 @@ end
 \(A::Ultraspherical, w_B::WeightedUltraspherical) = (UltrasphericalWeight(one(A.λ)/2) .* A) \ w_B
 \(A::Legendre, wB::WeightedUltraspherical) = Ultraspherical(A) \ wB
 
+function \(P::OrthonormalWeighted{<:Any,<:Ultraspherical}, Q::OrthonormalWeighted{<:Any,<:Ultraspherical})
+    @assert isone(2P.P.P.λ) # only Legendre is implemented
+    @assert 2Q.P.P.λ == 5
+    c = sqrt.(2*(5:2:∞) ./ ((3:∞) .* (4:∞) ))
+    s = sqrt.(((1:∞) .* (2:∞)) ./ ((3:∞) .* (4:∞) ))
+    -QRPackedQMatrix(BandedMatrix(-2 => -(s ./ (c .+ 1))), c .+ 1)
+end

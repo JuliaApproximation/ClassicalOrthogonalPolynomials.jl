@@ -207,31 +207,33 @@ using ClassicalOrthogonalPolynomials: grammatrix, OrthonormalWeighted
 
     @testset "orthonormal" begin
         P = OrthonormalWeighted(Ultraspherical(1/2))
-        W = OrthonormalWeighted(Ultraspherical(3/2))
+        W = OrthonormalWeighted(Ultraspherical(5/2))
         @test P'P == W'W == I
-        P\W
+        @test P[0.1,1:10] ≈ Normalized(Legendre())[0.1,1:10]
+        @test W[0.1,1:10] ≈ (1 - 0.1.^2) * Normalized(Jacobi(2,2))[0.1,1:10]
+        Q = P\W
 
-        Q = Normalized(Legendre()) \ (JacobiWeight(1,1) .* Normalized(Jacobi(2,2)))
+        @test (Normalized(Legendre()) \ (JacobiWeight(1,1) .* Normalized(Jacobi(2,2))))[1:10,1:10] ≈ Q[1:10,1:10]
         @test Q[1:12,1:10]'Q[1:12,1:10] ≈ I
 
         X = jacobimatrix(Normalized(Legendre()))
-        @test Q[1:10,1:10] ≈ -qr(I - X^2).Q[1:10,1:10]
+        @test Q[1:10,1:10] ≈ -qr(X^2 - I).Q[1:10,1:10]
 
-        c = sqrt.(2*(5:2:∞) ./ ((3:∞) .* (4:∞) ))
-        s = sqrt.(((1:∞) .* (2:∞)) ./ ((3:∞) .* (4:∞) ))
+        @testset "derivation" begin
+            c = sqrt.(2*(5:2:∞) ./ ((3:∞) .* (4:∞) ))
+            s = sqrt.(((1:∞) .* (2:∞)) ./ ((3:∞) .* (4:∞) ))
 
-        n = 10
-        @test (c.^2 + s.^2)[1:n] ≈ ones(n)
-        G = [Matrix(1.0I,n,n) for k=1:n-2]
-        for k = 1:n-2
-            G[k][[k,k+2],[k,k+2]] = [c[k] s[k]; -s[k] c[k]] 
+            n = 10
+            @test (c.^2 + s.^2)[1:n] ≈ ones(n)
+            G = [Matrix(1.0I,n,n) for k=1:n-2]
+            for k = 1:n-2
+                G[k][[k,k+2],[k,k+2]] = [c[k] s[k]; -s[k] c[k]] 
+            end
+
+            @test Q[1:n,1:n-2] ≈  *(G...)[:,1:n-2]
+            
+            @test qr(I - X^2).τ[1:10] ≈ c[1:10] .+ 1
+            @test qr(I - X^2).factors[band(-2)][1:10] ≈ -(s ./ (c .+ 1))[1:10]
         end
-
-        @test Q[1:n,1:n-2] ≈  *(G...)[:,1:n-2]
-        
-        @test qr(I - X^2).τ[1:10] ≈ c[1:10] .+ 1
-        @test qr(I - X^2).factors[band(-2)][1:10] ≈ -(s ./ (c .+ 1))[1:10]
-
-        MatrixFactorizations.QRPackedQ(BandedMatrix(-2 => -(s ./ (c .+ 1))), c .+ 1)[1:10,1:10]
     end
 end

@@ -3,7 +3,6 @@ uuid = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
 authors = ["Sheehan Olver <solver@mac.com>"]
 version = "0.15.1"
 
-
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
@@ -22,6 +21,7 @@ IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
 LazyBandedMatrices = "d7e5e226-e90b-4449-9968-0f923699bf6f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MatrixFactorizations = "a3b82374-2e81-5b9e-98ce-41277c0e4c87"
 QuasiArrays = "c4ea9172-b204-11e9-377d-29865faadc5c"
 RecurrenceRelationshipArrays = "b889d2dc-af3c-4820-88a8-238fa91d3518"
 RecurrenceRelationships = "807425ed-42ea-44d6-a357-6771516d7b2c"
@@ -51,6 +51,7 @@ InfiniteLinearAlgebra = "0.10"
 IntervalSets = "0.7"
 LazyArrays = "2.5.1"
 LazyBandedMatrices = "0.11"
+MatrixFactorizations = "3.1"
 MutableArithmetics = "1"
 QuasiArrays = "0.12"
 RecurrenceRelationshipArrays = "0.1.2"
