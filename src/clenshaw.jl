@@ -16,6 +16,7 @@ end
 function copyto!(dest::AbstractVector, V::SubArray{<:Any,1,<:OrthogonalPolynomial,<:Tuple{<:Number,<:OneTo}})
     P = parent(V)
     x,n = parentindices(V)
+    resizedata!(P, :, last(n))
     A,B,C = recurrencecoefficients(P)
     forwardrecurrence!(dest, A, B, C, x, _p0(P))
 end
@@ -24,6 +25,7 @@ function forwardrecurrence_copyto!(dest::AbstractMatrix, V)
     checkbounds(dest, axes(V)...)
     P = parent(V)
     xr,jr = parentindices(V)
+    resizedata!(P, :, maximum(jr; init=0))
     A,B,C = recurrencecoefficients(P)
     shift = first(jr)
     Ã,B̃,C̃ = A[shift:∞],B[shift:∞],C[shift:∞]
@@ -40,6 +42,7 @@ function copyto!(dest::AbstractVector, V::SubArray{<:Any,1,<:OrthogonalPolynomia
     checkbounds(dest, axes(V)...)
     P = parent(V)
     x,jr = parentindices(V)
+    resizedata!(P, :, last(jr))
     A,B,C = recurrencecoefficients(P)
     shift = first(jr)
     Ã,B̃,C̃ = A[shift:∞],B[shift:∞],C[shift:∞]
@@ -61,11 +64,14 @@ unsafe_layout_getindex(A...) = sub_materialize(Base.unsafe_view(A...))
 
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::AbstractUnitRange) = unsafe_layout_getindex(P, x, n)
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractUnitRange) = unsafe_layout_getindex(P, x, n)
-Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n)))[n]
-Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n)))[:,n]
+Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n; init=0)))[n]
+Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractVector) = Base.unsafe_getindex(P,x,oneto(maximum(n; init=0)))[:,n]
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::AbstractVector, n::Number) = Base.unsafe_getindex(P, x, 1:n)[:,end]
 Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, ::Colon) = Base.unsafe_getindex(P, x, axes(P,2))
-Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::Number) = initiateforwardrecurrence(n-1, recurrencecoefficients(P)..., x, _p0(P))[end]
+function Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::Number)
+    resizedata!(P, :, n)
+    initiateforwardrecurrence(n-1, recurrencecoefficients(P)..., x, _p0(P))[end]
+end
 
 getindex(P::OrthogonalPolynomial, x::Number, jr::AbstractInfUnitRange{Int}) = view(P, x, jr)
 getindex(P::OrthogonalPolynomial, x::AbstractVector, jr::AbstractInfUnitRange{Int}) = view(P, x, jr)
@@ -83,11 +89,15 @@ end
 
 function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:AbstractPaddedLayout}, x::Number)
     P,c = f.A,f.B
-    _p0(P)*clenshaw(paddeddata(c), recurrencecoefficients(P)..., x)
+    data = paddeddata(c)
+    resizedata!(P, :, length(data))
+    _p0(P)*clenshaw(data, recurrencecoefficients(P)..., x)
 end
 
 function unsafe_getindex(f::Mul{<:AbstractOPLayout,<:AbstractPaddedLayout}, x::Number, jr)
     P,c = f.A,f.B
+    data = paddeddata(c)
+    resizedata!(P, :, maximum(jr; init=0))
     _p0(P)*clenshaw(view(paddeddata(c),:,jr), recurrencecoefficients(P)..., x)
 end
 

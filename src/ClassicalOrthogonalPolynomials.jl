@@ -29,19 +29,19 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
                     QuasiDiagonal, MulQuasiArray, MulQuasiMatrix, MulQuasiVector, QuasiMatMulMat,
                     ApplyQuasiArray, ApplyQuasiMatrix, LazyQuasiArrayApplyStyle, AbstractQuasiArrayApplyStyle,
                     LazyQuasiArray, LazyQuasiVector, LazyQuasiMatrix, LazyLayout, LazyQuasiArrayStyle,
-                    _getindex, layout_getindex, _factorize, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector,
+                    _getindex, layout_getindex, AbstractQuasiArray, AbstractQuasiMatrix, AbstractQuasiVector,
                     AbstractQuasiFill, equals_layout, QuasiArrayLayout, PolynomialLayout, diff_layout
 
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
-import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!, partialcholesky!
-import ContinuumArrays: Basis, Weight, basis_axes, @simplify, Identity, AbstractAffineQuasiVector, ProjectionFactorization,
+import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!, partialcholesky!, SymTridiagonalConjugation, TridiagonalConjugation
+import ContinuumArrays: Basis, Weight, basis_axes, @simplify, AbstractAffineQuasiVector, ProjectionFactorization,
     grid, plotgrid, plotgrid_layout, plotvalues_layout, grid_layout, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, broadcastbasis_layout,
     plan_grid_transform, plan_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout, _cumsum
-import FastTransforms: Λ, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg
+import FastTransforms: Λ, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg, pochhammer
 import RecurrenceRelationships: forwardrecurrence, forwardrecurrence!, clenshaw, clenshaw!,
-                        check_clenshaw_recurrences
+                        check_clenshaw_recurrences, polynomialtype
 import RecurrenceRelationshipArrays: initiateforwardrecurrence, Clenshaw
 import FastGaussQuadrature: jacobimoment
 
@@ -89,6 +89,8 @@ struct MappedOPLayout <: AbstractOPLayout end
 represents an OP multiplied by its orthogonality weight.
 """
 struct WeightedOPLayout{Lay<:AbstractOPLayout} <: AbstractWeightedBasisLayout end
+
+grid_layout(::WeightedOPLayout, P, n) = grid(unweighted(P), n)
 
 isorthogonalityweighted(::WeightedOPLayout, _) = true
 function isorthogonalityweighted(::AbstractWeightedBasisLayout, wS)
@@ -247,13 +249,12 @@ grammatrix_layout(::WeightedOPLayout{MappedOPLayout}, P) = grammatrix_layout(Map
 
 OrthogonalPolynomial(w::Weight) =error("Override for $(typeof(w))")
 
-@simplify *(B::Identity, C::OrthogonalPolynomial) = ApplyQuasiMatrix(*, C, jacobimatrix(C))
+@simplify *(B::QuasiDiagonal{<:Any,<:Inclusion}, C::OrthogonalPolynomial) = ApplyQuasiMatrix(*, C, jacobimatrix(C))
 
 function layout_broadcasted(::Tuple{PolynomialLayout,AbstractOPLayout}, ::typeof(*), x::Inclusion, C)
     x == axes(C,1) || throw(DimensionMismatch())
     C*jacobimatrix(C)
 end
-
 
 
 # function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::BroadcastQuasiVector, C::OrthogonalPolynomial)

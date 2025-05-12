@@ -520,4 +520,36 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test Weighted(Q) \ (w .* Q) isa Diagonal
         end
     end
+
+    @testset "higher order diff" begin
+        P = Jacobi(0.1,0.2)
+        P¹ = Jacobi(1.1,1.2)
+        P² = Jacobi(2.1,2.2)
+        P³ = Jacobi(3.1,3.2)
+        @test (P¹ \ diff(P,1))[1:10,1:10] == (P¹ \ diff(P))[1:10,1:10]
+        @test (P² \ diff(P,2))[1:10,1:10] ≈ (P² \ diff(diff(P)))[1:10,1:10]
+        @test (P³ \ diff(P,3))[1:10,1:10] ≈ (P³ \ diff(diff(diff(P))))[1:10,1:10]
+
+        @test (P² \ diff(P¹,1))[1:10,1:10] ≈ (P² \ diff(P¹))[1:10,1:10]
+        @test (P³ \ diff(P¹,2))[1:10,1:10] ≈ (P³ \ diff(diff(P¹)))[1:10,1:10]
+    end
+
+    @testset "conversion not implemented" begin 
+        @test_throws ArgumentError Jacobi(0,0) \ Jacobi(1.1,2.1)
+    end
+
+    @testset "broadcastbasis" begin
+        a = Jacobi(1,1) * [1; zeros(∞)]
+        b = Weighted(Jacobi(1,1)) * [1; zeros(∞)]
+        c = Weighted(Jacobi(2,3)) * [1; zeros(∞)]
+
+        @test basis(a+b) == basis(b+a) == basis(a+c) == basis(c+a) == Jacobi(1,1)
+        @test a[0.1]+b[0.1] ≈ (a+b)[0.1] ≈ (b+a)[0.1]
+    end
+
+    @testset "Weighted expand" begin
+        W = Weighted(Jacobi(1,1))
+        @test expand(W, x -> (1-x^2)*exp(x))[0.1] ≈ (1-0.1^2)*exp(0.1)
+        @test grid(W, 5) == grid(W.P, 5)
+    end
 end

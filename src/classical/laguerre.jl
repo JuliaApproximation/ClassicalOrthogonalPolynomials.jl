@@ -45,7 +45,7 @@ axes(::Laguerre{T}) where T = (Inclusion(HalfLine{T}()), oneto(∞))
 computes the `n`-th generalized Laguerre polynomial, orthogonal with 
 respec to `x^α * exp(-x)`, at `z`.
 """
-laguerrel(n::Integer, α, z::Number) = Base.unsafe_getindex(Laguerre{promote_type(typeof(α), typeof(z))}(α), z, n+1)
+laguerrel(n::Integer, α, z::Number) = Base.unsafe_getindex(Laguerre{polynomialtype(typeof(α), typeof(z))}(α), z, n+1)
 
 """
      laguerrel(n, z)

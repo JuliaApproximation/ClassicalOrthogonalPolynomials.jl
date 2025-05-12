@@ -35,7 +35,6 @@ isnormalized(_) = false
 represents OPs that are of the form P * R where P is another family of OPs and R is upper-triangular.
 """
 abstract type AbstractNormalizedOPLayout <: AbstractOPLayout end
-struct ConvertedOPLayout <: AbstractNormalizedOPLayout end
 struct NormalizedOPLayout{LAY<:AbstractBasisLayout} <: AbstractNormalizedOPLayout end
 
 MemoryLayout(::Type{<:Normalized{<:Any, OPs}}) where OPs = NormalizedOPLayout{typeof(MemoryLayout(OPs))}()
@@ -300,6 +299,7 @@ _sum(p::SubQuasiArray{T,1,<:Weighted,<:Tuple{Inclusion,Int}}, ::Colon) where T =
 demap(W::Weighted) = Weighted(demap(W.P))
 basismap(W::Weighted) = basismap(W.P)
 const MappedOPLayouts = Union{MappedOPLayout,WeightedOPLayout{MappedOPLayout}}
-diff_layout(::MappedOPLayouts, A, dims...) = diff_layout(MappedBasisLayout(), A, dims...)
+diff_layout(::MappedOPLayouts, A, order::Int; dims...) = diff_layout(MappedBasisLayout(), A, order; dims...)
+diff_layout(::MappedOPLayouts, A, order...; dims...) = diff_layout(MappedBasisLayout(), A, order...; dims...)
 
-diff_layout(::NormalizedOPLayout, A, dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, dims...)
+diff_layout(::AbstractNormalizedOPLayout, A, order...; dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, order...; dims...)

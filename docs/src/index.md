@@ -10,12 +10,23 @@ CurrentModule = ClassicalOrthogonalPolynomials
 We follow the [Digital Library of Mathematical Functions](https://dlmf.nist.gov/18.3),
 which defines the following classical orthogonal polynomials:
 
-1. Legendre: `P_n(x)`
-2. Chebyshev (1st kind, 2nd kind): `T_n(x)`, `U_n(x)`
-3. Ultraspherical: `C_n^{(λ)}(x)`
-4. Jacobi: `P_n^{(a,b)}(x)`
-5. Laguerre: `L_n^{(α)}(x)`
-6. Hermite: `H_n(x)`
+1. Legendre: $P_n(x)$, defined over $[-1, 1]$ with weight $w(x) = 1$.
+2. Chebyshev (1st kind, 2nd kind): $T_n(x)$ and $U_n(x)$, defined over $[-1, 1]$ with weights $w(x) = 1/\sqrt{1-x^2}$ and $w(x) = \sqrt{1-x^2}$, respectively.
+3. Ultraspherical: $C_n^{(\lambda)}(x)$, defined over $[-1, 1]$ with weight $w(x) = (1-x^2)^{\lambda-1/2}$.
+4. Jacobi: $P_n^{(a,b)}(x)$, defined over $[-1, 1]$ with weight $w(x) = (1-x)^a(1+x)^b$.
+5. Laguerre: $L_n^{(\alpha)}(x)$, defined over $[0, ∞)$ with weight $w(x) = x^\alpha \mathrm{e}^{-x}$.
+6. Hermite: $H_n(x)$, defined over $(-∞, ∞)$ with weight $w(x) = \mathrm{e}^{-x^2}$.
+
+These special polynomials have many applications and can be used as a basis for any function given their domain conditions are met, however these polynomials have some advantages due to their formulation:
+
+- Because of their relation to Laplace’s equation, **Legendre polynomials** can be useful as a basis for functions with spherical symmetry.
+- **Chebyshev polynomials** are generally effective in reducing errors from numerical methods such as quadrature, interpolation, and approximation.
+- Due to the flexibility of its parameters, **Jacobi polynomials** are capable of tailoring the behavior of an approximation around its endpoints, making these polynomials particularly useful in boundary value problems.
+- **Ultraspherical polynomials** are advantageous in spectral methods for solving differential equations.
+- **Laguerre polynomials** have a semi-infinite domain, therefore they are beneficial for problems involving exponential decay.
+- Because of its weight function, **Hermite polynomials** can be useful in situations where functions display a Gaussian-like distribution.
+
+These are just a few applications of these polynomials. They have many more uses across mathematics, physics, and engineering.
 
 ## Evaluation
 
@@ -126,17 +137,15 @@ U\T
 
 ```@docs
 ClassicalOrthogonalPolynomials.Chebyshev
-```
-```@docs
 ClassicalOrthogonalPolynomials.chebyshevt
-```
-```@docs
 ClassicalOrthogonalPolynomials.chebyshevu
 ```
 ```@docs
+ClassicalOrthogonalPolynomials.Legendre
 ClassicalOrthogonalPolynomials.legendrep
 ```
 ```@docs
+ClassicalOrthogonalPolynomials.Jacobi
 ClassicalOrthogonalPolynomials.jacobip
 ```
 ```@docs
@@ -145,8 +154,6 @@ ClassicalOrthogonalPolynomials.laguerrel
 ```@docs
 ClassicalOrthogonalPolynomials.hermiteh
 ```
-
-
 
 
 ### Weights
@@ -161,7 +168,9 @@ ClassicalOrthogonalPolynomials.HermiteWeight
 ClassicalOrthogonalPolynomials.Weighted
 ```
 ```@docs
+ClassicalOrthogonalPolynomials.LegendreWeight
 ClassicalOrthogonalPolynomials.ChebyshevWeight
+ClassicalOrthogonalPolynomials.JacobiWeight
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.LaguerreWeight
@@ -170,6 +179,13 @@ ClassicalOrthogonalPolynomials.LaguerreWeight
 ClassicalOrthogonalPolynomials.HalfWeighted
 ```
 
+### Affine-mapped
+```@docs
+ClassicalOrthogonalPolynomials.legendre
+ClassicalOrthogonalPolynomials.jacobi
+ClassicalOrthogonalPolynomials.legendreweight
+ClassicalOrthogonalPolynomials.jacobiweight
+```
 
 ### Recurrences
 
@@ -190,41 +206,28 @@ ClassicalOrthogonalPolynomials.recurrencecoefficients
 ```
 
 
-
 ### Internal
 
 ```@docs
+ClassicalOrthogonalPolynomials.ShuffledFFT
+ClassicalOrthogonalPolynomials.ShuffledIFFT
+ClassicalOrthogonalPolynomials.ShuffledR2HC
 ClassicalOrthogonalPolynomials.ShuffledIR2HC
 ```
 ```@docs
-ClassicalOrthogonalPolynomials.ShuffledR2HC
-```
-```@docs
-ClassicalOrthogonalPolynomials.ShuffledIFFT
-```
-```@docs
 ClassicalOrthogonalPolynomials.qr_jacobimatrix
-```
-```@docs
-ClassicalOrthogonalPolynomials.MappedOPLayout
-```
-```@docs
 ClassicalOrthogonalPolynomials.cholesky_jacobimatrix
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.AbstractNormalizedOPLayout
-```
-```@docs
-ClassicalOrthogonalPolynomials.ShuffledFFT
+ClassicalOrthogonalPolynomials.MappedOPLayout
+ClassicalOrthogonalPolynomials.WeightedOPLayout
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.legendre_grammatrix
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.weightedgrammatrix
-```
-```@docs
-ClassicalOrthogonalPolynomials.WeightedOPLayout
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.interlace!

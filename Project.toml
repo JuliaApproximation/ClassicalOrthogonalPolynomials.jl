@@ -1,7 +1,8 @@
 name = "ClassicalOrthogonalPolynomials"
 uuid = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
 authors = ["Sheehan Olver <solver@mac.com>"]
-version = "0.13.7"
+version = "0.15.1"
+
 
 [deps]
 ArrayLayouts = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
@@ -22,35 +23,44 @@ LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
 LazyBandedMatrices = "d7e5e226-e90b-4449-9968-0f923699bf6f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 QuasiArrays = "c4ea9172-b204-11e9-377d-29865faadc5c"
-RecurrenceRelationships = "807425ed-42ea-44d6-a357-6771516d7b2c"
 RecurrenceRelationshipArrays = "b889d2dc-af3c-4820-88a8-238fa91d3518"
+RecurrenceRelationships = "807425ed-42ea-44d6-a357-6771516d7b2c"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+
+[weakdeps]
+MutableArithmetics = "d8a4904e-b15c-11e9-3269-09a3773c0cb0"
+
+[extensions]
+ClassicalOrthogonalPolynomialsMutableArithmeticsExt = "MutableArithmetics"
 
 [compat]
 ArrayLayouts = "1.3.1"
 BandedMatrices = "1"
 BlockArrays = "1"
 BlockBandedMatrices = "0.13"
-ContinuumArrays = "0.18.3"
+ContinuumArrays = "0.19"
 DomainSets = "0.6, 0.7"
+DynamicPolynomials = "0.6"
 FFTW = "1.1"
 FastGaussQuadrature = "1"
-FastTransforms = "0.16.6"
+FastTransforms = "0.16.6, 0.17"
 FillArrays = "1"
 HypergeometricFunctions = "0.3.4"
-InfiniteArrays = " 0.14"
-InfiniteLinearAlgebra = "0.8"
+InfiniteArrays = " 0.15"
+InfiniteLinearAlgebra = "0.10"
 IntervalSets = "0.7"
-LazyArrays = "2.2"
-LazyBandedMatrices = "0.10"
-QuasiArrays = "0.11"
-RecurrenceRelationships = "0.1"
-RecurrenceRelationshipArrays = "0.1"
+LazyArrays = "2.5.1"
+LazyBandedMatrices = "0.11"
+MutableArithmetics = "1"
+QuasiArrays = "0.12"
+RecurrenceRelationshipArrays = "0.1.2"
+RecurrenceRelationships = "0.2"
 SpecialFunctions = "1.0, 2"
 julia = "1.10"
 
 [extras]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+DynamicPolynomials = "7c1d4256-1411-5781-91ec-d7bc3513ac07"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
@@ -58,4 +68,4 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Base64", "Test", "ForwardDiff", "SemiseparableMatrices", "StaticArrays", "Random"]
+test = ["Base64", "Test", "ForwardDiff", "SemiseparableMatrices", "StaticArrays", "Random", "DynamicPolynomials"]

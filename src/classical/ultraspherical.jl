@@ -54,7 +54,7 @@ const WeightedUltraspherical{T} = WeightedBasis{T,<:UltrasphericalWeight,<:Ultra
 
 orthogonalityweight(C::Ultraspherical) = UltrasphericalWeight(C.λ)
 
-ultrasphericalc(n::Integer, λ, z::Number) = Base.unsafe_getindex(Ultraspherical{promote_type(typeof(λ),typeof(z))}(λ), z, n+1)
+ultrasphericalc(n::Integer, λ, z) = Base.unsafe_getindex(Ultraspherical{polynomialtype(typeof(λ),typeof(z))}(λ), z, n+1)
 ultraspherical(λ, d::AbstractInterval{T}) where T = Ultraspherical{float(promote_type(eltype(λ),T))}(λ)[affine(d,ChebyshevInterval{T}()), :]
 
 ==(a::Ultraspherical, b::Ultraspherical) = a.λ == b.λ
@@ -73,7 +73,7 @@ ultraspherical(λ, d::AbstractInterval{T}) where T = Ultraspherical{float(promot
 # transforms
 ###
 
-plan_transform(P::Ultraspherical{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_ultra2ultra!(T, szs, one(P.λ), P.λ, dims), plan_chebyshevutransform(T, szs, dims...))
+plan_transform(P::Ultraspherical{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_ultra2ultra!(T, szs, one(P.λ), P.λ, dims...), plan_chebyshevutransform(T, szs, dims...))
 
 ###
 # interrelationships
@@ -119,9 +119,12 @@ end
 ##########
 
 # Ultraspherical(1)\(D*Chebyshev())
-diff(S::ChebyshevU; dims=1) = diff(Ultraspherical(S))
+diff(S::ChebyshevU, m...; dims=1) = diff(Ultraspherical(S), m...; dims)
+diff(S::Legendre, m...; dims=1) = diff(Ultraspherical(S), m...; dims)
+
 
 # Ultraspherical(1/2)\(D*Legendre())
+# Special cased as its a Ones
 function diff(S::Legendre{T}; dims=1) where T
     A = _BandedMatrix(Ones{T}(1,∞), ℵ₀, -1,1)
     ApplyQuasiMatrix(*, Ultraspherical{T}(convert(T,3)/2), A)
@@ -132,6 +135,22 @@ end
 function diff(S::Ultraspherical{T}; dims=1) where T
     A = _BandedMatrix(Fill(2convert(T,S.λ),1,∞), ℵ₀, -1,1)
     ApplyQuasiMatrix(*, Ultraspherical{T}(S.λ+1), A)
+end
+
+# higher order 
+
+function diff(S::ChebyshevT{T}, m::Integer; dims=1) where T
+    iszero(m) && return S
+    isone(m) && return diff(S)
+    μ = pochhammer(one(T),m-1)*convert(T,2)^(m-1)
+    D = _BandedMatrix((μ * (0:∞))', ℵ₀, -m, m)
+    ApplyQuasiMatrix(*, Ultraspherical{T}(m), D)
+end
+
+function diff(C::Ultraspherical{T}, m::Integer; dims=1) where T
+    μ = pochhammer(convert(T,C.λ),m)*convert(T,2)^m
+    D = _BandedMatrix(Fill(μ,1,∞), ℵ₀, -m, m)
+    ApplyQuasiMatrix(*, Ultraspherical{T}(C.λ+m), D)
 end
 
 # Ultraspherical(λ-1)\ (D*wUltraspherical(λ))

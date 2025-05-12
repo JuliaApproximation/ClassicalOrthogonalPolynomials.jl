@@ -61,13 +61,13 @@ chebyshevu(S::AbstractQuasiMatrix) = chebyshevu(axes(S,1))
 
 computes the `n`-th Chebyshev polynomial of the first kind at `z`.
 """
-chebyshevt(n::Integer, z::Number) = Base.unsafe_getindex(ChebyshevT{typeof(z)}(), z, n+1)
+chebyshevt(n::Integer, z) = Base.unsafe_getindex(ChebyshevT{polynomialtype(typeof(z))}(), z, n+1)
 """
      chebyshevt(n, z)
 
 computes the `n`-th Chebyshev polynomial of the second kind at `z`.
 """
-chebyshevu(n::Integer, z::Number) = Base.unsafe_getindex(ChebyshevU{typeof(z)}(), z, n+1)
+chebyshevu(n::Integer, z) = Base.unsafe_getindex(ChebyshevU{polynomialtype(typeof(z))}(), z, n+1)
 
 chebysevtweight(d::AbstractInterval{T}) where T = ChebyshevTWeight{float(T)}[affine(d,ChebyshevInterval{T}())]
 chebysevuweight(d::AbstractInterval{T}) where T = ChebyshevUWeight{float(T)}[affine(d,ChebyshevInterval{T}())]
@@ -194,16 +194,15 @@ end
 ##########
 
 # Ultraspherical(1)\(D*Chebyshev())
-function diff(S::ChebyshevT{T}; dims=1) where T
+function diff(::ChebyshevT{T}; dims=1) where T
     D = _BandedMatrix((zero(T):∞)', ℵ₀, -1,1)
     ApplyQuasiMatrix(*, ChebyshevU{T}(), D)
 end
 
-function diff(W::Weighted{T,<:ChebyshevU}; dims=1) where T
+function diff(::Weighted{T,<:ChebyshevU}; dims=1) where T
     D =  _BandedMatrix((-one(T):-one(T):(-∞))', ℵ₀, 1,-1)
     ApplyQuasiMatrix(*, Weighted(ChebyshevT{T}()), D)
 end
-
 
 #####
 # Conversion

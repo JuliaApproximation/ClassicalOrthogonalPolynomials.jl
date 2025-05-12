@@ -233,4 +233,4 @@ broadcastbasis(::typeof(+), P::Union{Normalized,LanczosPolynomial}, Q::Union{Nor
 broadcastbasis(::typeof(+), P::Union{Normalized,LanczosPolynomial}, Q) = broadcastbasis(+, P.P, Q)
 broadcastbasis(::typeof(+), P, Q::Union{Normalized,LanczosPolynomial}) = broadcastbasis(+, P, Q.P)
 
-diff_layout(::LanczosLayout, P::AbstractQuasiMatrix, dims...) = diff_layout(ApplyLayout{typeof(*)}(), P, dims...)
+diff_layout(::LanczosLayout, P::AbstractQuasiMatrix, order...; dims...) = diff_layout(ApplyLayout{typeof(*)}(), P, order...; dims...)
