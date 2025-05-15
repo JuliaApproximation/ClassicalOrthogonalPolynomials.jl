@@ -48,7 +48,6 @@ using ClassicalOrthogonalPolynomials: Monic, _p0, orthogonalityweight, recurrenc
             Hermite() _Hermite
         ]
         for (P, _P) in eachrow(Ps)
-            @show P
             Q = Monic(P)
             @test Q[0.2, 1] == 1.0
             @test Q[0.25, 2] ≈ _P(0.25, 1)

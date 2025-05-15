@@ -26,7 +26,7 @@ orthogonalityweight(Q::ConvertedOrthogonalPolynomial) = Q.weight
 # transform to P * inv(U) if needed for differentiation, etc.
 arguments(::ApplyLayout{typeof(*)}, Q::ConvertedOrthogonalPolynomial) = Q.P, ApplyArray(inv, Q.U)
 
-OrthogonalPolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w, orthogonalpolynomial(axes(w,1), singularities(w)))
+OrthogonalPolynomial(w::AbstractQuasiVector) = OrthogonalPolynomial(w, orthogonalpolynomial_axis(axes(w,1), singularities(w)))
 function OrthogonalPolynomial(w::AbstractQuasiVector, P::AbstractQuasiMatrix)
     Q = normalized(P)
     X,U = cholesky_jacobimatrix(w, Q)
@@ -39,8 +39,8 @@ orthogonalpolynomial(w::SubQuasiArray) = orthogonalpolynomial(parent(w))[parenti
 OrthogonalPolynomial(w::Function, P::AbstractQuasiMatrix) = OrthogonalPolynomial(w.(axes(P,1)), P)
 orthogonalpolynomial(w::Function, P::AbstractQuasiMatrix) = orthogonalpolynomial(w.(axes(P,1)), P)
 
-orthogonalpolynomial(ax, ::NoSingularities) = legendre(ax)
-orthogonalpolynomial(ax, w) = orthogonalpolynomial(w)
+orthogonalpolynomial_axis(ax, ::NoSingularities) = legendre(ax)
+orthogonalpolynomial_axis(ax, w) = orthogonalpolynomial(w)
 resizedata!(P::ConvertedOrthogonalPolynomial, ::Colon, n::Int) = resizedata!(P.X.dv, n)
 
 

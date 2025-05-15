@@ -92,7 +92,7 @@ hasboundedendpoints(w::AbstractJacobiWeight) = w.a ≥ 0 && w.b ≥ 0
 singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
 
 
-singularities(w::JacobiWeight) = w
+singularities(w::AbstractJacobiWeight) = w
 
 ## default is to just assume no singularities
 singularitiesbroadcast(_...) = NoSingularities()
