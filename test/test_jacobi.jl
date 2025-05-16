@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, QuasiArrays, LazyArrays, LazyBandedMatrices, FastGaussQuadrature, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted, grammatrix
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted, grammatrix, singularities
 
 @testset "Jacobi" begin
     @testset "JacobiWeight" begin
@@ -551,5 +551,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         W = Weighted(Jacobi(1,1))
         @test expand(W, x -> (1-x^2)*exp(x))[0.1] ≈ (1-0.1^2)*exp(0.1)
         @test grid(W, 5) == grid(W.P, 5)
+    end
+
+    @testset "JacobiWeight singularities" begin
+        @test singularities(JacobiWeight(1,2) .* Jacobi(2,3)) == JacobiWeight(1,2)
+        @test singularities(jacobiweight(1,2,1..2) .* jacobi(2,3,1..2)) == singularities(view(JacobiWeight(1,2) .* Jacobi(2,3), affine(1..2, -1..1),:)) == jacobiweight(1,2,1..2) 
     end
 end

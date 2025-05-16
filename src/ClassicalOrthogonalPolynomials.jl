@@ -37,7 +37,7 @@ import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!, 
 import ContinuumArrays: Basis, Weight, basis_axes, @simplify, AbstractAffineQuasiVector, ProjectionFactorization,
     grid, plotgrid, plotgrid_layout, plotvalues_layout, grid_layout, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
-    checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, SubBasisLayout, broadcastbasis_layout,
+    checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, MappedWeightLayout, SubBasisLayout, broadcastbasis_layout,
     plan_grid_transform, plan_transform, MAX_PLOT_POINTS, MulPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout, _cumsum
 import FastTransforms: Λ, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg, pochhammer
 import RecurrenceRelationships: forwardrecurrence, forwardrecurrence!, clenshaw, clenshaw!,
@@ -203,8 +203,9 @@ recurrencecoefficients(Q) = recurrencecoefficients_layout(MemoryLayout(Q), Q)
 gives the singularity structure of an expansion, e.g.,
 `JacobiWeight`.
 """
-singularities_layout(lay::BroadcastLayout, a) = singularitiesbroadcast(call(a), map(singularities, arguments(lay, a))...)
-singularities_layout(::WeightedBasisLayouts, a) = singularities(BroadcastLayout{typeof(*)}(), a)
+singularities_layout(lay::BroadcastLayout, a) = singularitiesbroadcast(call(lay, a), map(singularities, arguments(lay, a))...)
+singularities_layout(::WeightedBasisLayouts, a) = singularities_layout(BroadcastLayout{typeof(*)}(), a)
+singularities_layout(::MappedWeightLayout, a) = view(singularities(demap(a)), basismap(a))
 singularities_layout(::WeightedOPLayout, a) = singularities(weight(a))
 singularities_layout(::ExpansionLayout, f) = singularities(basis(f))
 singularities_layout(lay, a) = NoSingularities() # assume no singularities
@@ -216,7 +217,6 @@ singularitiesview(w, ::Inclusion) = w # for now just assume it doesn't change
 singularitiesview(w, ind) = view(w, ind)
 singularitiesview(::NoSingularities, ind) = NoSingularities()
 singularitiesview(::NoSingularities, ::Inclusion) = NoSingularities()
-singularities(S::SubQuasiArray) = singularitiesview(singularities(parent(S)), parentindices(S)[1])
 
 
 basis_axes(ax::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{eltype(v)}, basis_singularities(ax, singularities(v)))

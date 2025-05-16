@@ -218,4 +218,8 @@ import QuasiArrays: MulQuasiArray
         @test (P² \ diff(P,2))[1:10,1:10] ≈ (P² \ diff(diff(P)))[1:10,1:10]
         @test (P³ \ diff(P,3))[1:10,1:10] ≈ (P³ \ diff(diff(diff(P))))[1:10,1:10]
     end
+
+    @testset "fill" begin
+        @test basis(expand(fill(2, Inclusion(1..2)))) == legendre(1..2)
+    end
 end

@@ -73,8 +73,6 @@ end
 singularitiesbroadcast(::typeof(^), L::LegendreWeight, ::NoSingularities) = L
 singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # can't find roots
 
-
-singularities(::AbstractFillLayout, P) = LegendreWeight{eltype(P)}()
 basis_singularities(ax::Inclusion, ::NoSingularities) = legendre(ax)
 
 """
