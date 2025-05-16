@@ -103,7 +103,6 @@ for op in (:+, :*)
     @eval singularitiesbroadcast(::typeof($op), ::NoSingularities, ::NoSingularities, ::NoSingularities) = NoSingularities()
 end
 
-singularitiesbroadcast(::typeof(*), V::SubQuasiArray...) = singularitiesbroadcast(*, map(parent,V)...)[parentindices(V...)...]
 singularitiesbroadcast(::typeof(*), ::NoSingularities, b) = b
 singularitiesbroadcast(::typeof(*), a, ::NoSingularities) = a
 

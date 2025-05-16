@@ -557,4 +557,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test singularities(JacobiWeight(1,2) .* Jacobi(2,3)) == JacobiWeight(1,2)
         @test singularities(jacobiweight(1,2,1..2) .* jacobi(2,3,1..2)) == singularities(view(JacobiWeight(1,2) .* Jacobi(2,3), affine(1..2, -1..1),:)) == jacobiweight(1,2,1..2) 
     end
+
+    @testset "ChebyshevInterval constructior" begin
+        @test jacobi(1,2,ChebyshevInterval()) ≡ Jacobi(1,2)
+    end
 end

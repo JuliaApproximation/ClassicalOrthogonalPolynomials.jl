@@ -49,10 +49,12 @@ broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), ::ChebyshevWeight{kind,T}, ::
 
 chebyshevt() = ChebyshevT()
 chebyshevt(d::AbstractInterval{T}) where T = ChebyshevT{float(T)}()[affine(d, ChebyshevInterval{T}()), :]
+chebyshevt(d::ChebyshevInterval{T}) where T = ChebyshevT{float(T)}()
 chebyshevt(d::Inclusion) = chebyshevt(d.domain)
 chebyshevt(S::AbstractQuasiMatrix) = chebyshevt(axes(S,1))
 chebyshevu() = ChebyshevU()
 chebyshevu(d::AbstractInterval{T}) where T = ChebyshevU{float(T)}()[affine(d, ChebyshevInterval{T}()), :]
+chebyshevu(d::ChebyshevInterval{T}) where T = ChebyshevU{float(T)}()
 chebyshevu(d::Inclusion) = chebyshevu(d.domain)
 chebyshevu(S::AbstractQuasiMatrix) = chebyshevu(axes(S,1))
 

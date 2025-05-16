@@ -204,4 +204,7 @@ using ClassicalOrthogonalPolynomials: grammatrix
         @test (C \ diff(U,1))[1:10,1:10] == (C \ diff(U))[1:10,1:10]
         @test (C³ \ diff(U,2))[1:10,1:10] == (C³ \ diff(diff(U)))[1:10,1:10]
     end
+    @testset "ChebyshevInterval constructior" begin
+        @test ultraspherical(2,ChebyshevInterval()) ≡ Ultraspherical(2)
+    end
 end

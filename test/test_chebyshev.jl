@@ -582,6 +582,11 @@ import BandedMatrices: isbanded
     @testset "diff of truncation" begin
         @test MemoryLayout(diff(ChebyshevT()[:,1:5]) * randn(5)) isa ExpansionLayout
     end
+
+    @testset "ChebyshevInterval constructior" begin
+        @test chebyshevt(ChebyshevInterval()) ≡ ChebyshevT()
+        @test chebyshevu(ChebyshevInterval()) ≡ ChebyshevU()
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end

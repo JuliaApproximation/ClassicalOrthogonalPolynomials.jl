@@ -56,6 +56,7 @@ orthogonalityweight(C::Ultraspherical) = UltrasphericalWeight(C.λ)
 
 ultrasphericalc(n::Integer, λ, z) = Base.unsafe_getindex(Ultraspherical{polynomialtype(typeof(λ),typeof(z))}(λ), z, n+1)
 ultraspherical(λ, d::AbstractInterval{T}) where T = Ultraspherical{float(promote_type(eltype(λ),T))}(λ)[affine(d,ChebyshevInterval{T}()), :]
+ultraspherical(λ, d::ChebyshevInterval{T}) where T = Ultraspherical{float(promote_type(eltype(λ),T))}(λ)
 
 ==(a::Ultraspherical, b::Ultraspherical) = a.λ == b.λ
 ==(::Ultraspherical, ::ChebyshevT) = false

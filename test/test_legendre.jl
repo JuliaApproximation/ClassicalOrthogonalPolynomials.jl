@@ -222,4 +222,7 @@ import QuasiArrays: MulQuasiArray
     @testset "fill" begin
         @test basis(expand(fill(2, Inclusion(1..2)))) == legendre(1..2)
     end
+    @testset "ChebyshevInterval constructior" begin
+        @test legendre(ChebyshevInterval()) ≡ Legendre()
+    end
 end
