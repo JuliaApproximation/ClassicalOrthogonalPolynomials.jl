@@ -217,12 +217,16 @@ import QuasiArrays: MulQuasiArray
         @test (P¹ \ diff(P,1))[1:10,1:10] == (P¹ \ diff(P))[1:10,1:10]
         @test (P² \ diff(P,2))[1:10,1:10] ≈ (P² \ diff(diff(P)))[1:10,1:10]
         @test (P³ \ diff(P,3))[1:10,1:10] ≈ (P³ \ diff(diff(diff(P))))[1:10,1:10]
+
+        # cover back compatibilty
+        @test_throws MethodError ClassicalOrthogonalPolynomials.basis_singularities(nothing, nothing)
     end
 
-    @testset "fill" begin
-        @test basis(expand(fill(2, Inclusion(1..2)))) == legendre(1..2)
+    @testset "singularities expand" begin
+        x = Inclusion(1..2)
+        @test basis(expand(fill(2, x))) == basis(expand(broadcast(+, exp.(x), cos.(x), x))) == legendre(x) 
     end
-    @testset "ChebyshevInterval constructior" begin
+    @testset "ChebyshevInterval constructor" begin
         @test legendre(ChebyshevInterval()) ≡ Legendre()
     end
 end

@@ -222,7 +222,6 @@ singularitiesbroadcast(_...) = NoSingularities()
 for op in (:+, :*)
     @eval singularitiesbroadcast(::typeof($op), A, B, C, D...) = singularitiesbroadcast(*, singularitiesbroadcast(*, A, B), C, D...)
     @eval singularitiesbroadcast(::typeof($op), ::NoSingularities, ::NoSingularities) = NoSingularities()
-    @eval singularitiesbroadcast(::typeof($op), ::NoSingularities, ::NoSingularities, ::NoSingularities) = NoSingularities()
 end
 
 singularitiesbroadcast(::typeof(*), ::NoSingularities, b) = b
