@@ -8,7 +8,7 @@ import ClassicalOrthogonalPolynomials: jacobimatrix, ∞, ChebyshevInterval, Leg
 import LazyArrays: ApplyStyle, colsupport, MemoryLayout, arguments
 import SemiseparableMatrices: VcatAlmostBandedLayout
 import QuasiArrays: MulQuasiMatrix
-import ClassicalOrthogonalPolynomials: oneto
+import ClassicalOrthogonalPolynomials: oneto, NoSingularities
 import InfiniteLinearAlgebra: KronTrav, Block
 import FastTransforms: clenshaw!
 
@@ -18,7 +18,7 @@ Random.seed!(0)
     x = Inclusion(ChebyshevInterval())
     @test singularities(x) == singularities(exp.(x)) == singularities(x.^2) == 
         singularities(x .+ 1) == singularities(1 .+ x) == singularities(x .+ x) == 
-        LegendreWeight()
+        NoSingularities()
     @test singularities(exp.(x) .* JacobiWeight(0.1,0.2)) == 
         singularities(JacobiWeight(0.1,0.2) .* exp.(x)) ==
         JacobiWeight(0.1,0.2)
@@ -26,7 +26,7 @@ Random.seed!(0)
     x = Inclusion(0..1)
     @test singularities(x) == singularities(exp.(x)) == singularities(x.^2) == 
         singularities(x .+ 1) == singularities(1 .+ x) == singularities(x .+ x) == 
-        legendreweight(0..1)
+        NoSingularities()
 end
 
 include("test_chebyshev.jl")

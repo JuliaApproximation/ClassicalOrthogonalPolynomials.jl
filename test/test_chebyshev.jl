@@ -582,6 +582,11 @@ import BandedMatrices: isbanded
     @testset "diff of truncation" begin
         @test MemoryLayout(diff(ChebyshevT()[:,1:5]) * randn(5)) isa ExpansionLayout
     end
+
+    @testset "ChebyshevInterval constructior" begin
+        @test chebyshevt(ChebyshevInterval()) ≡ ChebyshevT()
+        @test chebyshevu(ChebyshevInterval()) ≡ ChebyshevU()
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end
@@ -612,7 +617,7 @@ ContinuumArrays.invmap(::InvQuadraticMap{T}) where T = QuadraticMap{T}()
     g = chebyshevt(0..1) * [1:3; zeros(∞)]
     @test_broken (f + g)[0.1] ≈ f[0.1] + g[0.1] # ContinuumArrays needs to check maps are equal
 
-    @test ClassicalOrthogonalPolynomials.singularities(T) === LegendreWeight()[QuadraticMap()]
+    @test ClassicalOrthogonalPolynomials.singularities(T) isa NoSingularities
 end
 
 @testset "block structure" begin
