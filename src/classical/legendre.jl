@@ -74,6 +74,8 @@ singularitiesbroadcast(::typeof(^), L::LegendreWeight, ::NoSingularities) = L
 singularitiesbroadcast(::typeof(/), ::NoSingularities, L::LegendreWeight) = L # can't find roots
 
 basis_singularities(ax::Inclusion, ::NoSingularities) = legendre(ax)
+basis_singularities(ax, sing) = basis_singularities(sing) # fallback for back compatibility
+
 
 """
     Legendre{T=Float64}(a,b)

@@ -94,24 +94,6 @@ singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
 
 singularities(w::AbstractJacobiWeight) = w
 
-## default is to just assume no singularities
-singularitiesbroadcast(_...) = NoSingularities()
-
-for op in (:+, :*)
-    @eval singularitiesbroadcast(::typeof($op), A, B, C, D...) = singularitiesbroadcast(*, singularitiesbroadcast(*, A, B), C, D...)
-    @eval singularitiesbroadcast(::typeof($op), ::NoSingularities, ::NoSingularities) = NoSingularities()
-    @eval singularitiesbroadcast(::typeof($op), ::NoSingularities, ::NoSingularities, ::NoSingularities) = NoSingularities()
-end
-
-singularitiesbroadcast(::typeof(*), ::NoSingularities, b) = b
-singularitiesbroadcast(::typeof(*), a, ::NoSingularities) = a
-
-
-# for singularitiesbroadcast(literal_pow), ^, ...)
-singularitiesbroadcast(F::Function, G::Function, V::SubQuasiArray, K) = singularitiesbroadcast(F, G, parent(V), K)[parentindices(V)...]
-singularitiesbroadcast(F, V::SubQuasiArray...) = singularitiesbroadcast(F, map(parent,V)...)[parentindices(V...)...]
-singularitiesbroadcast(F, V::NoSingularities...) = NoSingularities() # default is to assume smooth
-
 
 abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
 
