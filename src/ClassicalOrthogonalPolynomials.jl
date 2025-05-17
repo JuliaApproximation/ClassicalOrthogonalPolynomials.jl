@@ -197,18 +197,19 @@ recurrencecoefficients(Q) = recurrencecoefficients_layout(MemoryLayout(Q), Q)
 
 
 
-"""
-    singularities(f)
-
-gives the singularity structure of an expansion, e.g.,
-`JacobiWeight`.
-"""
 singularities_layout(lay::BroadcastLayout, a) = singularitiesbroadcast(call(lay, a), map(singularities, arguments(lay, a))...)
 singularities_layout(::WeightedBasisLayouts, a) = singularities_layout(BroadcastLayout{typeof(*)}(), a)
 singularities_layout(::MappedWeightLayout, a) = view(singularities(demap(a)), basismap(a))
 singularities_layout(::WeightedOPLayout, a) = singularities(weight(a))
 singularities_layout(::ExpansionLayout, f) = singularities(basis(f))
 singularities_layout(lay, a) = NoSingularities() # assume no singularities
+
+"""
+    singularities(f)
+
+gives the singularity structure of an expansion, e.g.,
+`JacobiWeight`.
+"""
 singularities(w) = singularities_layout(MemoryLayout(w), w)
 
 struct NoSingularities end
