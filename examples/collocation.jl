@@ -4,7 +4,8 @@ using ClassicalOrthogonalPolynomials, OrdinaryDiffEq, Plots
 ####
 # 1D Helmholtz w/ Dirichlet conditions
 #
-# We solve `u'' + 4^2*u = f`, `u(-1) = 1`, `u(1) = 2` with rectangular collocation. That is,
+# We solve `u'' + 4^2*u = f`, `u(-1) = 1`, `u(1) = 2` with rectangular collocation a la
+# [Hale & Driscoll](https://academic.oup.com/imajna/article-abstract/36/1/108/2363563). That is,
 # we discretise `u` at `n` second kind Chebyshev points (containing ±1)
 # but `f` at `n-2` first kind Chebyshev points (interior to [-1,1]).
 # The reduction in degrees of freedom allows us to impose boundary conditions.
