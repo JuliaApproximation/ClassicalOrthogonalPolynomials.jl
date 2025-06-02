@@ -46,6 +46,27 @@ sol = solve(prob, Rodas5(), reltol = 1e-8, abstol = 1e-8)
 t = range(0,1,100)
 contourf(t, x₂,   hcat(sol.(t)...))
 
+# We can also solve heat with a more complicated boundary condition like `u_x(t,1) = \sin t^2`,
+# using zero Dirichlet for the left condition. 
+# To fit into the mass matrix model we differentiate wrt `t` to get the condition
+# `u_{xt}(t,1) = 2 t \cos t^2`. 
+
+
+function heat_rneumann!(du, u, D₂, t)
+    du[1] = 0 # left bc
+    mul!(@view(du[2:end-1]), D₂, u)
+    du[end] = 2*t*cos(t^2) # right bc
+end
+
+u₀ = x -> (1-x^2)^2 * exp(x) # initial condition
+
+N_r = diff(T)[1,1:n]' / V # Right Neumann condition
+prob = ODEProblem(ODEFunction(heat_rneumann!, mass_matrix = [B_l; R; N_r]), u₀.(x₂), (0., 1.), D₂) 
+sol = solve(prob, Rodas5(), reltol = 1e-8, abstol = 1e-8)
+
+t = range(0,1,100)
+contourf(t, x₂, hcat(sol.(t)...))
+
 
 ####
 # Burgers equation
