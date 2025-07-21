@@ -165,7 +165,7 @@ abstract type AbstractWeighted{T} <: Basis{T} end
 
 
 
-getindex(Q::AbstractWeighted, x::Union{Number,AbstractVector}, jr::Union{Number,AbstractVector}) = weight(Q)[x] .* unweighted(Q)[x,jr]
+_getindex(::Type{IND}, Q::AbstractWeighted, (x,j)::IND) where IND = weight(Q)[x] * unweighted(Q)[x,j]
 
 MemoryLayout(::Type{<:AbstractWeighted}) = WeightedBasisLayout{OPLayout}()
 convert(::Type{WeightedBasis}, Q::AbstractWeighted) = weight(Q) .* unweighted(Q)
