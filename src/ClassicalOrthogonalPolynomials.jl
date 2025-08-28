@@ -263,6 +263,10 @@ end
 
 grammatrix_layout(::MappedOPLayout, P) = grammatrix_layout(MappedBasisLayout(), P)
 grammatrix_layout(::WeightedOPLayout{MappedOPLayout}, P) = grammatrix_layout(MappedBasisLayout(), P)
+plan_grid_transform(::WeightedOPLayout{Lay}, P, szs::NTuple{N,Int}, dims=1:N) where {N,Lay} =
+    plan_grid_transform(WeightedBasisLayout{Lay}(), P, szs, dims)
+grid_layout(::WeightedOPLayout{Lay}, P, n...) where Lay = grid_layout(WeightedBasisLayout{Lay}(), P, n...)
+
 
 OrthogonalPolynomial(w::Weight) =error("Override for $(typeof(w))")
 
