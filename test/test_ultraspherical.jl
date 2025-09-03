@@ -209,12 +209,13 @@ using ClassicalOrthogonalPolynomials: grammatrix
     end
 end
 
-@testset "Jacobi(-1, 0) / Ultraspherical(-1/2)" begin 
-    A = Jacobi(-1, 0)
-    B = Ultraspherical(-1/2)
-    R = A \ B 
-    AR = A * R 
-    lhs = AR[0.3918, 1:100]
-    rhs = B[0.3918, 1:100]
-    @test lhs ≈ rhs
+@testset "Jacobi(-1, 0) \\ Ultraspherical(-1/2) and Jacobi(0, -1) \\ Ultraspherical(-1/2)" begin 
+    for A in (Jacobi(-1,0),Jacobi(0,-1))
+        B = Ultraspherical(-1/2)
+        R = A \ B 
+        AR = A * R 
+        lhs = AR[0.3918, 1:100]
+        rhs = B[0.3918, 1:100]
+        @test lhs ≈ rhs
+    end
 end
