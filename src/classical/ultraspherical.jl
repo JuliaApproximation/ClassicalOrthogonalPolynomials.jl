@@ -199,8 +199,16 @@ function \(A::Ultraspherical, B::Jacobi)
     Diagonal(Ã[1,:]./A[1,:]) * (Ã\B)
 end
 function \(A::Jacobi, B::Ultraspherical)
-    B̃ = Jacobi(B)
-    (A\B̃)*Diagonal(B[1,:]./B̃[1,:])
+    if isone(-2B.λ) && (A.a, A.b) == (-1, 0)
+        T = promote_type(eltype(A), eltype(B))
+        n = -2one(T) ./ (2 .* (2:∞) .- one(T))
+        dv = Vcat(one(T), -2one(T), n)
+        ev = Vcat(-one(T), n)
+        LazyBandedMatrices.Bidiagonal(dv, ev, :U)
+    else
+        B̃ = Jacobi(B)
+        (A\B̃)*Diagonal(B[1,:]./B̃[1,:])
+    end 
 end
 
 function \(wA::Weighted{<:Any,<:Ultraspherical}, wB::Weighted{<:Any,<:Jacobi})

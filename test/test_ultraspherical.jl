@@ -208,3 +208,13 @@ using ClassicalOrthogonalPolynomials: grammatrix
         @test ultraspherical(2,ChebyshevInterval()) ≡ Ultraspherical(2)
     end
 end
+
+@testset "Jacobi(-1, 0) \ Ultraspherical(-1/2)" begin 
+    A = Jacobi(-1, 0)
+    B = Ultraspherical(-1/2)
+    R = A \ B 
+    AR = A * R 
+    lhs = AR[0.3918, 1:100]
+    rhs = B[0.3918, 1:100]
+    @test lhs ≈ rhs
+end
