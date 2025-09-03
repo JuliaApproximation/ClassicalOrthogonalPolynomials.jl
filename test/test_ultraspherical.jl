@@ -209,7 +209,7 @@ using ClassicalOrthogonalPolynomials: grammatrix
     end
 end
 
-@testset "Jacobi(-1, 0) \ Ultraspherical(-1/2)" begin 
+@testset "Jacobi(-1, 0) / Ultraspherical(-1/2)" begin 
     A = Jacobi(-1, 0)
     B = Ultraspherical(-1/2)
     R = A \ B 
