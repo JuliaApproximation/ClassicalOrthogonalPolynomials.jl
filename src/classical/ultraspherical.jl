@@ -200,6 +200,8 @@ function \(A::Ultraspherical, B::Jacobi)
 end
 function \(A::Jacobi, B::Ultraspherical)
     if B == Ultraspherical(-1/2) && (A == Jacobi(-1, 0) || A == Jacobi(0, -1))
+        # In this case, Jacobi(-1, -1) is (currently) undefined, so the conversion via B̃ = Jacobi(B) leads to NaNs 
+        # from evaluating in B̃[1, :]
         T = promote_type(eltype(A), eltype(B))
         n = -2one(T) ./ (2 .* (2:∞) .- one(T))
         sgn = A == Jacobi(-1, 0) ? one(T) : -one(T)
