@@ -50,3 +50,8 @@ function _searchsortedfirst(::ExpansionLayout{<:AbstractOPLayout}, f, x; iterati
     (a+b)/2
 end
 searchsortedfirst(f::AbstractQuasiVector, x; kwds...) = _searchsortedfirst(MemoryLayout(f), f, x; kwds...)
+
+function sample(f::AbstractQuasiVector, n...)
+    g = cumsum(f)
+    searchsortedfirst.(Ref(g/last(g)), rand(n...))
+end
