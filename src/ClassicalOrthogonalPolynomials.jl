@@ -11,7 +11,7 @@ import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy, setindex,
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
                 to_indices, tail, getproperty, inv, show, isapprox, summary,
-                findall, searchsortedfirst, diff
+                findall, searchsortedfirst, diff, minimum, maximum, extrema
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, AbstractPaddedLayout, PaddedColumns, resizedata!, LazyVector, ApplyLayout, call,

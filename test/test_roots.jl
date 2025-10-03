@@ -23,3 +23,10 @@ end
     A =  [(1 .+ x) (1 .+ x.^3)]
     Q,R = qr(P \ A)
 end
+
+@testset "minimum/maximum/extrema (#242)" begin
+    f = expand(ChebyshevT(), x -> exp(x) * cos(100x.^2))
+    @test minimum(f) ≈ -2.682833127491678
+    @test maximum(f) ≈ 2.6401248792053362
+    @test extrema(f) == (minimum(f), maximum(f))
+end

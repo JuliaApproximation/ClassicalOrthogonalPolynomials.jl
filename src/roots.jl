@@ -55,3 +55,21 @@ function sample(f::AbstractQuasiVector, n...)
     g = cumsum(f)
     searchsortedfirst.(Ref(g/last(g)), rand(n...))
 end
+
+####
+# min/max/extrema
+####
+function minimum(f::AbstractQuasiVector)
+    r = findall(iszero, diff(f))
+    min(first(f), minimum(f[r]), last(f))
+end
+
+function maximum(f::AbstractQuasiVector)
+    r = findall(iszero, diff(f))
+    max(first(f), maximum(f[r]), last(f))
+end
+
+function extrema(f::AbstractQuasiVector)
+    r = findall(iszero, diff(f))
+    extrema([first(f); f[r]; last(f)])
+end
