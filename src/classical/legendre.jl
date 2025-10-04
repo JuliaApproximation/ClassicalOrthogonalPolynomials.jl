@@ -189,7 +189,7 @@ ldiv(P::Legendre{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
 function transform_ldiv(::Legendre{V}, f::Union{AbstractQuasiVector,AbstractQuasiMatrix}) where V
     T = ChebyshevT{V}()
     dat = transform_ldiv(T, f)
-    padrows(th_cheb2leg(paddeddata(dat)), axes(dat,1))
+    padrows(th_cheb2leg(paddeddata(dat), 1), axes(dat,1))
 end
 
 plan_transform(::Legendre{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_cheb2leg!(T, szs, dims...), plan_chebyshevtransform(T, szs, dims...))

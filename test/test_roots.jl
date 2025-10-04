@@ -20,7 +20,9 @@ end
 
 @testset "det point sampling" begin
     P = Normalized(Legendre()); x = axes(P,1)
-    A =  [(1 .+ x) (1 .+ x.^3)]
+    A =  cos.((0:5)' .* x)
+    @test (Legendre() \ A)[1:5,1] ≈ [1; zeros(4)] # test transform bug
+    @test (P \ A)[1:5,1] ≈ [sqrt(2); zeros(4)]
     Q,R = qr(P \ A)
 end
 
