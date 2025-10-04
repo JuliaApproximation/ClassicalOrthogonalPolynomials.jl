@@ -288,7 +288,7 @@ ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
 ldiv(P::Jacobi{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
 function transform_ldiv(P::Jacobi{V}, f::AbstractQuasiArray) where V
     T = ChebyshevT{V}()
-    pad(FastTransforms.th_cheb2jac(paddeddata(T \ f), P.a, P.b, 1), axes(P,2), tail(axes(f))...)
+    padrows(FastTransforms.th_cheb2jac(paddeddata(T \ f), P.a, P.b, 1), axes(P,2))
 end
 
 

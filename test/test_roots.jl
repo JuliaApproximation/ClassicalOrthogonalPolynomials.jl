@@ -1,4 +1,7 @@
-using ClassicalOrthogonalPolynomials, Test
+using ClassicalOrthogonalPolynomials, Random, Test
+using ClassicalOrthogonalPolynomials: sample
+
+Random.seed!(5)
 
 @testset "roots" begin
     T = Chebyshev()
@@ -8,4 +11,24 @@ using ClassicalOrthogonalPolynomials, Test
 
     g = x -> x + 0.001cos(x)
     @test searchsortedfirst(expand(T, g), 0.1) ≈ searchsortedfirst(expand(P, g), 0.1) ≈ findall(iszero, expand(T, x -> g(x)-0.1))[1]
+end
+
+@testset "sample" begin
+    f = expand(Chebyshev(), exp)
+    @test sum(sample(f, 100_000))/100_000 ≈ 0.31 atol=1E-2
+end
+
+@testset "det point sampling" begin
+    P = Normalized(Legendre()); x = axes(P,1)
+    A =  cos.((0:5)' .* x)
+    @test (Legendre() \ A)[1:5,1] ≈ [1; zeros(4)] # test transform bug
+    @test (P \ A)[1:5,1] ≈ [sqrt(2); zeros(4)]
+    Q,R = qr(P \ A)
+end
+
+@testset "minimum/maximum/extrema (#242)" begin
+    f = expand(ChebyshevT(), x -> exp(x) * cos(100x.^2))
+    @test minimum(f) ≈ -2.682833127491678
+    @test maximum(f) ≈ 2.6401248792053362
+    @test extrema(f) == (minimum(f), maximum(f))
 end
