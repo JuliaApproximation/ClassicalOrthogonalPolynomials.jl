@@ -229,4 +229,12 @@ import QuasiArrays: MulQuasiArray
     @testset "ChebyshevInterval constructor" begin
         @test legendre(ChebyshevInterval()) ≡ Legendre()
     end
+
+    @testset "cumsum" begin
+        P = Legendre()
+        x = axes(P,1)
+        @test (P \ cumsum(P)) * (P \ exp.(x)) ≈ P \ (exp.(x) .- exp(-1))
+        f = P * (P \ exp.(x))
+        @test P \ cumsum(f) ≈ P \ (exp.(x) .- exp(-1))
+    end
 end
