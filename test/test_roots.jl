@@ -30,7 +30,7 @@ end
     Q,R = qr(A)
     @test Q[0.1,:]'R ≈ A[0.1,:]'
 
-    # sum(expand(Q[:,k] .^2) for k=axes(Q,2))
+    @test abs(sum(sample(sum(expand(Q[:,k] .^2) for k=axes(Q,2)), 1000))) ≤ 100 # mean is (numerically) zero
 end
 
 @testset "minimum/maximum/extrema (#242)" begin
