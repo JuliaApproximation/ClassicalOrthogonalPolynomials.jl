@@ -1,7 +1,7 @@
 name = "ClassicalOrthogonalPolynomials"
 uuid = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
 authors = ["Sheehan Olver <solver@mac.com>"]
-version = "0.15.4"
+version = "0.15.5"
 
 
 [deps]
@@ -49,7 +49,7 @@ HypergeometricFunctions = "0.3.4"
 InfiniteArrays = " 0.15"
 InfiniteLinearAlgebra = "0.10.1"
 IntervalSets = "0.7"
-LazyArrays = "2.7"
+LazyArrays = "2.8"
 LazyBandedMatrices = "0.11"
 MutableArithmetics = "1"
 QuasiArrays = "0.12"

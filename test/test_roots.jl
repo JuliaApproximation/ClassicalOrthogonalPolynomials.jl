@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, Random, Test
+using ClassicalOrthogonalPolynomials, QuasiArrays, Random, Test
 using ClassicalOrthogonalPolynomials: sample
 
 Random.seed!(5)
@@ -24,6 +24,13 @@ end
     @test (Legendre() \ A)[1:5,1] ≈ [1; zeros(4)] # test transform bug
     @test (P \ A)[1:5,1] ≈ [sqrt(2); zeros(4)]
     Q,R = qr(P \ A)
+    @test (P * (Q*R))[0.1,:] ≈ A[0.1,:]
+    @test (A*inv(R))[0.1,:] ≈ QuasiArrays.ApplyQuasiArray(*, P, Q)[0.1,1:6] 
+
+    Q,R = qr(A)
+    @test Q[0.1,:]'R ≈ A[0.1,:]'
+
+    # sum(expand(Q[:,k] .^2) for k=axes(Q,2))
 end
 
 @testset "minimum/maximum/extrema (#242)" begin
