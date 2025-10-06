@@ -185,6 +185,12 @@ function diff(WS::WeightedUltraspherical{T}; dims=1) where T
     end
 end
 
+function _cumsum(P::Legendre{V}, dims) where V
+    @assert dims == 1
+    Σ = Bidiagonal(Vcat(1, Zeros{V}(∞)), Fill(-one(V), ∞), :L)
+    ApplyQuasiArray(*, Ultraspherical(-one(V)/2), Σ)
+end
+
 
 ##########
 # Conversion
