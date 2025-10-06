@@ -303,3 +303,9 @@ diff_layout(::MappedOPLayouts, A, order::Int; dims...) = diff_layout(MappedBasis
 diff_layout(::MappedOPLayouts, A, order...; dims...) = diff_layout(MappedBasisLayout(), A, order...; dims...)
 
 diff_layout(::AbstractNormalizedOPLayout, A, order...; dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, order...; dims...)
+
+function qr(A::AbstractQuasiMatrix)
+    P = normalized(basis(A))
+    Q,R = qr(P \ A)
+    P * Q[:, axes(A,2)], R # TODO: ContinuumFactorization
+end
