@@ -254,7 +254,7 @@ end
 # sum
 ###
 
-function _sum(P::Legendre{T}, dims) where T
+function _sum(P::Legendre{T}, dims::Int) where T
     @assert dims == 1
     Hcat(convert(T, 2), Zeros{T}(1,∞))
 end

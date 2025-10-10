@@ -272,7 +272,7 @@ end
 # sum
 ###
 
-_sum(P::PiecewiseInterlace, dims) = BlockBroadcastArray(hcat, unitblocks.(_sum.(P.args, dims))...)
+_sum(P::PiecewiseInterlace, dims::Int) = BlockBroadcastArray(hcat, unitblocks.(_sum.(P.args, dims))...)
 
 # blockvector2vectortuple
 
