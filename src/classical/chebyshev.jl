@@ -296,24 +296,24 @@ end
 # sum
 ####
 
-function _sum(::Weighted{T,<:ChebyshevU}, dims) where T
+function _sum(::Weighted{T,<:ChebyshevU}, dims::Int) where T
     @assert dims == 1
     Hcat(convert(T, π)/2, Zeros{T}(1,∞))
 end
 
 # Same normalization for T,V,W
-function _sum(::Weighted{T,<:Chebyshev}, dims) where T
+function _sum(::Weighted{T,<:Chebyshev}, dims::Int) where T
     @assert dims == 1
     Hcat(convert(T, π), Zeros{T}(1,∞))
 end
 
-function _cumsum(T::ChebyshevT{V}, dims) where V
+function _cumsum(T::ChebyshevT{V}, dims::Int) where V
     @assert dims == 1
     Σ = _BandedMatrix(Vcat(-one(V) ./ (-2:2:∞)', Zeros{V}(1,∞), Hcat(one(V), one(V) ./ (4:2:∞)')), ℵ₀, 0, 2)
     ApplyQuasiArray(*, T, Vcat((-1).^(0:∞)'* Σ, Σ))
 end
 
-function _cumsum(W::Weighted{V, ChebyshevT{V}}, dims) where V
+function _cumsum(W::Weighted{V, ChebyshevT{V}}, dims::Int) where V
     @assert dims == 1
     [cumsum(ChebyshevTWeight{V}()) Weighted(ChebyshevU{V}())] * Diagonal(Vcat(one(V), -inv.(one(V):∞)))
 end
