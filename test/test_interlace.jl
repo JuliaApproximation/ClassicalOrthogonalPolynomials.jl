@@ -16,6 +16,7 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             @test u[-0.1] ≈ exp(-0.1)
             @test u[0.1] ≈ exp(0.1)
             @test u[0.] ≈ 2
+            @test sum(u) ≈ ℯ - ℯ^(-1)
         end
 
         @testset "two-interval ODE" begin

@@ -635,6 +635,6 @@ end
 # sum
 ###
 
-_sum(P::AbstractJacobi{T}, dims) where T = 2 * (Legendre{T}() \ P)[1:1,:]
+_sum(P::AbstractJacobi{T}, dims::Int) where T = 2 * (Legendre{T}() \ P)[1:1,:]
 
 
