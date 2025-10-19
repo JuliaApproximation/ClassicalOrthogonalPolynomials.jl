@@ -51,9 +51,16 @@ function _searchsortedfirst(::ExpansionLayout{<:AbstractOPLayout}, f, x; iterati
 end
 searchsortedfirst(f::AbstractQuasiVector, x; kwds...) = _searchsortedfirst(MemoryLayout(f), f, x; kwds...)
 
-function sample(f::AbstractQuasiVector, n...)
+sample(f::AbstractQuasiArray, n...) = sample_layout(MemoryLayout(f), f, n...)
+
+function sample_layout(_, f::AbstractQuasiVector, n...)
     g = cumsum(f)
     searchsortedfirst.(Ref(g/last(g)), rand(n...))
+end
+
+function sample_layout(_, f::AbstractQuasiMatrix, n...)
+    @assert size(f,2) == 1 # TODO generalise 
+    sample(f[:,1], n...)
 end
 
 ####
