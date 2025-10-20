@@ -1,5 +1,4 @@
-using ClassicalOrthogonalPolynomials, Plots
-using ClassicalOrthogonalPolynomials: sample
+using ClassicalOrthogonalPolynomials, StatsBase, Plots
 
 x = Inclusion(ChebyshevInterval())
 

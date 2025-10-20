@@ -1,5 +1,4 @@
-using ClassicalOrthogonalPolynomials, QuasiArrays, Random, Test
-using ClassicalOrthogonalPolynomials: sample
+using ClassicalOrthogonalPolynomials, QuasiArrays, Random, StatsBase, Test
 
 Random.seed!(5)
 
