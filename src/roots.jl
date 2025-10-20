@@ -27,17 +27,17 @@ end
 ####
 # min/max/extrema
 ####
-function minimum_layout(::ExpansionLayout{<:AbstractOPLayout}, f::AbstractQuasiVector)
+function minimum_layout(::ExpansionLayout{<:AbstractOPLayout}, f::AbstractQuasiVector, dims)
     r = findall(iszero, diff(f))
     min(first(f), minimum(f[r]), last(f))
 end
 
-function maximum_layout(::ExpansionLayout{<:AbstractOPLayout}, f::AbstractQuasiVector)
+function maximum_layout(::ExpansionLayout{<:AbstractOPLayout}, f::AbstractQuasiVector, dims)
     r = findall(iszero, diff(f))
     max(first(f), maximum(f[r]), last(f))
 end
 
-function extrema_layout(::ExpansionLayout{<:AbstractOPLayout}, f::AbstractQuasiVector)
+function extrema_layout(::ExpansionLayout{<:AbstractOPLayout}, f::AbstractQuasiVector, dims...)
     r = findall(iszero, diff(f))
     extrema([first(f); f[r]; last(f)])
 end
