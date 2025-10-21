@@ -51,10 +51,10 @@ function copyto!(dest::AbstractVector, V::SubArray{<:Any,1,<:OrthogonalPolynomia
     dest
 end
 
-getindex(P::OrthogonalPolynomial, x::Number, n::AbstractVector) = layout_getindex(P, x, n)
-getindex(P::OrthogonalPolynomial, x::AbstractVector, n::AbstractVector) = layout_getindex(P, x, n)
-getindex(P::SubArray{<:Any,1,<:OrthogonalPolynomial}, x::AbstractVector) = layout_getindex(P, x)
-Base.@propagate_inbounds function getindex(P::OrthogonalPolynomial, x::Number, n::Number)
+_getindex(::Type{Tuple{IND1,IND2}}, P::OrthogonalPolynomial, (x,n)::Tuple{IND1,AbstractVector{IND2}}) where {IND1,IND2} = layout_getindex(P, x, n)
+_getindex(::Type{Tuple{IND1,IND2}}, P::OrthogonalPolynomial, (x,n)::Tuple{AbstractVector{IND1},AbstractVector{IND2}}) where {IND1,IND2} = layout_getindex(P, x, n)
+_getindex(::Type{Tuple{IND1}}, P::SubArray{<:Any,1,<:OrthogonalPolynomial}, x::AbstractVector{IND1}) where {IND1} = layout_getindex(P, x)
+Base.@propagate_inbounds function _getindex(::Type{IND}, P::OrthogonalPolynomial, (x,n)::IND) where IND
     @boundscheck checkbounds(P, x, n)
     Base.unsafe_getindex(P, x, n)
 end
