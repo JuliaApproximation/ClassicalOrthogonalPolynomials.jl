@@ -1,6 +1,6 @@
 name = "ClassicalOrthogonalPolynomials"
 uuid = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
-version = "0.15.8"
+version = "0.15.9"
 authors = ["Sheehan Olver <solver@mac.com>"]
 
 [deps]
