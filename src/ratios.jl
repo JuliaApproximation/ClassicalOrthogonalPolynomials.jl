@@ -11,7 +11,6 @@ mutable struct OrthogonalPolynomialRatio{T, PP<:AbstractQuasiMatrix{T}} <: Abstr
     datasize::Tuple{Int}
 
     function OrthogonalPolynomialRatio{T, PP}(P::PP, x::T) where {T,PP<:AbstractQuasiMatrix{T}}
-        μ = inv(sqrt(sum(orthogonalityweight(P))))
         new{T, PP}(P, x, [Base.unsafe_getindex(P,x,1)/Base.unsafe_getindex(P,x,2)], (1,))
     end
 end
