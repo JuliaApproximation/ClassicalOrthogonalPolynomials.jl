@@ -6,6 +6,7 @@ using ClassicalOrthogonalPolynomials, Plots
 # u(0) = 0
 # w(0) = 0
 # w'(1) + λ*w(1) + u(1)
+# u(0) = w(1)
 ####
 
 T = chebyshevt(0..1) # solution basis is T_n 
