@@ -139,5 +139,5 @@ _broadcasted_layout_broadcasted_mul(_, wv, P) = layout_broadcasted(nothing, *, w
 # constructor for Clenshaw
 function Clenshaw(a::AbstractQuasiVector, X::AbstractQuasiMatrix)
     P,c = arguments(a)
-    Clenshaw(paddeddata(c), recurrencecoefficients(P)..., jacobimatrix(X), _p0(P))
+    Clenshaw(paddeddata(c), recurrencecoefficients(P)..., jacobimatrix(X), convert(promote_type(eltype(a), eltype(X)), _p0(P)))
 end
