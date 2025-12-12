@@ -218,4 +218,13 @@ using ClassicalOrthogonalPolynomials: grammatrix
             @test lhs ≈ rhs
         end
     end
+
+    @testset "Issue #257" begin
+        T = chebyshevt(0 .. 1) # solution basis is T_n 
+        C = ultraspherical(1, 0 .. 1) # RHS basis is C_n^(2)
+        s = axes(T, 1)
+
+        op = (s .+ im) .* T
+        @test (C \ op)[1,1] ≈ 0.5 + im
+    end
 end
