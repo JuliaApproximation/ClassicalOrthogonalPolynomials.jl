@@ -131,6 +131,10 @@ function _broadcasted_layout_broadcasted_mul(::Tuple{AbstractWeightLayout,Polyno
     a = (w .* Q) * (Q \ v)
     a .* P
 end
+_broadcasted_layout_broadcasted_mul(_, wv, P) = layout_broadcasted(nothing, *, wv, P) # default
+
+
+
 
 # constructor for Clenshaw
 function Clenshaw(a::AbstractQuasiVector, X::AbstractQuasiMatrix)

@@ -587,6 +587,14 @@ import BandedMatrices: isbanded
         @test chebyshevt(ChebyshevInterval()) ≡ ChebyshevT()
         @test chebyshevu(ChebyshevInterval()) ≡ ChebyshevU()
     end
+
+    @testset "#256" begin
+        T = chebyshevt(0 .. 1)
+        s = axes(T, 1)
+        f = s .^ 2
+        op = 2 * f .* T
+        @test op[0.1,1:5] ≈ 2f[0.1] * T[0.1,1:5]
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end
