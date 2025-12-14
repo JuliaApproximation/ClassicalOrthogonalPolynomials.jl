@@ -24,7 +24,7 @@ end
 ### transform
 checkpoints(F::AbstractFourier) = eltype(axes(F,1))[1.223972,3.14,5.83273484]
 
-fouriergrid(T, n) = convert(T,π)*collect(0:2:2n-2)/n
+fouriergrid(T, n) = (convert(T,π)*(0:2:2n-2))/n
 grid(Pn::AbstractFourier, n::Integer) = fouriergrid(eltype(axes(Pn,1)), n)
 
 abstract type AbstractShuffledPlan{T} <: Plan{T} end
@@ -47,7 +47,7 @@ end
 
 """
 Gives a shuffled version of the FFT, with order
-1,sin(θ),cos(θ),sin(2θ)…
+1,exp(-im*θ),exp(im*θ),exp(-2im*θ)…
 """
 struct ShuffledFFT{T,Pl<:Plan} <: AbstractShuffledPlan{T}
     plan::Pl
@@ -55,7 +55,7 @@ end
 
 """
 Gives a shuffled version of the IFFT, with order
-1,sin(θ),cos(θ),sin(2θ)…
+1,exp(-im*θ),exp(im*θ),exp(-2im*θ)…
 """
 struct ShuffledIFFT{T,Pl<:Plan} <: AbstractShuffledPlan{T}
     plan::Pl
