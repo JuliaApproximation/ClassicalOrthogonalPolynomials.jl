@@ -107,11 +107,17 @@ Base.@propagate_inbounds getindex(f::Mul{<:WeightedOPLayout,<:AbstractPaddedLayo
     weight(f.A)[x] * (unweighted(f.A) * f.B)[x, j...]
 
 
-# TODO: generalise this to be trait based
 function layout_broadcasted(::Tuple{ExpansionLayout{<:AbstractOPLayout},AbstractOPLayout}, ::typeof(*), a, P)
     axes(a,1) == axes(P,1) || throw(DimensionMismatch())
     P * Clenshaw(a, P)
 end
+
+function layout_broadcasted(::Tuple{ExpansionLayout{<:AbstractOPLayout},WeightedOPLayout}, ::typeof(*), a, W)
+    P = W.P
+    axes(a,1) == axes(P,1) || throw(DimensionMismatch())
+    W * Clenshaw(a, P)
+end
+
 
 # TODO: layout_broadcasted
 function broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), a::ApplyQuasiVector{<:Any,typeof(*),<:Tuple{SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Slice}},Any}}, V::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Any}})
