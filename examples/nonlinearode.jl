@@ -12,11 +12,10 @@ using ClassicalOrthogonalPolynomials, Plots
 P = Legendre(); C = Ultraspherical(3/2); W = Weighted(C)
 x = axes(P,1)
 Δ = diff(W)'diff(W)
-M = W'W
+M = W'P
 b = W'*(1 .+ x)
-F = u -> Δ*u + M * (W\((W*u) .^ 2)) - b
-J = u -> Δ + 2*M * (W \ ((P * (P\(W*u))) .* W))
-
+F = u -> Δ*u + M * (P\((W*u) .^ 2)) - b
+J = u -> Δ + 2*M * (P \ ((P * (P\(W*u))) .* W))
 
 u = zeros(∞)
 while norm(F(u)) ≥ 1E-12
