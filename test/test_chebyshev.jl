@@ -595,6 +595,13 @@ import BandedMatrices: isbanded
         op = 2 * f .* T
         @test op[0.1,1:5] ≈ 2f[0.1] * T[0.1,1:5]
     end
+
+    @testset "Clenshaw for Weighted" begin
+        T = ChebyshevT(); W = Weighted(T)
+        a = expand(T, exp)
+        @test W \ (a .* W) isa Clenshaw
+        @test (a .* W)[0.1,1:5] ≈ a[0.1] * W[0.1,1:5]
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end
