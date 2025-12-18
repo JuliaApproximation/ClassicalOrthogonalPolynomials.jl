@@ -37,4 +37,9 @@ end
     @test minimum(f) ≈ -2.682833127491678
     @test maximum(f) ≈ 2.6401248792053362
     @test extrema(f) == (minimum(f), maximum(f))
+
+    f = expand(ChebyshevT(), exp)
+    @test minimum(f) ≈ 1/ℯ
+    @test maximum(f) ≈ ℯ
+    @test extrema(f) == (minimum(f), maximum(f))
 end

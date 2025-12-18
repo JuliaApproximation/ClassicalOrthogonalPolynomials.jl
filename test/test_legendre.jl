@@ -237,4 +237,16 @@ import QuasiArrays: MulQuasiArray
         f = P * (P \ exp.(x))
         @test P \ cumsum(f) ≈ P \ (exp.(x) .- exp(-1))
     end
+
+    @testset "norm" begin
+        f = expand(Legendre(), x -> exp(im*x))
+        @test norm(f) isa Float64
+        @test norm(f,1) isa Float64
+        @test norm(f,3) isa Float64
+        @test norm(f,Inf) isa Float64
+        @test norm(f) ≈ norm(expand(legendre(-1..1), x -> exp(im*x))) ≈ sqrt(2)
+        @test norm(f,1) ≈ 2
+        @test norm(f,Inf) ≈ 1
+        @test norm(f,3) ≈ cbrt(2) 
+    end
 end
