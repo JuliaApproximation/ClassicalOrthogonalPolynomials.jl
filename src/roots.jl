@@ -10,6 +10,7 @@
 
 function colleaguematrix(P, c)
     cₙ = paddeddata(c)
+    isempty(cₙ) && return Matrix{eltype(P)}(undef, 0, 0)
     n = findlast(!iszero, cₙ)-1
     J = jacobimatrix(P)'
     C = Matrix(J[1:n,1:n])
@@ -29,15 +30,27 @@ end
 ####
 function minimum_layout(::ExpansionLayout{<:AbstractOPLayout}, f::AbstractQuasiVector, dims)
     r = findall(iszero, diff(f))
-    min(first(f), minimum(f[r]), last(f))
+    if isempty(r)
+        min(first(f), last(f))
+    else
+        min(first(f), minimum(f[r]), last(f))
+    end
 end
 
 function maximum_layout(::ExpansionLayout{<:AbstractOPLayout}, f::AbstractQuasiVector, dims)
     r = findall(iszero, diff(f))
-    max(first(f), maximum(f[r]), last(f))
+    if isempty(r)
+        max(first(f), last(f))
+    else
+        max(first(f), maximum(f[r]), last(f))
+    end
 end
 
 function extrema_layout(::ExpansionLayout{<:AbstractOPLayout}, f::AbstractQuasiVector, dims...)
     r = findall(iszero, diff(f))
-    extrema([first(f); f[r]; last(f)])
+    if isempty(r)
+        extrema([first(f); last(f)])
+    else    
+        extrema([first(f); f[r]; last(f)])
+    end
 end

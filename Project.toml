@@ -1,6 +1,6 @@
 name = "ClassicalOrthogonalPolynomials"
 uuid = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
-version = "0.15.13"
+version = "0.15.14"
 authors = ["Sheehan Olver <solver@mac.com>"]
 
 [deps]
@@ -51,7 +51,7 @@ IntervalSets = "0.7"
 LazyArrays = "2.8"
 LazyBandedMatrices = "0.11"
 MutableArithmetics = "1"
-QuasiArrays = "0.13"
+QuasiArrays = "0.13.2"
 RecurrenceRelationshipArrays = "0.1.2"
 RecurrenceRelationships = "0.2"
 SpecialFunctions = "1.0, 2"
