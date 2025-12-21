@@ -74,3 +74,16 @@ function diff(L::Laguerre{T}; dims=1) where T
     D = _BandedMatrix(Fill(-one(T),1,∞), ∞, -1,1)
     ApplyQuasiMatrix(*, Laguerre(L.α+1), D)
 end
+
+
+
+##########
+# grammatrix
+##########
+
+function weightedgrammatrix(L::Laguerre{T}) where T
+    α = L.α
+    iszero(α) && return Eye{T}(∞)
+    isone(α) && return Diagonal(convert(T,1):∞)
+    Diagonal(exp.(loggamma.((1:∞) .+ α) .- loggamma.(1:∞)))
+end

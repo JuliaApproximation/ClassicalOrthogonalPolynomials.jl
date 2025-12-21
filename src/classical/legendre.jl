@@ -213,6 +213,9 @@ end
 
 grammatrix(P::Legendre{T}) where T = Diagonal(convert(T,2) ./ (2(0:∞) .+ 1))
 grammatrix(P::Normalized{T,<:Legendre}) where T = Eye{T}(∞)
+
+weightedgrammatrix(P::Legendre) = grammatrix(P)
+
 @simplify *(P::QuasiAdjoint{<:Any,<:Normalized{<:Any,<:Legendre}}, Q::Normalized{<:Any,<:Legendre}) =
     grammatrix(Normalized(Legendre{promote_type(eltype(P), eltype(Q))}()))
 

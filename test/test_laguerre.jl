@@ -32,4 +32,10 @@ import ClassicalOrthogonalPolynomials: orthogonalityweight
         X = L \ (x .* L)
         @test 0.1*L[0.1,1:10]' ≈ L[0.1,1:11]'*X[1:11,1:10]
     end
+
+    @testset "weightedgrammatrix" begin
+        @test weightedgrammatrix(Laguerre()) == Eye(∞)
+        @test weightedgrammatrix(Laguerre(1)) == Diagonal(1:∞)
+        @test weightedgrammatrix(Laguerre(2))[1:10,1:10] ≈ Diagonal((1:∞) .* (2:∞))[1:10,1:10]
+    end
 end

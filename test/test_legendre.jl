@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, LazyArrays, QuasiArrays, BandedMatrices, ContinuumArrays, ForwardDiff, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw, weighted, oneto, grammatrix
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, jacobimatrix, Clenshaw, weighted, oneto, grammatrix, weightedgrammatrix
 import QuasiArrays: MulQuasiArray
 
 @testset "Legendre" begin
@@ -248,5 +248,11 @@ import QuasiArrays: MulQuasiArray
         @test norm(f,1) ≈ 2
         @test norm(f,Inf) ≈ 1
         @test norm(f,3) ≈ cbrt(2) 
+    end
+
+    @testset "grammatrix" begin
+        P = Legendre()
+        @test grammatrix(P)[1:10,1:10] == weightedgrammatrix(P)[1:10,1:10] == Diagonal(2 ./ (1:2:20))
+        @test grammatrix(Normalized(P))[1:10,1:10] == weightedgrammatrix(Normalized(P))[1:10,1:10] == Eye(10)
     end
 end
