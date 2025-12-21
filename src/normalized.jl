@@ -233,6 +233,7 @@ weight(Q::OrthonormalWeighted) = sqrt.(orthogonalityweight(Q.P))
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
 
 grammatrix(A::OrthonormalWeighted{T}) where T = Eye{T}(∞)
+weightedgrammatrix_layout(::NormalizedOPLayout, P) = Eye{eltype(P)}(∞)
 
 
 """
