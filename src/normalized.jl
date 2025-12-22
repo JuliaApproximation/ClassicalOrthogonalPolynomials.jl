@@ -10,7 +10,7 @@ function normalizationconstant(μ, P::AbstractQuasiMatrix{T}) where T
     X = jacobimatrix(P)
     c,b = subdiagonaldata(X),supdiagonaldata(X)
     # hide array type to avoid crazy compilation
-    Accumulate{T,1,typeof(*),Vector{T},AbstractVector{T}}(*, T[μ], Vcat(zero(T),sqrt.(c ./ b)), 1, (1,))
+    Accumulate{T,1,typeof(*),Vector{T},AbstractVector{T}}(*, T[μ], Vcat(zero(T), sign.(b) .* sqrt.(c ./ b)), 1, (1,))
 end
 
 normalizationconstant(P::AbstractQuasiMatrix) = normalizationconstant(inv(sqrt(sum(orthogonalityweight(P)))), P)
