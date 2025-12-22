@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, LinearAlgebra, Test
 import ClassicalOrthogonalPolynomials: orthogonalityweight
 
 @testset "Laguerre" begin
@@ -46,6 +46,10 @@ import ClassicalOrthogonalPolynomials: orthogonalityweight
 
         @test (Weighted(P) * (Weighted(P) \ Weighted(Q)))[0.1,1:5] ≈ Weighted(Q)[0.1,1:5]
         @test (Weighted(P) * (Weighted(P) \ Weighted(R)))[0.1,1:5] ≈ Weighted(R)[0.1,1:5]
+        @test Weighted(P) \ Weighted(P) == I
+
+        @test_throws ErrorException Laguerre(1.3) \ P
+        @test_throws ErrorException Weighted(P) \ Weighted(Laguerre(1.3))
     end
 
     @testset "Derivatives" begin
