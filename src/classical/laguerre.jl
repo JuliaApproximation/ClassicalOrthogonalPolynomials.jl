@@ -14,7 +14,7 @@ AbstractQuasiArray{T}(w::LaguerreWeight) where T = LaguerreWeight{T}(w.α)
 AbstractQuasiVector{T}(w::LaguerreWeight) where T = LaguerreWeight{T}(w.α)
 
 
-axes(::LaguerreWeight{T}) where T = (Inclusion(ℝ),)
+axes(::LaguerreWeight{T}) where T = (Inclusion(HalfLine{T}()),)
 function getindex(w::LaguerreWeight, x::Number)
     x ∈ axes(w,1) || throw(BoundsError())
     x^w.α * exp(-x)
@@ -34,7 +34,7 @@ AbstractQuasiArray{T}(w::Laguerre) where T = Laguerre{T}(w.α)
 AbstractQuasiMatrix{T}(w::Laguerre) where T = Laguerre{T}(w.α)
 
 
-orthogonalityweight(L::Laguerre)= LaguerreWeight(L.α)
+orthogonalityweight(L::Laguerre) = LaguerreWeight(L.α)
 
 ==(L1::Laguerre, L2::Laguerre) = L1.α == L2.α
 axes(::Laguerre{T}) where T = (Inclusion(HalfLine{T}()), oneto(∞))
@@ -74,6 +74,12 @@ function diff(L::Laguerre{T}; dims=1) where T
     D = _BandedMatrix(Fill(-one(T),1,∞), ∞, -1,1)
     ApplyQuasiMatrix(*, Laguerre(L.α+1), D)
 end
+
+function diff(L::Weighted{T,Laguerre{T}}; dims=1) where T
+    D = _BandedMatrix((1:∞)', ∞, 1,-1)
+    ApplyQuasiMatrix(*, Weighted(Laguerre(L.P.α-1)), D)
+end
+
 
 
 
