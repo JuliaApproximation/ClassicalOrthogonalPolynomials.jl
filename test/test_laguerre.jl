@@ -39,6 +39,15 @@ import ClassicalOrthogonalPolynomials: orthogonalityweight
         @test f[0.1] ≈ 0.1 * exp(-0.1) * cos(0.1)
     end
 
+    @testset "conversion" begin
+        P,Q,R = Laguerre(),Laguerre(1),Laguerre(2)
+        @test (Q * (Q \ P))[0.1,1:5] ≈ (R * (R\P))[0.1,1:5] ≈ P[0.1,1:5]
+        @test (P\Q)[1:5,1:5] * (Q\P)[1:5,1:5] ≈ (P\R)[1:5,1:5] * (R\P)[1:5,1:5] ≈ I
+
+        @test (Weighted(P) * (Weighted(P) \ Weighted(Q)))[0.1,1:5] ≈ Weighted(Q)[0.1,1:5]
+        @test (Weighted(P) * (Weighted(P) \ Weighted(R)))[0.1,1:5] ≈ Weighted(R)[0.1,1:5]
+    end
+
     @testset "Derivatives" begin
         L = Laguerre()
         D = Derivative(axes(L,1))

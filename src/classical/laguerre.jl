@@ -93,3 +93,45 @@ function weightedgrammatrix(L::Laguerre{T}) where T
     isone(α) && return Diagonal(convert(T,1):∞)
     Diagonal(exp.(loggamma.((1:∞) .+ α) .- loggamma.(1:∞)))
 end
+
+
+####
+# Conversion
+####
+
+
+function \(C2::Laguerre, C1::Laguerre)
+    T = promote_type(eltype(C2), eltype(C1))
+    α_Int = C1.α
+    α = convert(T,α_Int)
+    if C2.α == α+1
+        Bidiagonal(Ones{T}(∞), -Ones{T}(∞), :U)
+    elseif C2.α == α_Int
+        Eye{T}(∞)
+    elseif isinteger(C2.α-α_Int) && C2.α > α_Int
+        Cm = Laguerre{T}(α_Int+1)
+        (C2 \ Cm) * (Cm \ C1)
+    elseif isinteger(C2.α-α_Int)
+        inv(C1 \ C2)
+    else
+        error("Not implemented")
+    end
+end
+
+function \(w_A::Weighted{<:Any,<:Laguerre}, w_B::Weighted{<:Any,<:Laguerre})
+    A = w_A.P
+    B = w_B.P
+    T = promote_type(eltype(w_A),eltype(w_B))
+
+    if A == B
+        SquareEye{T}(ℵ₀)
+    elseif B.α == A.α+1
+        α = convert(T,A.α)
+        Bidiagonal((1:∞) .+ α, -(convert(T,1):∞), :L)
+    elseif B.α > A.α+1
+        J = Weighted(Laguerre(B.α-1))
+        (w_A\J) * (J\w_B)
+    else
+        error("not implemented for $w_A and $w_B")
+    end
+end
