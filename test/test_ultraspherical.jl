@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, ContinuumArrays, BandedMatrices, LazyArrays, Test
+using ClassicalOrthogonalPolynomials, ContinuumArrays, BandedMatrices, LazyArrays, QuasiArrays, Test
 using ForwardDiff
 using LazyArrays: rowsupport, colsupport
 using ClassicalOrthogonalPolynomials: grammatrix
