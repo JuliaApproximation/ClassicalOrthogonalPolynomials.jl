@@ -275,5 +275,18 @@ import BandedMatrices: isbanded
             u = W*c
             @test u[0.0] ≈ -0.536964648316337 # mathematica
         end
+
+        @testset "example with explicit conversion" begin
+            T,C = ChebyshevT(),Ultraspherical(2)
+            x = axes(T,1)
+            L = C\(diff(T,2) + x.^2 .* T)
+            B = T[[begin,end],:]
+            A = [B; L]
+            R = [Zeros(2,∞); C\T]
+            f = transform(ChebyshevT(), exp)
+            u = A\(R*f)
+            @test (T*u)[[-1,1]] ≈ [0,0] atol=1E-15 # bcs match
+            @test diff(T*u,2)[0.1] + 0.1^2*(T*u)[0.1] ≈ exp(0.1) # ODE solved
+        end
     end
 end
