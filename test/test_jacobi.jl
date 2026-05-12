@@ -147,6 +147,9 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             # special weighted conversions
             W = (JacobiWeight(-1,-1) .* Jacobi(0,0)) \ Jacobi(0,0)
             @test ((JacobiWeight(-1,-1) .* Jacobi(0,0)) * W)[0.1,1:10] ≈ Jacobi(0,0)[0.1,1:10]
+
+            # potential inexact errors
+            Jacobi(1.9,1.9) \ Jacobi(0.9,0.9) # isinteger(1.9-0.9) = false
         end
 
         @testset "Derivative" begin

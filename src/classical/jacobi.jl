@@ -212,6 +212,7 @@ OrthogonalPolynomial(w::JacobiWeight) = Jacobi(w.a, w.b)
 orthogonalityweight(P::Jacobi) = JacobiWeight(P.a, P.b)
 
 const WeightedJacobi{T} = WeightedBasis{T,<:JacobiWeight,<:Jacobi}
+WeightedJacobi(P::Jacobi{T}) where T = JacobiWeight(zero(T),zero(T)) .* P
 
 """
     HalfWeighted{lr}(Jacobi(a,b))
@@ -388,42 +389,29 @@ function _jacobi_convert_b(a, b) # Jacobi(a, b+1) \ Jacobi(a, b)
     end
 end
 
-# TODO: implement ApplyArray(*, A) in LazyArrays.jl, then these can be simplified
-# the type specification is also because LazyArrays.jl is slow otherwise
-# getindex and print could be very slow. This needs to be fixed by LazyArrays.jl
 function _jacobi_convert_a(a, b, k, T) # Jacobi(a+k, b) \ Jacobi(a, b)
-    if iszero(k)
-        Eye{T}(∞)
-    elseif isone(k)
-        _jacobi_convert_a(a, b)
-    else
-        list = tuple([_jacobi_convert_a(a+j, b) for j in k-1:-1:0]...)
-        ApplyArray{T,2,typeof(*),typeof(list)}(*, list)
+    j = round(k)
+    if j ≉ k
+        throw(ArgumentError("non-integer conversions not supported"))
     end
+    k = Integer(j)
+    reduce(*, [_jacobi_convert_a(a+j, b) for j in k-1:-1:0], init=Eye{T}(∞))
 end
 function _jacobi_convert_b(a, b, k, T) # Jacobi(a, b+k) \ Jacobi(a, b)
-    if iszero(k)
-        Eye{T}(∞)
-    elseif isone(k)
-        _jacobi_convert_b(a, b)
-    else
-        list = tuple([_jacobi_convert_b(a, b+j) for j in k-1:-1:0]...)
-        ApplyArray{T,2,typeof(*),typeof(list)}(*, list)
+    j = round(k)
+    if j ≉ k
+        throw(ArgumentError("non-integer conversions not supported"))
     end
+    k = Integer(j)
+    reduce(*, [_jacobi_convert_b(a, b+j) for j in k-1:-1:0], init=Eye{T}(∞))
 end
-
-isapproxinteger(x) = isinteger(x) || isapprox(x,round(Int,x)) || isapprox(x+1,round(Int,x+1))
-
 
 function \(A::Jacobi, B::Jacobi)
     T = promote_type(eltype(A), eltype(B))
     aa, ab = A.a, A.b
     ba, bb = B.a, B.b
-    if !isapproxinteger(aa-ba) || !isapproxinteger(ab-bb)
-        throw(ArgumentError("non-integer conversions not supported"))
-    end
-    ka = round(Integer, aa-ba)
-    kb = round(Integer, ab-bb)
+    ka = aa - ba
+    kb = ab - bb
     if ka >= 0
         C1 = _jacobi_convert_a(ba, ab, ka, T)
         if kb >= 0
@@ -431,37 +419,16 @@ function \(A::Jacobi, B::Jacobi)
         else
             C2 = inv(_jacobi_convert_b(ba, ab, -kb, T))
         end
-        if iszero(ka)
-            C2
-        elseif iszero(kb)
-            C1
-        else
-            list = (C1, C2)
-            ApplyArray{T,2,typeof(*),typeof(list)}(*, list)
-        end
+        C1 * C2
     else
         inv(B \ A)
     end
 end
 
-function \(A::Jacobi, w_B::WeightedJacobi)
-    a,b = A.a,A.b
-    (JacobiWeight(zero(a),zero(b)) .* A) \ w_B
-end
-
-function \(w_A::WeightedJacobi, B::Jacobi)
-    a,b = B.a,B.b
-    w_A \ (JacobiWeight(zero(a),zero(b)) .* B)
-end
-
-function \(A::AbstractJacobi, w_B::WeightedJacobi)
-    Ã = Jacobi(A)
-    (A \ Ã) * (Ã \ w_B)
-end
-function \(w_A::WeightedJacobi, B::AbstractJacobi)
-    B̃ = Jacobi(B)
-    (w_A \ B̃) * (B̃ \ B)
-end
+\(A::Jacobi, w_B::WeightedJacobi) = WeightedJacobi(A) \ w_B
+\(w_A::WeightedJacobi, B::Jacobi) = w_A \ WeightedJacobi(B)
+\(A::AbstractJacobi, w_B::WeightedJacobi) = Jacobi(A) \ w_B
+\(w_A::WeightedJacobi, B::AbstractJacobi) = w_A \ Jacobi(B)
 
 
 function broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::WeightedJacobi)
