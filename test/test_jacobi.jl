@@ -561,4 +561,11 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
     @testset "ChebyshevInterval constructior" begin
         @test jacobi(1,2,ChebyshevInterval()) ≡ Jacobi(1,2)
     end
+
+    @testset "broadcastbasis" begin
+        @test (expand(Jacobi(1,2), exp) + expand(Jacobi(2,1),cos))[0.1] ≈ exp(0.1)+cos(0.1)
+        @test (expand(Legendre(), exp) + expand(Jacobi(2,1),cos))[0.1] ≈ exp(0.1)+cos(0.1)
+        @test (expand(ChebyshevT(), exp) + expand(Jacobi(3/2,1/2),cos))[0.1] ≈ exp(0.1)+cos(0.1)
+        @test (expand(Ultraspherical(2), exp) + expand(Jacobi(3/2,1/2),cos))[0.1] ≈ exp(0.1)+cos(0.1)
+    end
 end

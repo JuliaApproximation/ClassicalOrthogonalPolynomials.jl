@@ -227,4 +227,10 @@ using ClassicalOrthogonalPolynomials: grammatrix
         op = (s .+ im) .* T
         @test (C \ op)[1,1] ≈ 0.5 + im
     end
+
+    @testset "broadcastbasis" begin
+        @test (expand(Ultraspherical(1), exp) + expand(Ultraspherical(2),cos))[0.1] ≈ exp(0.1)+cos(0.1)
+        @test (expand(Legendre(), exp) + expand(Ultraspherical(3/2), cos))[0.1] ≈ (expand(Ultraspherical(3/2), exp) + expand(Legendre(), cos))[0.1] ≈ exp(0.1)+cos(0.1)
+        @test (expand(ChebyshevT(), exp) + expand(Ultraspherical(2), cos))[0.1] ≈ (expand(Ultraspherical(2), exp) + expand(ChebyshevT(), cos))[0.1] ≈ exp(0.1)+cos(0.1)
+    end
 end

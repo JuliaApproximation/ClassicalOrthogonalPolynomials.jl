@@ -602,6 +602,10 @@ import BandedMatrices: isbanded
         @test W \ (a .* W) isa Clenshaw
         @test (a .* W)[0.1,1:5] ≈ a[0.1] * W[0.1,1:5]
     end
+
+    @testset "broadcastbasis" begin
+        @test (expand(ChebyshevT(), exp) + expand(ChebyshevU(), cos))[0.1] ≈ exp(0.1)+cos(0.1)
+    end
 end
 
 struct QuadraticMap{T} <: Map{T} end
