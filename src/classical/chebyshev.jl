@@ -327,5 +327,6 @@ end
 # algebra
 ####
 
-broadcastbasis(::typeof(+), ::ChebyshevT, U::ChebyshevU) = U
-broadcastbasis(::typeof(+), U::ChebyshevU, ::ChebyshevT) = U
+broadcastbasis(::typeof(+), ::Chebyshev{kind,T}, ::Chebyshev{kind,V}) where {kind,T,V} = Chebyshev{kind,promote_type(T,V)}()
+broadcastbasis(::typeof(+), ::ChebyshevT{T}, ::ChebyshevU{V}) where {T,V} = ChebyshevU{promote_type(T,V)}()
+broadcastbasis(::typeof(+), ::ChebyshevU{T}, ::ChebyshevT{V}) where {T,V} = ChebyshevU{promote_type(T,V)}()

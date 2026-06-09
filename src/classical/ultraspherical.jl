@@ -328,7 +328,7 @@ end
 
 
 
-broadcastbasis(::typeof(+),  A::Ultraspherical, B::Ultraspherical) = Ultraspherical(max(A.λ,B.λ))
+broadcastbasis(::typeof(+),  A::Ultraspherical{T}, B::Ultraspherical{V}) where {T,V} = Ultraspherical{promote_type(T,V)}(max(A.λ,B.λ))
 broadcastbasis(::typeof(+),  A::ChebyshevT, B::Ultraspherical) = Ultraspherical(max(zero(real(eltype(A))),B.λ)) # we assume B.λ > 0
 broadcastbasis(::typeof(+),  A::Ultraspherical, B::ChebyshevT) = Ultraspherical(max(A.λ,zero(real(eltype(B))))) # we assume A.λ > 0
 broadcastbasis(::typeof(+),  A::Legendre, B::Ultraspherical) = Ultraspherical(max(-one(real(eltype(A)))/2,B.λ))
