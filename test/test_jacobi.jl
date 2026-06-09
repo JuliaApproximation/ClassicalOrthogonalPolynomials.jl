@@ -28,7 +28,7 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test Jacobi(1,2) .* Legendre() == Jacobi(1,2) .* Jacobi(0,0)
 
         J = Jacobi(1,2)
-        @test AbstractQuasiArray{Float32}(J) ≡ AbstractQuasiMatrix{Float32}(J) ≡ Jacobi{Float32}(1,2)
+        @test AbstractQuasiArray{Float32}(J) ≡ AbstractQuasiMatrix{Float32}(J) ≡ Jacobi{Float32}(1,2) ≡ Jacobi{Float32}(J)
     end
 
     @testset "basis" begin
