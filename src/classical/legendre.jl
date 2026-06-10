@@ -263,3 +263,6 @@ function _sum(P::Legendre{T}, dims::Int) where T
 end
 
 _sum(p::SubQuasiArray{T,1,Legendre{T},<:Tuple{Inclusion,Int}}, ::Colon) where T = parentindices(p)[2] == 1 ? convert(T, 2) : zero(T)
+
+
+broadcastbasis(::typeof(+), ::Legendre{T}, ::Legendre{V}) where {T,V} = Legendre{promote_type(T,V)}()

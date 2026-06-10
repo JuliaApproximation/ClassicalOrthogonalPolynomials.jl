@@ -159,6 +159,9 @@ Jacobi{T}(a::V, b::V) where {T,V} = Jacobi{T,V}(a, b)
 Jacobi{T}(a, b) where T = Jacobi{T}(promote(a,b)...)
 Jacobi(a::V, b::T) where {T,V} = Jacobi{float(promote_type(T,V))}(a, b)
 
+Jacobi(P::Jacobi) = P
+Jacobi{T}(P::Jacobi) where T = Jacobi{T}(P.a, P.b)
+
 AbstractQuasiArray{T}(w::Jacobi) where T = Jacobi{T}(w.a, w.b)
 AbstractQuasiMatrix{T}(w::Jacobi) where T = Jacobi{T}(w.a, w.b)
 
@@ -463,6 +466,8 @@ function \(w_A::WeightedJacobi, B::AbstractJacobi)
     (w_A \ B̃) * (B̃ \ B)
 end
 
+
+broadcastbasis(::typeof(+),  A::AbstractJacobi, B::AbstractJacobi) = Jacobi(max(Jacobi(A).a,Jacobi(B).a), max(Jacobi(A).b,Jacobi(B).b))
 
 function broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::WeightedJacobi)
     wA,A = w_A.args

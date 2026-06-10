@@ -234,12 +234,12 @@ end
 
 
 
-function \(U::Ultraspherical{<:Any,<:Integer}, C::ChebyshevT)
+function \(U::Ultraspherical, C::ChebyshevT)
     T = promote_type(eltype(U), eltype(C))
     (U\Ultraspherical{T}(1)) * (ChebyshevU{T}()\C)
 end
 
-function \(U::Ultraspherical{<:Any,<:Integer}, C::ChebyshevU)
+function \(U::Ultraspherical, C::ChebyshevU)
     T = promote_type(eltype(U), eltype(C))
     U\Ultraspherical(C)
 end
@@ -326,3 +326,10 @@ end
 \(A::Ultraspherical, w_B::WeightedUltraspherical) = (UltrasphericalWeight(one(A.λ)/2) .* A) \ w_B
 \(A::Legendre, wB::WeightedUltraspherical) = Ultraspherical(A) \ wB
 
+
+
+broadcastbasis(::typeof(+),  A::Ultraspherical{T}, B::Ultraspherical{V}) where {T,V} = Ultraspherical{promote_type(T,V)}(max(A.λ,B.λ))
+broadcastbasis(::typeof(+),  A::ChebyshevT, B::Ultraspherical) = Ultraspherical(max(zero(real(eltype(A))),B.λ)) # we assume B.λ > 0
+broadcastbasis(::typeof(+),  A::Ultraspherical, B::ChebyshevT) = Ultraspherical(max(A.λ,zero(real(eltype(B))))) # we assume A.λ > 0
+broadcastbasis(::typeof(+),  A::Legendre, B::Ultraspherical) = Ultraspherical(max(-one(real(eltype(A)))/2,B.λ))
+broadcastbasis(::typeof(+),  A::Ultraspherical, B::Legendre) = Ultraspherical(max(A.λ,-one(real(eltype(B)))/2))
