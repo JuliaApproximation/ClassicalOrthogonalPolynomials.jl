@@ -105,7 +105,8 @@ equals_layout(::MappedOPLayout, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) &
 equals_layout(::MappedOPLayout, ::MappedBasisLayouts, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
 equals_layout(::MappedBasisLayouts, ::MappedOPLayout, P, Q) = demap(P) == demap(Q) && basismap(P) == basismap(Q)
 
-broadcastbasis_layout(::typeof(+), ::MappedOPLayout, ::MappedOPLayout, P, Q) = broadcastbasis_layout(+, MappedBasisLayout(), MappedBasisLayout(), P, Q)
+broadcastbasis_layout(::typeof(+), ::MappedOPLayout, layB, P, Q) = broadcastbasis_layout(+, MappedBasisLayout(), layB, P, Q)
+broadcastbasis_layout(::typeof(+), layA, ::MappedOPLayout, P, Q) = broadcastbasis_layout(+, layA, MappedBasisLayout(), P, Q)
 broadcastbasis_layout(::typeof(+), ::MappedOPLayout, M::MappedBasisLayout, P, Q) = broadcastbasis_layout(+, MappedBasisLayout(), M, P, Q)
 broadcastbasis_layout(::typeof(+), L::MappedBasisLayout, ::MappedOPLayout, P, Q) = broadcastbasis_layout(+, L, MappedBasisLayout(), P, Q)
 sum_layout(::MappedOPLayout, A, dims) = sum_layout(MappedBasisLayout(), A, dims)

@@ -161,7 +161,10 @@ using ClassicalOrthogonalPolynomials: grammatrix
 
     @testset "grammatrix" begin
         C = Ultraspherical(3/2)
+        W = Weighted(C)
         @test (C'C)[1:5,1:5] == grammatrix(C)[1:5,1:5]
+        @test (W'C) isa Diagonal
+        @test (C'W) isa Diagonal
     end
 
     @testset "Weighted derivative" begin
@@ -232,5 +235,8 @@ using ClassicalOrthogonalPolynomials: grammatrix
         @test (expand(Ultraspherical(1), exp) + expand(Ultraspherical(2),cos))[0.1] ≈ exp(0.1)+cos(0.1)
         @test (expand(Legendre(), exp) + expand(Ultraspherical(3/2), cos))[0.1] ≈ (expand(Ultraspherical(3/2), exp) + expand(Legendre(), cos))[0.1] ≈ exp(0.1)+cos(0.1)
         @test (expand(ChebyshevT(), exp) + expand(Ultraspherical(2), cos))[0.1] ≈ (expand(Ultraspherical(2), exp) + expand(ChebyshevT(), cos))[0.1] ≈ exp(0.1)+cos(0.1)
+
+        @test expand(Weighted(Ultraspherical(3/2)), x -> cos(π/2*x)) ≈ expand(cos(π/2*x) for x in -1..1)
+        @test expand(Weighted(Ultraspherical(3/2)), x -> cos(π/2*x)) ≈ [cos(π/2*x) for x in -1..1]
     end
 end

@@ -310,7 +310,14 @@ end
 
 
 @simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractJacobi) = legendre_grammatrix(parent(Ac),B)
-@simplify *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::Weighted{<:Any,<:AbstractJacobi}) = legendre_grammatrix(parent(Ac),B)
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::Weighted{<:Any,<:AbstractJacobi})
+    A = parent(Ac)
+    if A == B.P
+        weightedgrammatrix(A)
+    else
+        legendre_grammatrix(A,B)
+    end
+end
 grammatrix(A::AbstractJacobi) = legendre_grammatrix(A)
 grammatrix(A::Weighted{<:Any,<:AbstractJacobi}) = legendre_grammatrix(A)
 
@@ -483,6 +490,14 @@ broadcastbasis(::typeof(+), w_A::Weighted{<:Any,<:Jacobi}, w_B::WeightedJacobi) 
 broadcastbasis(::typeof(+), w_A::WeightedJacobi, w_B::Weighted{<:Any,<:Jacobi}) = broadcastbasis(+, w_A, convert(WeightedBasis,w_B))
 broadcastbasis(::typeof(+), A::Jacobi, B::Weighted{<:Any,<:Jacobi{<:Any,<:Integer}}) = A
 broadcastbasis(::typeof(+), A::Weighted{<:Any,<:Jacobi{<:Any,<:Integer}}, B::Jacobi) = B
+
+function broadcastbasis(::typeof(+), A::AbstractJacobi, B::Weighted{<:Any,<:AbstractJacobi})
+    J = Jacobi(B.P)
+    (isapproxinteger(J.a) && isapproxinteger(J.b)) || error("not yet supported")
+    broadcastbasis(+, A, Legendre{eltype(B)}())
+end
+
+broadcastbasis(::typeof(+), A::Weighted{<:Any,<:AbstractJacobi}, B::AbstractJacobi) = broadcastbasis(+, B, A)
 
 function \(w_A::WeightedJacobi, w_B::WeightedJacobi)
     wA,A = w_A.args
