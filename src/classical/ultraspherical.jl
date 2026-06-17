@@ -196,6 +196,8 @@ end
 # Conversion
 ##########
 
+simplifiable(::typeof(\), ::Ultraspherical, ::Legendre) = Val(true)
+simplifiable(::typeof(\), ::Legendre, ::Ultraspherical) = Val(true)
 \(A::Ultraspherical, B::Legendre) = A\Ultraspherical(B)
 \(A::Legendre, B::Ultraspherical) = Ultraspherical(A)\B
 \(A::Legendre, B::Weighted{<:Any,<:Ultraspherical}) = Weighted(Ultraspherical(A))\B

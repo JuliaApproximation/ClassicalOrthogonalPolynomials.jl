@@ -51,7 +51,10 @@ M = (C'C)[1:n,1:n]
 
 #####
 # Weak form: integrating by parts we get:
+#
 # ⟨∇v, ∇u⟩ = λ*⟨v,u⟩
+#
+# This is precisely the k = 0 Hodge Laplace equation. 
 # we can still include dirichlet conditions in the test/trial basis:
 ######
 
@@ -142,38 +145,104 @@ u = P[:,1:n+1]*U[n+1:end,k]; u /= u[1]
 @test 𝐮ⁿ ≈ diff(u)
 
 
-# We can also solve the k = 0 Hodge Laplace equation. 
-
 
 
 ##########
 # 2D
 ##########
 
+
+# Weak form: the k = 0 Hodge–Laplace equation is equivalent to
+#
+# ⟨∇v, ∇u⟩ = λ*⟨v,u⟩
+#
+# We can use the basis Wₖ(x)Wⱼ(y) where Wₖ(x) = (1-x^2)*Cₖ^(3/2)(x)
+
+
+n = 30
+M_W = (W'W)[1:n,1:n] # mass matrix
+D² = (diff(W)'diff(W))[1:n,1:n] # stiffness matrix
+Δ = kron(D²,M_W) + kron(M_W,D²)
+M = kron(M_W, M_W)
+λ,U = eigen(Symmetric(Δ),Symmetric(M))
+@test λ[1] ≈ π^2/2
+uᵈ = W[:,1:n]reshape(U[:,1],n,n)W[:,1:n]'; uᵈ /= uᵈ[0,0]
+𝐮ᵈ_x,𝐮ᵈ_y = diff(uᵈ; dims=1), diff(uᵈ; dims=2)
+@test uᵈ[0.1,0.2] ≈ cos(π/2*0.1)*cos(π/2*0.2)
+@test 𝐮ᵈ_x[0.1,0.2] ≈ -π/2*sin(π/2*0.1)*cos(π/2*0.2)
+@test 𝐮ᵈ_y[0.1,0.2] ≈ -π/2*cos(π/2*0.1)*sin(π/2*0.2)
+
+# but now without vanishing conditions we get symmetry and Neumann conditions:
+
+M_C = (C'C)[1:n,1:n] # mass matrix
+D² = (diff(C)'diff(C))[1:n,1:n] # stiffness matrix
+Δ = kron(D²,M_C) + kron(M_C,D²)
+M = kron(M_C, M_C)
+
+λ,U = eigen(Symmetric(Δ),Symmetric(M))
+@test λ[1] == 0 # Neumann has a kernel
+@test all(λ[2:3] .≈ π^2/4)
+@test λ[4] ≈ 2π^2/4
+uⁿ = C[:,1:n]reshape(U[:,4],n,n)C[:,1:n]'; uⁿ /= uⁿ[1,1]
+𝐮ⁿ_x,𝐮ⁿ_y = diff(uⁿ; dims=1), diff(uⁿ; dims=2)
+@test uⁿ[0.1,0.2] ≈ sin(π/2*0.1)*sin(π/2*0.2)
+@test 𝐮ⁿ_x[0.1,0.2] ≈ π/2*cos(π/2*0.1)*sin(π/2*0.2)
+@test 𝐮ⁿ_y[0.1,0.2] ≈ π/2*sin(π/2*0.1)*cos(π/2*0.2)
+
+
 ######
-# Mixed form:
-# We can augment the equation with a derivative:
+# For k = 2 Hodge–Laplacian we define
 #
-#   𝐮 := ∇u
+#   𝐮 := ∇^⟂ u
 #
-# where we impose this definition weakly, obtaining a system:
+# obtaining a system:
 #
 #    -<𝐯, 𝐮> + <∇×𝐯,u> = 0
 #    <v, ∇×𝐮>          = λ<v,u>
 #
-# This is equivalent to the k = 2 Hodge–Laplacian mixed formulation,
-# that is, we view u as a 2-form, and 𝐮 = δ*u a 1-form in H_curl where δ = ∇' = -div = -d/dx
+# where the 2D curl is ∇× = [-∂_y ∂_x]. Here we view u as a 2-form, and 𝐮 = -δ*u a 1-form in H_curl where δ = ∇×' = ∇^⟂ = [-∂_y; ∂_x]
 #
-# we use the basis [P_k(x)*C_j(y),0] and [0,C_k(x)*P_j(y)] for H_curl. 
+# we use the basis [P_k(x)*C_j(y),0] and [0,C_k(x)*P_j(y)] for [u_1,u_2] = 𝐮 ∈ H_curl, thus we actually
+# get a 3-vector system (using the fact that [u_1,0] and [0,u_2] are automatically orthogonal):
+#
+#    -<v_1, u_1>  - <v_2, u_2>  - <∂_y v_1,u> + <∂_x v_2,u> = 0
+#    - <v, ∂_y u_1> + <v, ∂_x v_2>          = λ<v,u>
+#
 ######
 
 n = 20
 M_C = (C'C)[1:n,1:n]
-M_P = (P'P)[1:n,1:n]
+M_P = Diagonal((P'P).diag[1:n-1])
+D = (P'diff(C))[1:n-1,1:n]
 
 M_curl1 = kron(M_C,M_P)
 M_curl2 = kron(M_P,M_C)
-Z = zero(M_curl2)
+D_x = kron(M_P, D)
+D_y = kron(D, M_P)
+M = kron(M_P,M_P)
+Z = zero(M_curl1)
+Z₂ = zero(M)
+Z₃ = zero(D_y)
 
-[M_curl1    Z           
- Z          M_curl2     ]
+A = [M_curl1    Z           -D_y';
+     Z          M_curl2     D_x';
+    -D_y        D_x        Z₂]
+
+B =  [Z         Z           Z₃';
+      Z         Z           Z₃';
+      Z₃        Z₃        M]
+
+
+λ,Q = eigen(-(A\B)); λ = inv.(λ)
+
+@test λ[end] ≈ π^2/2
+
+u = P[:,1:n-1]reshape(Q[2n*(n-1)+1:end,end], n-1, n-1)*P[:,1:n-1]'; u = u/u[0,0]
+u_1 = P[:,1:n-1]*reshape(Q[1:n*(n-1),end], n-1, n)*C[:,1:n]'; u_1 = u_1/u[0,0]
+u_2 = C[:,1:n]*reshape(Q[n*(n-1)+1:2n*(n-1),end], n, n-1)*P[:,1:n-1]'; u_2 = u_2/u[0,0]
+
+@test u[0.1,0.2] ≈ uᵈ[0.1,0.2]
+@test diff(u;dims=1)[0.1,0.2] ≈ u_1[0.1,0.2] ≈ 𝐮ᵈ_y[0.1,0.2]
+@test diff(u;dims=2)[0.1,0.2] ≈ u_2[0.1,0.2]
+
+U_1 = (P\diff(u;dims=1)/C')[1:n,1:n]
