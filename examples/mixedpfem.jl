@@ -18,8 +18,6 @@ P = Legendre()
 # 1D
 #####
 
-
-
 #####
 # Strong form:
 # -⟨v,Δu⟩ = λ*⟨v,u⟩
@@ -46,7 +44,7 @@ M = (C'C)[1:n,1:n]
 Δ = -(C'diff(C,2))[1:n,1:n]
 
 λ,U = eigen(Δ, M) # we lose symmetry
-@test_broken isreal(λ[1]) # and it computes nonsense
+@test !isreal(λ[1]) # and it computes nonsense
 
 
 #####
@@ -121,7 +119,7 @@ B = zero(A); B[n+1:end,n+1:end] = M_P
 λ,U = eigen(A\B); λ = inv.(λ)
 @test λ[end] ≈ π^2/4
 u = P[:,1:n-1]*U[n+1:end,end]; u /= u[0]
-𝐮 = Q[:,1:n]*U[1:n,end]; 𝐮 *= -π/(2*𝐮[1])
+𝐮 = C[:,1:n]*U[1:n,end]; 𝐮 *= -π/(2*𝐮[1])
 @test uᵈ ≈ u
 @test 𝐮ᵈ ≈ 𝐮 ≈ diff(u)
 
@@ -139,10 +137,10 @@ B = zero(A); B[n+1:end,n+1:end] = M_P
 k = searchsortedfirst(λ,0)+1
 @test λ[k] ≈ π^2/4
 u = P[:,1:n+1]*U[n+1:end,k]; u /= u[1]
-𝐮 = W[:,1:n]*U[1:n,k]; 𝐮 *= π/(2*𝐮[1])
+𝐮 = W[:,1:n]*U[1:n,k]; 𝐮 *= π/(2*𝐮[0])
 
 @test uⁿ ≈ u
-@test 𝐮ⁿ ≈ diff(u)
+@test 𝐮ⁿ ≈ diff(u) ≈ 𝐮
 
 
 
@@ -237,12 +235,50 @@ B =  [Z         Z           Z₃';
 
 @test λ[end] ≈ π^2/2
 
-u = P[:,1:n-1]reshape(Q[2n*(n-1)+1:end,end], n-1, n-1)*P[:,1:n-1]'; u = u/u[0,0]
-u_1 = P[:,1:n-1]*reshape(Q[1:n*(n-1),end], n-1, n)*C[:,1:n]'; u_1 = u_1/u[0,0]
-u_2 = C[:,1:n]*reshape(Q[n*(n-1)+1:2n*(n-1),end], n, n-1)*P[:,1:n-1]'; u_2 = u_2/u[0,0]
+u = P[:,1:n-1]reshape(Q[2n*(n-1)+1:end,end], n-1, n-1)*P[:,1:n-1]'; κ = 1/u[0,0]; u *= κ
+u_1 = P[:,1:n-1]*reshape(Q[1:n*(n-1),end], n-1, n)*C[:,1:n]'; u_1 *= κ
+u_2 = C[:,1:n]*reshape(Q[n*(n-1)+1:2n*(n-1),end], n, n-1)*P[:,1:n-1]'; u_2 *= κ
 
 @test u[0.1,0.2] ≈ uᵈ[0.1,0.2]
-@test diff(u;dims=1)[0.1,0.2] ≈ u_1[0.1,0.2] ≈ 𝐮ᵈ_y[0.1,0.2]
-@test diff(u;dims=2)[0.1,0.2] ≈ u_2[0.1,0.2]
+@test -diff(u;dims=2)[0.1,0.2] ≈ u_1[0.1,0.2] ≈ -𝐮ᵈ_y[0.1,0.2]
+@test diff(u;dims=1)[0.1,0.2] ≈ u_2[0.1,0.2] ≈ 𝐮ᵈ_x[0.1,0.2]
 
-U_1 = (P\diff(u;dims=1)/C')[1:n,1:n]
+# using a weighted basis for u_1,u_2 imposes Neumann conditions:
+
+n = 20
+M_W = (W'W)[1:n-1,1:n-1]
+M_P = Diagonal((P'P).diag[1:n])
+D = (P'diff(W))[1:n,1:n-1]
+
+M_curl1 = kron(M_W,M_P)
+M_curl2 = kron(M_P,M_W)
+D_x = kron(M_P, D)
+D_y = kron(D, M_P)
+M = kron(M_P,M_P)
+Z = zero(M_curl1)
+Z₂ = zero(M)
+Z₃ = zero(D_y)
+
+A = [M_curl1    Z           -D_y';
+     Z          M_curl2     D_x';
+    -D_y        D_x        Z₂]
+
+B =  [Z         Z           Z₃';
+      Z         Z           Z₃';
+      Z₃        Z₃        M]
+
+
+λ,Q = eigen(A,B)
+
+k = searchsortedfirst(real(λ),0)
+@test λ[k] == 0
+@test all(λ[k-2:k-1] .≈ -π^2/4)
+@test λ[k-3] ≈ -π^2/2
+
+u = P[:,1:n]reshape(Q[2n*(n-1)+1:end,k-3], n, n)*P[:,1:n]'; κ = 1/u[1,1]; u *= κ
+u_1 = P[:,1:n]*reshape(Q[1:n*(n-1),k-3], n, n-1)*W[:,1:n-1]'; u_1 *= κ
+u_2 = W[:,1:n-1]*reshape(Q[n*(n-1)+1:2n*(n-1),k-3], n-1, n)*P[:,1:n]'; u_2 *= κ
+
+@test u[0.1,0.2] ≈ uⁿ[0.1,0.2]
+@test -diff(u;dims=2)[0.1,0.2] ≈ u_1[0.1,0.2] ≈ -𝐮ⁿ_y[0.1,0.2]
+@test diff(u;dims=1)[0.1,0.2] ≈ u_2[0.1,0.2] ≈ 𝐮ⁿ_x[0.1,0.2]
