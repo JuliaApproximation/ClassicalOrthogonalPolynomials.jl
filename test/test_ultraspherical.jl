@@ -238,5 +238,9 @@ using ClassicalOrthogonalPolynomials: grammatrix
 
         @test expand(Weighted(Ultraspherical(3/2)), x -> cos(π/2*x)) ≈ expand(cos(π/2*x) for x in -1..1)
         @test expand(Weighted(Ultraspherical(3/2)), x -> cos(π/2*x)) ≈ [cos(π/2*x) for x in -1..1]
+        @test expand(cos(π/2*x) for x in -1..1) ≈ expand(Weighted(Ultraspherical(3/2)), x -> cos(π/2*x))
+        @test [cos(π/2*x) for x in -1..1] ≈ expand(Weighted(Ultraspherical(3/2)), x -> cos(π/2*x))
+        @test [cos(π/2*x) for x in -1..1] ≈ expand(cos(π/2*x) for x in -1..1)
+        @test expand(cos(π/2*x) for x in -1..1) ≈ [cos(π/2*x) for x in -1..1]
     end
 end
