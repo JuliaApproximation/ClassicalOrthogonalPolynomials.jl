@@ -196,6 +196,8 @@ end
 # Conversion
 ##########
 
+simplifiable(::typeof(\), ::Ultraspherical, ::Legendre) = Val(true)
+simplifiable(::typeof(\), ::Legendre, ::Ultraspherical) = Val(true)
 \(A::Ultraspherical, B::Legendre) = A\Ultraspherical(B)
 \(A::Legendre, B::Ultraspherical) = Ultraspherical(A)\B
 \(A::Legendre, B::Weighted{<:Any,<:Ultraspherical}) = Weighted(Ultraspherical(A))\B
@@ -333,3 +335,4 @@ broadcastbasis(::typeof(+),  A::ChebyshevT, B::Ultraspherical) = Ultraspherical(
 broadcastbasis(::typeof(+),  A::Ultraspherical, B::ChebyshevT) = Ultraspherical(max(A.λ,zero(real(eltype(B))))) # we assume A.λ > 0
 broadcastbasis(::typeof(+),  A::Legendre, B::Ultraspherical) = Ultraspherical(max(-one(real(eltype(A)))/2,B.λ))
 broadcastbasis(::typeof(+),  A::Ultraspherical, B::Legendre) = Ultraspherical(max(A.λ,-one(real(eltype(B)))/2))
+
