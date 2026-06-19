@@ -97,6 +97,8 @@ singularities(w::AbstractJacobiWeight) = w
 
 abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
 
+all(::typeof(isreal), ::AbstractJacobi) = true
+
 struct JacobiTransformPlan{T, CHEB2JAC, DCT} <: Plan{T}
     cheb2jac::CHEB2JAC
     chebtransform::DCT

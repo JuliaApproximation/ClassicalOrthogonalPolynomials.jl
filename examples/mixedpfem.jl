@@ -268,7 +268,7 @@ B =  [Z         Z           Z₃';
       Z₃        Z₃        M]
 
 
-λ,Q = eigen(A,B)
+λ,Q = eigen(A,B); Q = real(Q)
 
 k = searchsortedfirst(real(λ),0)
 @test λ[k] == 0

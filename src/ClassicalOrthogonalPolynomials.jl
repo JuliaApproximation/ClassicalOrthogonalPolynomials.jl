@@ -11,7 +11,7 @@ import Base: @_inline_meta, axes, getindex, unsafe_getindex, convert, prod, *, /
                 IndexStyle, IndexLinear, ==, OneTo, tail, similar, copyto!, copy, setindex,
                 first, last, Slice, size, length, axes, IdentityUnitRange, sum, _sum, cumsum,
                 to_indices, tail, getproperty, inv, show, isapprox, summary,
-                findall, searchsortedfirst, diff, minimum, maximum, extrema
+                findall, searchsortedfirst, diff, minimum, maximum, extrema, all
 import Base.Broadcast: materialize, BroadcastStyle, broadcasted, Broadcasted
 import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjointlayout,
                 sub_materialize, arguments, sub_paddeddata, paddeddata, AbstractPaddedLayout, PaddedColumns, resizedata!, LazyVector, ApplyLayout, call,
@@ -130,6 +130,11 @@ copy(L::Ldiv{MappedOPLayout,BroadcastLayout{typeof(+)}}) = copy(Ldiv{MappedBasis
 copy(L::Ldiv{MappedOPLayout,BroadcastLayout{typeof(*)}}) = copy(Ldiv{MappedBasisLayout,BroadcastLayout{typeof(*)}}(L.A,L.B))
 copy(L::Ldiv{MappedOPLayout,ApplyLayout{typeof(hcat)}}) = copy(Ldiv{MappedBasisLayout,ApplyLayout{typeof(hcat)}}(L.A,L.B))
 copy(L::Ldiv{MappedOPLayout,ApplyLayout{typeof(*)}}) = copy(Ldiv{MappedBasisLayout,ApplyLayout{typeof(*)}}(L.A,L.B))
+
+for op in (:real, :imag)
+    @eval layout_broadcasted(::Tuple{MappedOPLayout}, ::typeof($op), P) = layout_broadcasted((MappedBasisLayout(),), $op, P)
+end
+
 
 # OPs are immutable
 copy(a::OrthogonalPolynomial) = a
