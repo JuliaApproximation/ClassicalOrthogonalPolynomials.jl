@@ -369,46 +369,17 @@ plot(u)
 g = range(-1,1,20)
 streamplot((x,y) -> SVector(u_1[x,y], u_2[x,y]), -1..1, -1..1) # tangential on boundary
 
-# using a weighted basis for u_1,u_2 imposes Neumann conditions:
+# exact solution
 
-n = 20
-M_W = (W'W)[1:n-1,1:n-1]
-M_P = Diagonal((P'P).diag[1:n])
-D = (P'diff(W))[1:n,1:n-1]
+u = -π*expand(C, x -> sin(π/2*x))expand(C, y -> sin(π/2*y))'
+u_1 = expand(P, x -> cos(π/2*x))expand(C, y -> sin(π/2*y))'
+u_2 = u_1'
 
-M_curl1 = kron(M_W,M_P)
-M_curl2 = kron(M_P,M_W)
-D_x = kron(M_P, D)
-D_y = kron(D, M_P)
-M = kron(M_P,M_P)
-Z = zero(M_curl1)
-Z₂ = zero(M)
-Z₃ = zero(D_y)
+@test -laplacian(u_1)[0.1,0.2] ≈ π^2/4 * u_1[0.1,0.2]
+@test -laplacian(u_2)[0.1,0.2] ≈ π^2/4 * u_2[0.1,0.2]
+@test (diff(u_1;dims=1)+diff(u_2;dims=2))[0.1,0.2] ≈ u[0.1,0.2]
 
-A = [M_curl1    Z           -D_y';
-     Z          M_curl2     D_x';
-    -D_y        D_x        Z₂]
+c = [vec(u.args[2][1:n,1:n]); vec(u_1.args[2][1:n-1,1:n]); vec(u_1.args[2][1:n,1:n-1])]
+@test A*c ≈ π^2/4 * B*c
 
-B =  [Z         Z           Z₃';
-      Z         Z           Z₃';
-      Z₃        Z₃        M]
-
-
-λ,Q = eigen(A,B); Q = real(Q)
-
-k = searchsortedfirst(real(λ),0)
-@test λ[k] == 0
-@test all(λ[k-2:k-1] .≈ -π^2/4)
-@test λ[k-3] ≈ -π^2/2
-
-u = P[:,1:n]reshape(Q[2n*(n-1)+1:end,k-3], n, n)*P[:,1:n]'; κ = 1/u[1,1]; u *= κ
-u_1 = P[:,1:n]*reshape(Q[1:n*(n-1),k-3], n, n-1)*W[:,1:n-1]'; u_1 *= κ
-u_2 = W[:,1:n-1]*reshape(Q[n*(n-1)+1:2n*(n-1),k-3], n-1, n)*P[:,1:n]'; u_2 *= κ
-
-@test u[0.1,0.2] ≈ uⁿ[0.1,0.2]
-@test -diff(u;dims=2)[0.1,0.2] ≈ u_1[0.1,0.2] ≈ -𝐮ⁿ_y[0.1,0.2]
-@test diff(u;dims=1)[0.1,0.2] ≈ u_2[0.1,0.2] ≈ 𝐮ⁿ_x[0.1,0.2]
-
-plot(u) # Neumann conditions
-g = range(-1,1,20)
-streamplot((x,y) -> SVector(u_1[x,y], u_2[x,y]), -1..1, -1..1) # normal on boundary
+reshape((A*c)[1:n^2], n, n)
