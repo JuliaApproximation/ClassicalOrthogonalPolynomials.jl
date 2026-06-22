@@ -1,4 +1,4 @@
-using ContinuumArrays, ClassicalOrthogonalPolynomials, FillArrays
+using ContinuumArrays, ClassicalOrthogonalPolynomials, FillArrays, StaticArrays
 using CairoMakie
 
 
@@ -387,51 +387,73 @@ streamplot((x,y) -> SVector(ũ_1[x,y], ũ_2[x,y]), -1..1, -1..1) # tangential 
 
 streamplot((x,y) -> SVector(-cos(π/2*x)sin(π/2*y), sin(π/2*x)cos(π/2*y)), -1..1, -1..1) # tangential on boundary
 
-# exact solution
+# we can impose zero conditions on the divergence:
 
-u = π*expand(C, x -> sin(π/2*x))expand(C, y -> sin(π/2*y))'
-u_1 = expand(P, x -> cos(π/2*x))expand(C, y -> sin(π/2*y))'
-u_2 = u_1'
+n = 20
+M_W = (W'W)[1:n,1:n]
+M_P = Diagonal((P'P).diag[1:n+1])
+D = (P'diff(W))[1:n+1,1:n]
+Δ_W = (diff(W)'diff(W))[1:n,1:n]
 
-@test -laplacian(u_1)[0.1,0.2] ≈ π^2/2 * u_1[0.1,0.2]
-@test -laplacian(u_2)[0.1,0.2] ≈ π^2/2 * u_2[0.1,0.2]
+D_x = kron(M_W, D)
+D_y = kron(D, M_W)
+𝐌_W = kron(M_W,M_W)
+𝐌_WP = kron(M_W,M_P)
+𝐌_PW = kron(M_P,M_W)
+Δ_y = kron(Δ_W, M_P)
+Δ_x = kron(M_P, Δ_W)
+D_xy = kron(D',D)
+Z₀ = zero(𝐌_W)
+Z₃ = zero(D_y)
+Z₄ = zero(Δ_y)
+
+A = [-𝐌_W        D_x'           D_y';
+     D_x        Δ_y     -D_xy;
+    D_y        -D_xy'       Δ_x]
+
+B =  [Z₀       Z₃'           Z₃';
+      Z₃         𝐌_WP           Z₄;
+      Z₃        Z₄        𝐌_PW]
+
+
+λ,Q = eigen(A \ B); Q = real(Q); λ = inv.(λ)
+k = size(Q,2)-3
+
+@test λ[k] ≈ π^2/2
+@test λ[k+1] ≈ π^2/2
+
+u = W[:,1:n]reshape(Q[1:n^2,k], n, n)*W[:,1:n]'; κ = π/u[0,0]; u *= κ
+u_1 = P[:,1:n+1]*reshape(Q[n^2+1:n^2+n*(n+1),k], n+1, n)*W[:,1:n]'; u_1 *= κ
+u_2 = W[:,1:n]*reshape(Q[n^2+n*(n+1)+1:end,k], n, n+1)*P[:,1:n+1]'; u_2 *= κ
+ũ = W[:,1:n]reshape(Q[1:n^2,k+1], n, n)*W[:,1:n]'; κ = π/ũ[0,0]; ũ *= κ
+ũ_1 = P[:,1:n+1]*reshape(Q[n^2+1:n^2+n*(n+1),k+1], n+1, n)*W[:,1:n]'; ũ_1 *= κ
+ũ_2 = W[:,1:n]*reshape(Q[n^2+n*(n+1)+1:end,k+1], n, n+1)*P[:,1:n+1]'; ũ_2 *= κ
+
+@test u_1[0.1,0.2]/ũ_1[0.1,0.2] ≈ u_1[1,0]/ũ_1[1,0]
+u = u - u_1[1,0]/ũ_1[1,0] * ũ
+u_1 = 0u_1; 
+κ = 1/u_2[0,1]; u_2 *= κ; u *= κ
+
 @test (diff(u_1;dims=1)+diff(u_2;dims=2))[0.1,0.2] ≈ -u[0.1,0.2]
+@test (diff(ũ_1;dims=1)+diff(ũ_2;dims=2))[0.1,0.2] ≈ -ũ[0.1,0.2]
+@test -laplacian(u_1)[0.1,0.2] ≈ π^2/2*u_1[0.1,0.2]
+@test -laplacian(u_2)[0.1,0.2] ≈ π^2/2*u_2[0.1,0.2]
+@test -laplacian(ũ_1)[0.1,0.2] ≈ π^2/2*ũ_1[0.1,0.2]
+@test -laplacian(ũ_2)[0.1,0.2] ≈ π^2/2*ũ_2[0.1,0.2] atol=1E-8
 
-c = [vec(u.args[2][1:n,1:n]); vec(u_1.args[2][1:n-1,1:n]); vec(u_2.args[2][1:n,1:n-1])]
+@test ũ[0.1,0.2] ≈ π*cos(π/2*0.1)cos(π/2*0.2)
+@test ũ_1[0.1,0.2] ≈ -2sin(π/2*0.1)cos(π/2*0.2)
+@test ũ_2[0.1,0.2] ≈ 0 atol=1E-10
 
-@test (A*c) ≈ π^2/2 * (B*c)
+@test u[0.1,0.2] ≈ -π/2*cos(π/2*0.1)cos(π/2*0.2)
+@test u_1[0.1,0.2] ≈ 0 atol=1E-10
+@test u_2[0.1,0.2] ≈ cos(π/2*0.1)sin(π/2*0.2)
 
+plot(u)
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(u_1[x,y], u_2[x,y]), -1..1, -1..1) # tangential on boundary
 
-@test (C'u*C)[1:n,1:n] ≈ -(C'diff(u_1;dims=1)*C + C'diff(u_2;dims=2)*C)[1:n,1:n]
-@test (C'u*C)[1:n,1:n] ≈ (diff(C)'u_1*C + C'u_2*diff(C))[1:n,1:n]
-@test 𝐌_C*c[1:n^2] ≈ vec((C'u*C)[1:n,1:n])
-@test D_x'*c[n^2+1:n^2+n*(n-1)] ≈ vec((diff(C)'u_1*C)[1:n,1:n])
-@test D_y'*c[n^2+n*(n-1)+1:end] ≈ vec((C'u_2*diff(C))[1:n,1:n])
+plot(ũ) # identical divergence as us
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(ũ_1[x,y], ũ_2[x,y]), -1..1, -1..1) # tangential on boundary
 
-@test (P'diff(u)*C)[1:n-1,1:n] ≈ reshape(D_x*c[1:n^2],n-1,n)
-@test (P'diff(u_1;dims=2)*diff(C))[1:n-1,1:n] ≈ reshape(Δ_y*c[n^2+1:n^2+n*(n-1)],n-1,n)
-@test (P'diff(u_2;dims=1)*diff(C))[1:n-1,1:n] ≈ reshape(D_xy*c[n^2+n*(n-1)+1:end],n-1,n)
-
-
-@test -laplacian(u_1)[0.1,0.2] ≈ π^2/2 * u_1[0.1,0.2]
-@test -(P'laplacian(u_1)*C)[1:n-1,1:n] ≈ π^2/2 * (P'u_1*C)[1:n-1,1:n]
-@test -(P'*(diff(u_1,2)+diff(diff(u_2;dims=1);dims=2)+diff(u_1,2;dims=2)-diff(diff(u_2;dims=1);dims=2))*C)[1:n-1,1:n] ≈ π^2/2 * (P'u_1*C)[1:n-1,1:n]
-@test (P'diff(u)*C+P'diff(u_1;dims=2)*diff(C)-P'diff(u_2)*diff(C))[1:n-1,1:n]  ≈ π^2/2  * (P'u_1*C)[1:n-1,1:n]
-
-
-@test (P'diff(u)*C)[1:n-1,1:n] ≈ reshape(D_x * vec(u.args[2][1:n,1:n]),n-1,n)
-@test (P'diff(u_1;dims=2)*diff(C))[1:n-1,1:n] ≈ reshape(Δ_y * vec(u_1.args[2][1:n-1,1:n]), n-1,n)
-@test (P'diff(u_2)*diff(C))[1:n-1,1:n] ≈ D*u_2.args[2][1:n,1:n-1]*D ≈ reshape(D_xy * vec(u_2.args[2][1:n,1:n-1]), n-1,n)
-
-
-
-
-# ∇*∇^⊤𝐮 == [∂_xx ∂_xy; ∂_yx ∂_yy]𝐮
-# ∇_⟂*∇×𝐮 == [∂_yy -∂_xy; -∂_yx ∂_xx]𝐮
-diff()
-
-
-
-C'u*C - C'diff(u_1;dims=1)*C - C'diff(u_2;dims=2)*C
-
-C'diff(u_1;dims=1)*C  + diff(C)'u_1*C
