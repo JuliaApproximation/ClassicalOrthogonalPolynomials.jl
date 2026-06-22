@@ -328,15 +328,14 @@ M_P = Diagonal((P'P).diag[1:n-1])
 D = (P'diff(C))[1:n-1,1:n]
 Δ_C = (diff(C)'diff(C))[1:n,1:n]
 
-M_curl1 = kron(M_C,M_P)
-M_curl2 = kron(M_P,M_C)
 D_x = kron(M_C, D)
 D_y = kron(D, M_C)
 𝐌_C = kron(M_C,M_C)
 𝐌_CP = kron(M_C,M_P)
+𝐌_PC = kron(M_P,M_C)
 Δ_y = kron(Δ_C, M_P)
 Δ_x = kron(M_P, Δ_C)
-D_xy = kron(D', D)
+D_xy = kron(D',D)
 Z₀ = zero(𝐌_C)
 Z₂ = zero(M)
 Z₃ = zero(D_y)
@@ -348,38 +347,91 @@ A = [-𝐌_C        D_x'           D_y';
 
 B =  [Z₀       Z₃'           Z₃';
       Z₃         𝐌_CP           Z₄;
-      Z₃        Z₄        𝐌_CP']
+      Z₃        Z₄        𝐌_PC]
 
 
 λ,Q = eigen(A, B); Q = real(Q)
-k = searchsortedfirst(real(λ),0)
+k = searchsortedfirst(real(λ),0)+2
 
-# @test λ[end] ≈ π^2/2
+@test λ[k] ≈ π^2/2
+@test λ[k+1] ≈ π^2/2
 
-u = C[:,1:n]reshape(Q[1:n^2,k], n, n)*C[:,1:n]' #; κ = 1/u[0,0]; u *= κ
-u_1 = P[:,1:n-1]*reshape(Q[n^2+1:n^2+n*(n-1),k], n-1, n)*C[:,1:n]' #; u_1 *= κ
-u_2 = C[:,1:n]*reshape(Q[n^2+n*(n-1)+1:end,k], n, n-1)*P[:,1:n-1]' #; u_2 *= κ
+u = C[:,1:n]reshape(Q[1:n^2,k], n, n)*C[:,1:n]'; κ = π/u[1,1]; u *= κ
+u_1 = P[:,1:n-1]*reshape(Q[n^2+1:n^2+n*(n-1),k], n-1, n)*C[:,1:n]'; u_1 *= κ
+u_2 = C[:,1:n]*reshape(Q[n^2+n*(n-1)+1:end,k], n, n-1)*P[:,1:n-1]'; u_2 *= κ
+ũ = C[:,1:n]reshape(Q[1:n^2,k+1], n, n)*C[:,1:n]'; κ = π/ũ[1,1]; ũ *= κ
+ũ_1 = P[:,1:n-1]*reshape(Q[n^2+1:n^2+n*(n-1),k+1], n-1, n)*C[:,1:n]'; ũ_1 *= κ
+ũ_2 = C[:,1:n]*reshape(Q[n^2+n*(n-1)+1:end,k+1], n, n-1)*P[:,1:n-1]'; ũ_2 *= κ
 
-# @test u[0.1,0.2] ≈ uᵈ[0.1,0.2]
 @test (diff(u_1;dims=1)+diff(u_2;dims=2))[0.1,0.2] ≈ -u[0.1,0.2]
-@test -diff(u;dims=2)[0.1,0.2] ≈ u_1[0.1,0.2]# ≈ -𝐮ᵈ_y[0.1,0.2]
-@test diff(u;dims=1)[0.1,0.2] ≈ u_2[0.1,0.2]# ≈ 𝐮ᵈ_x[0.1,0.2]
+@test (diff(ũ_1;dims=1)+diff(ũ_2;dims=2))[0.1,0.2] ≈ -ũ[0.1,0.2]
+@test -laplacian(u_1)[0.1,0.2] ≈ π^2/2*u_1[0.1,0.2]
+@test -laplacian(u_2)[0.1,0.2] ≈ π^2/2*u_2[0.1,0.2]
+@test -laplacian(ũ_1)[0.1,0.2] ≈ π^2/2*ũ_1[0.1,0.2]
+@test -laplacian(ũ_2)[0.1,0.2] ≈ π^2/2*ũ_2[0.1,0.2]
+
+@test u[0.1,0.2] ≈ ũ[0.1,0.2] ≈ π*sin(π/2*0.1)sin(π/2*0.2)
+@test u_1[0.1,0.2] ≈ cos(π/2*0.1)sin(π/2*0.2)
+@test u_2[0.1,0.2] ≈ sin(π/2*0.1)cos(π/2*0.2)
+
+@test ũ_1[0.1,0.2] ≈ -cos(π/2*0.1)sin(π/2*0.2)
+@test ũ_2[0.1,0.2] ≈ sin(π/2*0.1)cos(π/2*0.2)
 
 plot(u)
 g = range(-1,1,20)
 streamplot((x,y) -> SVector(u_1[x,y], u_2[x,y]), -1..1, -1..1) # tangential on boundary
 
+plot(ũ) # identical divergence as us
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(ũ_1[x,y], ũ_2[x,y]), -1..1, -1..1) # tangential on boundary
+
+streamplot((x,y) -> SVector(-cos(π/2*x)sin(π/2*y), sin(π/2*x)cos(π/2*y)), -1..1, -1..1) # tangential on boundary
+
 # exact solution
 
-u = -π*expand(C, x -> sin(π/2*x))expand(C, y -> sin(π/2*y))'
+u = π*expand(C, x -> sin(π/2*x))expand(C, y -> sin(π/2*y))'
 u_1 = expand(P, x -> cos(π/2*x))expand(C, y -> sin(π/2*y))'
 u_2 = u_1'
 
-@test -laplacian(u_1)[0.1,0.2] ≈ π^2/4 * u_1[0.1,0.2]
-@test -laplacian(u_2)[0.1,0.2] ≈ π^2/4 * u_2[0.1,0.2]
-@test (diff(u_1;dims=1)+diff(u_2;dims=2))[0.1,0.2] ≈ u[0.1,0.2]
+@test -laplacian(u_1)[0.1,0.2] ≈ π^2/2 * u_1[0.1,0.2]
+@test -laplacian(u_2)[0.1,0.2] ≈ π^2/2 * u_2[0.1,0.2]
+@test (diff(u_1;dims=1)+diff(u_2;dims=2))[0.1,0.2] ≈ -u[0.1,0.2]
 
-c = [vec(u.args[2][1:n,1:n]); vec(u_1.args[2][1:n-1,1:n]); vec(u_1.args[2][1:n,1:n-1])]
-@test A*c ≈ π^2/4 * B*c
+c = [vec(u.args[2][1:n,1:n]); vec(u_1.args[2][1:n-1,1:n]); vec(u_2.args[2][1:n,1:n-1])]
 
-reshape((A*c)[1:n^2], n, n)
+@test (A*c) ≈ π^2/2 * (B*c)
+
+
+@test (C'u*C)[1:n,1:n] ≈ -(C'diff(u_1;dims=1)*C + C'diff(u_2;dims=2)*C)[1:n,1:n]
+@test (C'u*C)[1:n,1:n] ≈ (diff(C)'u_1*C + C'u_2*diff(C))[1:n,1:n]
+@test 𝐌_C*c[1:n^2] ≈ vec((C'u*C)[1:n,1:n])
+@test D_x'*c[n^2+1:n^2+n*(n-1)] ≈ vec((diff(C)'u_1*C)[1:n,1:n])
+@test D_y'*c[n^2+n*(n-1)+1:end] ≈ vec((C'u_2*diff(C))[1:n,1:n])
+
+@test (P'diff(u)*C)[1:n-1,1:n] ≈ reshape(D_x*c[1:n^2],n-1,n)
+@test (P'diff(u_1;dims=2)*diff(C))[1:n-1,1:n] ≈ reshape(Δ_y*c[n^2+1:n^2+n*(n-1)],n-1,n)
+@test (P'diff(u_2;dims=1)*diff(C))[1:n-1,1:n] ≈ reshape(D_xy*c[n^2+n*(n-1)+1:end],n-1,n)
+
+
+@test -laplacian(u_1)[0.1,0.2] ≈ π^2/2 * u_1[0.1,0.2]
+@test -(P'laplacian(u_1)*C)[1:n-1,1:n] ≈ π^2/2 * (P'u_1*C)[1:n-1,1:n]
+@test -(P'*(diff(u_1,2)+diff(diff(u_2;dims=1);dims=2)+diff(u_1,2;dims=2)-diff(diff(u_2;dims=1);dims=2))*C)[1:n-1,1:n] ≈ π^2/2 * (P'u_1*C)[1:n-1,1:n]
+@test (P'diff(u)*C+P'diff(u_1;dims=2)*diff(C)-P'diff(u_2)*diff(C))[1:n-1,1:n]  ≈ π^2/2  * (P'u_1*C)[1:n-1,1:n]
+
+
+@test (P'diff(u)*C)[1:n-1,1:n] ≈ reshape(D_x * vec(u.args[2][1:n,1:n]),n-1,n)
+@test (P'diff(u_1;dims=2)*diff(C))[1:n-1,1:n] ≈ reshape(Δ_y * vec(u_1.args[2][1:n-1,1:n]), n-1,n)
+@test (P'diff(u_2)*diff(C))[1:n-1,1:n] ≈ D*u_2.args[2][1:n,1:n-1]*D ≈ reshape(D_xy * vec(u_2.args[2][1:n,1:n-1]), n-1,n)
+
+
+
+
+# ∇*∇^⊤𝐮 == [∂_xx ∂_xy; ∂_yx ∂_yy]𝐮
+# ∇_⟂*∇×𝐮 == [∂_yy -∂_xy; -∂_yx ∂_xx]𝐮
+diff()
+
+
+
+C'u*C - C'diff(u_1;dims=1)*C - C'diff(u_2;dims=2)*C
+
+C'diff(u_1;dims=1)*C  + diff(C)'u_1*C
