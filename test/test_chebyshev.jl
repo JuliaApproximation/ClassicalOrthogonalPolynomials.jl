@@ -298,7 +298,7 @@ import BandedMatrices: isbanded
             end
 
             @testset "re/im" begin
-                T = chebyshevt(2..3)
+                T = convert(AbstractQuasiArray{ComplexF64}, chebyshevt(2..3))
                 @test copy(T) == T
                 @test copy(parent(T)) == parent(T)
                 @test all(isreal, T)
@@ -468,7 +468,7 @@ import BandedMatrices: isbanded
     end
 
     @testset "Complex eltype" begin
-        @test axes(ChebyshevT{ComplexF64}(),1) ≡ Inclusion{ComplexF64}(ChebyshevInterval())
+        @test axes(ChebyshevT{ComplexF64}(),1) ≡ Inclusion(ChebyshevInterval())
         @test ChebyshevT{ComplexF64}()[0.1+0im,1:5] isa Vector{ComplexF64}
         @test ChebyshevT{ComplexF64}()[0.1+0im,1:5] ≈ ChebyshevT()[0.1,1:5]
     end
