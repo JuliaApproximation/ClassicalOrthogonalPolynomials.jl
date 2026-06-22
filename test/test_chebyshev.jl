@@ -296,6 +296,15 @@ import BandedMatrices: isbanded
                 @test (f + g)[2.1] ≈ f[2.1]+g[2.1]
                 @test (f - g)[2.1] ≈ f[2.1]-g[2.1]
             end
+
+            @testset "re/im" begin
+                T = chebyshevt(2..3)
+                @test copy(T) == T
+                @test copy(parent(T)) == parent(T)
+                @test all(isreal, T)
+                f = expand(T, x -> exp(im*x))
+                @test f ≈ (real(f) + im*imag(f)) ≈ (real.(f) + im*imag.(f)) 
+            end
         end
     end
 

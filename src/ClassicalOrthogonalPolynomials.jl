@@ -450,6 +450,10 @@ function _op_ldiv(P::AbstractQuasiMatrix{V}, f::Inclusion{T}) where {T,V}
     Vcat(-B[1]c, c, Zeros{TV}(∞))
 end
 
+
+abstract type ClassicalOrthogonalPolynomial{T} <: OrthogonalPolynomial{T} end
+all(::typeof(isreal), ::ClassicalOrthogonalPolynomial) = true
+
 include("classical/hermite.jl")
 include("classical/jacobi.jl")
 include("classical/chebyshev.jl")

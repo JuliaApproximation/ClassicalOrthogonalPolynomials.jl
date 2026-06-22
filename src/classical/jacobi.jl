@@ -95,9 +95,7 @@ singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
 singularities(w::AbstractJacobiWeight) = w
 
 
-abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
-
-all(::typeof(isreal), ::AbstractJacobi) = true
+abstract type AbstractJacobi{T} <: ClassicalOrthogonalPolynomial{T} end
 
 struct JacobiTransformPlan{T, CHEB2JAC, DCT} <: Plan{T}
     cheb2jac::CHEB2JAC
