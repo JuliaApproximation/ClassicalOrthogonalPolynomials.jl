@@ -1,4 +1,5 @@
-using ContinuumArrays, ClassicalOrthogonalPolynomials, FillArrays, Plots
+using ContinuumArrays, ClassicalOrthogonalPolynomials, FillArrays, StaticArrays
+using CairoMakie
 
 
 ######
@@ -18,8 +19,6 @@ P = Legendre()
 # 1D
 #####
 
-
-
 #####
 # Strong form:
 # -⟨v,Δu⟩ = λ*⟨v,u⟩
@@ -35,6 +34,8 @@ M = (W'W)[1:n,1:n] # mass matrix
 uᵈ = W[:,1:n]U[:,1]
 𝐮ᵈ = diff(uᵈ)
 
+p = plot(uᵈ; label="solution"); plot!(𝐮ᵈ; label="derivative"); p
+
 @test uᵈ[0] ≈ 1 # somehow it picked up the right normalisation
 @test uᵈ ≈ [cos(π/2*x) for x in -1..1] # we match the value
 @test 𝐮ᵈ ≈ [-π/2*sin(π/2*x) for x in -1..1] # and derivative
@@ -46,7 +47,7 @@ M = (C'C)[1:n,1:n]
 Δ = -(C'diff(C,2))[1:n,1:n]
 
 λ,U = eigen(Δ, M) # we lose symmetry
-@test_broken isreal(λ[1]) # and it computes nonsense
+@test !isreal(λ[1]) # and it computes nonsense
 
 
 #####
@@ -121,7 +122,7 @@ B = zero(A); B[n+1:end,n+1:end] = M_P
 λ,U = eigen(A\B); λ = inv.(λ)
 @test λ[end] ≈ π^2/4
 u = P[:,1:n-1]*U[n+1:end,end]; u /= u[0]
-𝐮 = Q[:,1:n]*U[1:n,end]; 𝐮 *= -π/(2*𝐮[1])
+𝐮 = C[:,1:n]*U[1:n,end]; 𝐮 *= -π/(2*𝐮[1])
 @test uᵈ ≈ u
 @test 𝐮ᵈ ≈ 𝐮 ≈ diff(u)
 
@@ -139,10 +140,10 @@ B = zero(A); B[n+1:end,n+1:end] = M_P
 k = searchsortedfirst(λ,0)+1
 @test λ[k] ≈ π^2/4
 u = P[:,1:n+1]*U[n+1:end,k]; u /= u[1]
-𝐮 = W[:,1:n]*U[1:n,k]; 𝐮 *= π/(2*𝐮[1])
+𝐮 = W[:,1:n]*U[1:n,k]; 𝐮 *= π/(2*𝐮[0])
 
 @test uⁿ ≈ u
-@test 𝐮ⁿ ≈ diff(u)
+@test 𝐮ⁿ ≈ diff(u) ≈ 𝐮
 
 
 
@@ -172,6 +173,10 @@ uᵈ = W[:,1:n]reshape(U[:,1],n,n)W[:,1:n]'; uᵈ /= uᵈ[0,0]
 @test 𝐮ᵈ_x[0.1,0.2] ≈ -π/2*sin(π/2*0.1)*cos(π/2*0.2)
 @test 𝐮ᵈ_y[0.1,0.2] ≈ -π/2*cos(π/2*0.1)*sin(π/2*0.2)
 
+contourf(uᵈ) # vanishes on boundary
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(𝐮ᵈ_x[x,y], 𝐮ᵈ_y[x,y]), -1..1, -1..1) # normal on boundary
+
 # but now without vanishing conditions we get symmetry and Neumann conditions:
 
 M_C = (C'C)[1:n,1:n] # mass matrix
@@ -189,6 +194,9 @@ uⁿ = C[:,1:n]reshape(U[:,4],n,n)C[:,1:n]'; uⁿ /= uⁿ[1,1]
 @test 𝐮ⁿ_x[0.1,0.2] ≈ π/2*cos(π/2*0.1)*sin(π/2*0.2)
 @test 𝐮ⁿ_y[0.1,0.2] ≈ π/2*sin(π/2*0.1)*cos(π/2*0.2)
 
+contourf(uⁿ)
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(𝐮ⁿ_x[x,y], 𝐮ⁿ_y[x,y]), -1..1, -1..1) # vanishes on boundary
 
 ######
 # For k = 2 Hodge–Laplacian we define
@@ -233,16 +241,219 @@ B =  [Z         Z           Z₃';
       Z₃        Z₃        M]
 
 
-λ,Q = eigen(-(A\B)); λ = inv.(λ)
+λ,Q = eigen(-(A\B)); λ = inv.(λ);  Q = real(Q) # ignore spurious imaginary parta
 
 @test λ[end] ≈ π^2/2
 
-u = P[:,1:n-1]reshape(Q[2n*(n-1)+1:end,end], n-1, n-1)*P[:,1:n-1]'; u = u/u[0,0]
-u_1 = P[:,1:n-1]*reshape(Q[1:n*(n-1),end], n-1, n)*C[:,1:n]'; u_1 = u_1/u[0,0]
-u_2 = C[:,1:n]*reshape(Q[n*(n-1)+1:2n*(n-1),end], n, n-1)*P[:,1:n-1]'; u_2 = u_2/u[0,0]
+u = P[:,1:n-1]reshape(Q[2n*(n-1)+1:end,end], n-1, n-1)*P[:,1:n-1]'; κ = 1/u[0,0]; u *= κ
+u_1 = P[:,1:n-1]*reshape(Q[1:n*(n-1),end], n-1, n)*C[:,1:n]'; u_1 *= κ
+u_2 = C[:,1:n]*reshape(Q[n*(n-1)+1:2n*(n-1),end], n, n-1)*P[:,1:n-1]'; u_2 *= κ
 
 @test u[0.1,0.2] ≈ uᵈ[0.1,0.2]
-@test diff(u;dims=1)[0.1,0.2] ≈ u_1[0.1,0.2] ≈ 𝐮ᵈ_y[0.1,0.2]
-@test diff(u;dims=2)[0.1,0.2] ≈ u_2[0.1,0.2]
+@test -diff(u;dims=2)[0.1,0.2] ≈ u_1[0.1,0.2] ≈ -𝐮ᵈ_y[0.1,0.2]
+@test diff(u;dims=1)[0.1,0.2] ≈ u_2[0.1,0.2] ≈ 𝐮ᵈ_x[0.1,0.2]
 
-U_1 = (P\diff(u;dims=1)/C')[1:n,1:n]
+plot(u) # dirichlet conditions
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(u_1[x,y], u_2[x,y]), -1..1, -1..1) # tangential on boundary
+
+# using a weighted basis for u_1,u_2 imposes Neumann conditions:
+
+n = 20
+M_W = (W'W)[1:n-1,1:n-1]
+M_P = Diagonal((P'P).diag[1:n])
+D = (P'diff(W))[1:n,1:n-1]
+
+M_curl1 = kron(M_W,M_P)
+M_curl2 = kron(M_P,M_W)
+D_x = kron(M_P, D)
+D_y = kron(D, M_P)
+M = kron(M_P,M_P)
+Z = zero(M_curl1)
+Z₂ = zero(M)
+Z₃ = zero(D_y)
+
+A = [M_curl1    Z           -D_y';
+     Z          M_curl2     D_x';
+    -D_y        D_x        Z₂]
+
+B =  [Z         Z           Z₃';
+      Z         Z           Z₃';
+      Z₃        Z₃        M]
+
+
+λ,Q = eigen(A,B); Q = real(Q)
+
+k = searchsortedfirst(real(λ),0)
+@test λ[k] == 0
+@test all(λ[k-2:k-1] .≈ -π^2/4)
+@test λ[k-3] ≈ -π^2/2
+
+u = P[:,1:n]reshape(Q[2n*(n-1)+1:end,k-3], n, n)*P[:,1:n]'; κ = 1/u[1,1]; u *= κ
+u_1 = P[:,1:n]*reshape(Q[1:n*(n-1),k-3], n, n-1)*W[:,1:n-1]'; u_1 *= κ
+u_2 = W[:,1:n-1]*reshape(Q[n*(n-1)+1:2n*(n-1),k-3], n-1, n)*P[:,1:n]'; u_2 *= κ
+
+@test u[0.1,0.2] ≈ uⁿ[0.1,0.2]
+@test -diff(u;dims=2)[0.1,0.2] ≈ u_1[0.1,0.2] ≈ -𝐮ⁿ_y[0.1,0.2]
+@test diff(u;dims=1)[0.1,0.2] ≈ u_2[0.1,0.2] ≈ 𝐮ⁿ_x[0.1,0.2]
+
+plot(u) # Neumann conditions
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(u_1[x,y], u_2[x,y]), -1..1, -1..1) # normal on boundary
+
+######
+# For k = 1 Hodge–Laplacian we define
+#
+#   u := div 𝐮
+#
+# obtaining a system:
+#
+#    -<v, u> + <∇v,𝐮> = 0
+#    <𝐯, ∇u>  + <∇×𝐯, ∇×𝐮>        = λ<𝐯,𝐮>
+#
+# where the 2D curl is again ∇× = [-∂_y ∂_x]. Here we view 𝐮 as a 1-form, and u = -δ*u a 0-form in H_curl where δ = ∇' = ∇⋅ = [∂_x, ∂_y]
+#
+# we use the basis [P_k(x)*C_j(y),0] and [0,C_k(x)*P_j(y)] for [u_1,u_2] = 𝐮 ∈ H_curl, thus we actually
+# get a 3-vector system (using the fact that [u_1,0] and [0,u_2] are automatically orthogonal):
+#
+#    -<v, u>  + <∂_x v,u_1> + <∂_y v,u_2> = 0
+#    <v_1, ∂_x u>  + <∂_y v_1, ∂_y u_1>  -  <∂_y v_1, ∂_x u_2> = λ<v_1,u_1>
+#    <v_2, ∂_y u>  - <∂_x v_2, ∂_y u_1>  +  <∂_x v_2, ∂_x u_2> = λ<v_2,u_2>
+#
+######
+
+n = 20
+M_C = (C'C)[1:n,1:n]
+M_P = Diagonal((P'P).diag[1:n-1])
+D = (P'diff(C))[1:n-1,1:n]
+Δ_C = (diff(C)'diff(C))[1:n,1:n]
+
+D_x = kron(M_C, D)
+D_y = kron(D, M_C)
+𝐌_C = kron(M_C,M_C)
+𝐌_CP = kron(M_C,M_P)
+𝐌_PC = kron(M_P,M_C)
+Δ_y = kron(Δ_C, M_P)
+Δ_x = kron(M_P, Δ_C)
+D_xy = kron(D',D)
+Z₀ = zero(𝐌_C)
+Z₂ = zero(M)
+Z₃ = zero(D_y)
+Z₄ = zero(Δ_y)
+
+A = [-𝐌_C        D_x'           D_y';
+     D_x        Δ_y     -D_xy;
+    D_y        -D_xy'       Δ_x]
+
+B =  [Z₀       Z₃'           Z₃';
+      Z₃         𝐌_CP           Z₄;
+      Z₃        Z₄        𝐌_PC]
+
+
+λ,Q = eigen(A, B); Q = real(Q)
+k = searchsortedfirst(real(λ),0)+2
+
+@test λ[k] ≈ π^2/2
+@test λ[k+1] ≈ π^2/2
+
+u = C[:,1:n]reshape(Q[1:n^2,k], n, n)*C[:,1:n]'; κ = π/u[1,1]; u *= κ
+u_1 = P[:,1:n-1]*reshape(Q[n^2+1:n^2+n*(n-1),k], n-1, n)*C[:,1:n]'; u_1 *= κ
+u_2 = C[:,1:n]*reshape(Q[n^2+n*(n-1)+1:end,k], n, n-1)*P[:,1:n-1]'; u_2 *= κ
+ũ = C[:,1:n]reshape(Q[1:n^2,k+1], n, n)*C[:,1:n]'; κ = π/ũ[1,1]; ũ *= κ
+ũ_1 = P[:,1:n-1]*reshape(Q[n^2+1:n^2+n*(n-1),k+1], n-1, n)*C[:,1:n]'; ũ_1 *= κ
+ũ_2 = C[:,1:n]*reshape(Q[n^2+n*(n-1)+1:end,k+1], n, n-1)*P[:,1:n-1]'; ũ_2 *= κ
+
+@test (diff(u_1;dims=1)+diff(u_2;dims=2))[0.1,0.2] ≈ -u[0.1,0.2]
+@test (diff(ũ_1;dims=1)+diff(ũ_2;dims=2))[0.1,0.2] ≈ -ũ[0.1,0.2]
+@test -laplacian(u_1)[0.1,0.2] ≈ π^2/2*u_1[0.1,0.2]
+@test -laplacian(u_2)[0.1,0.2] ≈ π^2/2*u_2[0.1,0.2]
+@test -laplacian(ũ_1)[0.1,0.2] ≈ π^2/2*ũ_1[0.1,0.2]
+@test -laplacian(ũ_2)[0.1,0.2] ≈ π^2/2*ũ_2[0.1,0.2]
+
+@test u[0.1,0.2] ≈ ũ[0.1,0.2] ≈ π*sin(π/2*0.1)sin(π/2*0.2)
+@test u_1[0.1,0.2] ≈ cos(π/2*0.1)sin(π/2*0.2)
+@test u_2[0.1,0.2] ≈ sin(π/2*0.1)cos(π/2*0.2)
+
+@test ũ_1[0.1,0.2] ≈ -cos(π/2*0.1)sin(π/2*0.2)
+@test ũ_2[0.1,0.2] ≈ sin(π/2*0.1)cos(π/2*0.2)
+
+plot(u)
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(u_1[x,y], u_2[x,y]), -1..1, -1..1) # tangential on boundary
+
+plot(ũ) # identical divergence as us
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(ũ_1[x,y], ũ_2[x,y]), -1..1, -1..1) # tangential on boundary
+
+streamplot((x,y) -> SVector(-cos(π/2*x)sin(π/2*y), sin(π/2*x)cos(π/2*y)), -1..1, -1..1) # tangential on boundary
+
+# we can impose zero conditions on the divergence:
+
+n = 20
+M_W = (W'W)[1:n,1:n]
+M_P = Diagonal((P'P).diag[1:n+1])
+D = (P'diff(W))[1:n+1,1:n]
+Δ_W = (diff(W)'diff(W))[1:n,1:n]
+
+D_x = kron(M_W, D)
+D_y = kron(D, M_W)
+𝐌_W = kron(M_W,M_W)
+𝐌_WP = kron(M_W,M_P)
+𝐌_PW = kron(M_P,M_W)
+Δ_y = kron(Δ_W, M_P)
+Δ_x = kron(M_P, Δ_W)
+D_xy = kron(D',D)
+Z₀ = zero(𝐌_W)
+Z₃ = zero(D_y)
+Z₄ = zero(Δ_y)
+
+A = [-𝐌_W        D_x'           D_y';
+     D_x        Δ_y     -D_xy;
+    D_y        -D_xy'       Δ_x]
+
+B =  [Z₀       Z₃'           Z₃';
+      Z₃         𝐌_WP           Z₄;
+      Z₃        Z₄        𝐌_PW]
+
+
+λ,Q = eigen(A \ B); Q = real(Q); λ = inv.(λ)
+k = size(Q,2)-3
+
+@test λ[k] ≈ π^2/2
+@test λ[k+1] ≈ π^2/2
+
+u = W[:,1:n]reshape(Q[1:n^2,k], n, n)*W[:,1:n]'; κ = π/u[0,0]; u *= κ
+u_1 = P[:,1:n+1]*reshape(Q[n^2+1:n^2+n*(n+1),k], n+1, n)*W[:,1:n]'; u_1 *= κ
+u_2 = W[:,1:n]*reshape(Q[n^2+n*(n+1)+1:end,k], n, n+1)*P[:,1:n+1]'; u_2 *= κ
+ũ = W[:,1:n]reshape(Q[1:n^2,k+1], n, n)*W[:,1:n]'; κ = π/ũ[0,0]; ũ *= κ
+ũ_1 = P[:,1:n+1]*reshape(Q[n^2+1:n^2+n*(n+1),k+1], n+1, n)*W[:,1:n]'; ũ_1 *= κ
+ũ_2 = W[:,1:n]*reshape(Q[n^2+n*(n+1)+1:end,k+1], n, n+1)*P[:,1:n+1]'; ũ_2 *= κ
+
+@test u_1[0.1,0.2]/ũ_1[0.1,0.2] ≈ u_1[1,0]/ũ_1[1,0]
+u = u - u_1[1,0]/ũ_1[1,0] * ũ
+u_1 = 0u_1; 
+κ = 1/u_2[0,1]; u_2 *= κ; u *= κ
+
+@test (diff(u_1;dims=1)+diff(u_2;dims=2))[0.1,0.2] ≈ -u[0.1,0.2]
+@test (diff(ũ_1;dims=1)+diff(ũ_2;dims=2))[0.1,0.2] ≈ -ũ[0.1,0.2]
+@test -laplacian(u_1)[0.1,0.2] ≈ π^2/2*u_1[0.1,0.2]
+@test -laplacian(u_2)[0.1,0.2] ≈ π^2/2*u_2[0.1,0.2]
+@test -laplacian(ũ_1)[0.1,0.2] ≈ π^2/2*ũ_1[0.1,0.2]
+@test -laplacian(ũ_2)[0.1,0.2] ≈ π^2/2*ũ_2[0.1,0.2] atol=1E-8
+
+@test ũ[0.1,0.2] ≈ π*cos(π/2*0.1)cos(π/2*0.2)
+@test ũ_1[0.1,0.2] ≈ -2sin(π/2*0.1)cos(π/2*0.2)
+@test ũ_2[0.1,0.2] ≈ 0 atol=1E-10
+
+@test u[0.1,0.2] ≈ -π/2*cos(π/2*0.1)cos(π/2*0.2)
+@test u_1[0.1,0.2] ≈ 0 atol=1E-10
+@test u_2[0.1,0.2] ≈ cos(π/2*0.1)sin(π/2*0.2)
+
+plot(u)
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(u_1[x,y], u_2[x,y]), -1..1, -1..1) # tangential on boundary
+
+plot(ũ) # identical divergence as us
+g = range(-1,1,20)
+streamplot((x,y) -> SVector(ũ_1[x,y], ũ_2[x,y]), -1..1, -1..1) # tangential on boundary
+

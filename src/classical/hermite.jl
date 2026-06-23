@@ -28,7 +28,7 @@ end
 
 broadcasted(::typeof(sqrt), H::HermiteWeight{T}) where T = H .^ (one(T)/2)
 
-struct Hermite{T} <: OrthogonalPolynomial{T} end
+struct Hermite{T} <: ClassicalOrthogonalPolynomial{T} end
 Hermite() = Hermite{Float64}()
 
 AbstractQuasiArray{T}(::Hermite) where T = Hermite{T}()

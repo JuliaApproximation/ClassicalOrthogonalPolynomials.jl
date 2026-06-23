@@ -95,7 +95,7 @@ singularities(a::AbstractAffineQuasiVector) = singularities(a.x)
 singularities(w::AbstractJacobiWeight) = w
 
 
-abstract type AbstractJacobi{T} <: OrthogonalPolynomial{T} end
+abstract type AbstractJacobi{T} <: ClassicalOrthogonalPolynomial{T} end
 
 struct JacobiTransformPlan{T, CHEB2JAC, DCT} <: Plan{T}
     cheb2jac::CHEB2JAC
@@ -261,7 +261,7 @@ end
 \(w_A::HalfWeighted, B::AbstractQuasiArray) = convert(WeightedBasis, w_A) \ B
 \(A::AbstractQuasiArray, w_B::HalfWeighted) = A \ convert(WeightedBasis, w_B)
 
-axes(::AbstractJacobi{T}) where T = (Inclusion{T}(ChebyshevInterval{real(T)}()), oneto(∞))
+axes(::AbstractJacobi{T}) where T = (Inclusion(ChebyshevInterval{real(T)}()), oneto(∞))
 ==(P::Jacobi, Q::Jacobi) = P.a == Q.a && P.b == Q.b
 ==(P::Legendre, Q::Jacobi) = Jacobi(P) == Q
 ==(P::Jacobi, Q::Legendre) = P == Jacobi(Q)
