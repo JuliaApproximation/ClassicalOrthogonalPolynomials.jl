@@ -257,6 +257,8 @@ _weightedmemorylayout(::PP) where PP<:AbstractOPLayout =  WeightedOPLayout{PP}()
 _weightedmemorylayout(::PP) where PP =  WeightedBasisLayout{PP}()
 MemoryLayout(::Type{<:Weighted{<:Any,PP}}) where PP = _weightedmemorylayout(MemoryLayout(PP))
 
+==(A::Weighted, B::Weighted) = A.P == B.P
+
 function arguments(::ApplyLayout{typeof(*)}, Q::BroadcastQuasiMatrix{<:Any,typeof(*),<:Tuple{Weight,Normalized}})
     w,Q = Q.args
     P,D = arguments(*,Q)
