@@ -112,6 +112,8 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
             @test OrthogonalPolynomial(w) == S
             wS = w.*S
             @test wS == Weighted(Jacobi(a,b)) == Weighted(Jacobi{Float64}(a,b))
+            @test Weighted(Jacobi(a,b)) == Weighted(Jacobi(a,b))
+            @test Weighted(Jacobi(a,b)) ≠ Weighted(Jacobi(a,b+1))
             @test wS[0.1,1] ≈ w[0.1]
             @test wS[0.1,1:2] ≈ w[0.1] .* S[0.1,1:2]
 
