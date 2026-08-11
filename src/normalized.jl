@@ -288,6 +288,12 @@ end
     V'W
 end
 
+@simplify function *(Ac::QuasiAdjoint{<:Any,<:Weighted}, B::AbstractQuasiMatrix)
+    P = (Ac').P
+    weightedgrammatrix(P) * (P\B)
+end
+
+
 show(io::IO, Q::Weighted) = print(io, "Weighted($(Q.P))")
 
 sum_layout(::AbstractNormalizedOPLayout, A, dims) = sum_layout(ApplyLayout{typeof(*)}(), A, dims)
