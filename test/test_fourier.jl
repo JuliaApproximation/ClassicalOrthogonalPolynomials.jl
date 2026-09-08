@@ -61,6 +61,7 @@ import QuasiArrays: MulQuasiArray
         θ = axes(F,1)
         @test F[:,Base.OneTo(5)] \ cos.(θ) ≈ [0,0,1,0,0]
         @test F[:,Block.(Base.OneTo(5))] \ cos.(θ) ≈ [0,0,1,0,0,0,0,0,0]
+        @test F[:,Block.(Base.OneTo(5))] \ cos.(θ) isa BlockedVector
 
         @test (F \ cos.(θ))[Block(2)] ≈ [0,1]
         u = F * (F \ exp.(cos.(θ)))
@@ -178,5 +179,14 @@ end
         u = F * BlockedVector([[1,2,3,4,5]; zeros(∞)], (axes(F,2),));
         @test blockisequal(axes(D̃,2),axes(u.args[2],1))
         @test (D*u)[0.1] ≈ -2im*exp(-im*0.1) + 3im*exp(im*0.1) - 8im*exp(-im*2*0.1) + 10im*exp(im*2*0.1)
+    end
+
+    @testset "expand" begin
+        @test expand(Fourier(), θ -> exp(cos(θ-0.1)))[0.3] ≈ exp(cos(0.2))
+        @test expand(Laurent(), θ -> exp(cos(θ-0.1)))[0.3] ≈ exp(cos(0.2))
+
+        # no type-inference
+        @test expand(Fourier(), θ -> (θ > 10 ? "hi" : exp(cos(θ-0.1))) )[0.3] ≈ exp(cos(0.2))
+        @test expand(Laurent(), θ -> exp(cos(θ-0.1)))[0.3] ≈ exp(cos(0.2))
     end
 end
