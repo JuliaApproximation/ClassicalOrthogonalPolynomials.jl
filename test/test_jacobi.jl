@@ -570,4 +570,10 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test (expand(ChebyshevT(), exp) + expand(Jacobi(3/2,1/2),cos))[0.1] ≈ exp(0.1)+cos(0.1)
         @test (expand(Ultraspherical(2), exp) + expand(Jacobi(3/2,1/2),cos))[0.1] ≈ exp(0.1)+cos(0.1)
     end
+
+    @testset "halfweighted grammatrix" begin
+        P = Jacobi(-1,1)
+        H = HalfWeighted{:b}(P)
+        @test grammatrix(H)[1:5,1:5] ≈ (H'H)[1:5,1:5] ≈ [sum(H[x,k]H[x,j] for x in -1..1) for k=1:5, j=1:5]
+    end
 end

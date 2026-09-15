@@ -320,6 +320,7 @@ end
 end
 grammatrix(A::AbstractJacobi) = legendre_grammatrix(A)
 grammatrix(A::Weighted{<:Any,<:AbstractJacobi}) = legendre_grammatrix(A)
+grammatrix(A::HalfWeighted{ab,<:Any,<:AbstractJacobi}) where ab = legendre_grammatrix(A)
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractQuasiVector)
     P = Legendre{eltype(Ac)}()
