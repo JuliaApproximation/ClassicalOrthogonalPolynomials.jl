@@ -318,6 +318,11 @@ end
         legendre_grammatrix(A,B)
     end
 end
+
+*(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::HalfWeighted{ab,<:Any,<:AbstractJacobi}) where ab = Ac * convert(WeightedBasis, B)
+*(Ac::QuasiAdjoint{<:Any,<:HalfWeighted{ab,<:Any,<:AbstractJacobi}}, B::AbstractJacobi) where ab = convert(WeightedBasis, parent(Ac))'  * B
+
+
 grammatrix(A::AbstractJacobi) = legendre_grammatrix(A)
 grammatrix(A::Weighted{<:Any,<:AbstractJacobi}) = legendre_grammatrix(A)
 grammatrix(A::HalfWeighted{ab,<:Any,<:AbstractJacobi}) where ab = legendre_grammatrix(A)

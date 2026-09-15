@@ -243,7 +243,7 @@ singularitiesbroadcast(::typeof(*), a, ::NoSingularities) = a
 
 
 
-basis_axes(ax::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{eltype(v)}, basis_singularities(ax, singularities(v)))
+basis_axes(ax::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{ContinuumArrays._any_eltype(v)}, basis_singularities(ax, singularities(v)))
 
 
 singularities(::Number) = NoSingularities()
