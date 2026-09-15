@@ -12,6 +12,24 @@ Random.seed!(5)
     @test searchsortedfirst(expand(T, g), 0.1) ≈ searchsortedfirst(expand(P, g), 0.1) ≈ findall(iszero, expand(T, x -> g(x)-0.1))[1]
 end
 
+@testset "roots of polynomial expansions" begin
+    for P in (Chebyshev(), Legendre(), Jacobi(0.2, 0.3))
+        @test findall(iszero, expand(P, x -> x - 1)) ≈ [1.0]
+        @test findall(iszero, expand(P, x -> x + 1)) ≈ [-1.0]
+        @test findall(iszero, expand(P, x -> x^2 - 1)) ≈ [-1.0, 1.0]
+    end
+
+    T01 = chebyshevt(0..1)
+    @test findall(iszero, expand(T01, x -> x)) ≈ [0.0]
+    @test findall(iszero, expand(T01, x -> x - 1)) ≈ [1.0]
+    @test findall(iszero, expand(T01, x -> (x - 1) * (x - 0.25))) ≈ [0.25, 1.0]
+end
+
+@testset "high-degree roots" begin
+    r = findall(iszero, expand(Chebyshev(), x -> cos(200x)))
+    @test r ≈ [(2k + 1) * π / 400 for k in -64:63 if -1 ≤ (2k + 1) * π / 400 ≤ 1]
+end
+
 @testset "sample" begin
     f = expand(Chebyshev(), exp)
     @test sum(sample(f, 100_000))/100_000 ≈ 0.31 atol=1E-2
