@@ -97,16 +97,16 @@ function findall_layout(::ExpansionLayout{<:AbstractOPLayout}, ::typeof(iszero),
     c = _chebyshevcoefficients(f)
     ax = axes(f, 1)
     (isempty(c) || all(iszero, c)) && return eltype(ax)[]
-    hscale = max(abs(first(ax)), abs(last(ax)))
-    htol = eps(2000.0) * max(hscale, 1)
+    rtol = eps(2000.0)
+    vtol = eps(2000.0)
     vscale = max(maximum(abs, clenshaw(c, chebyshevpoints(Float64, max(length(c), 2), Val(1)))), eps(Float64))
     cvscale = c ./ vscale
-    r = _rootsunit_coeffs(cvscale, htol)
+    r = _rootsunit_coeffs(cvscale, rtol)
 
-    if (isempty(r) || !isapprox(last(r), 1)) && abs(sum(cvscale)) < htol
+    if (isempty(r) || !isapprox(last(r), 1)) && abs(sum(cvscale)) < vtol
         push!(r, 1.0)
     end
-    if (isempty(r) || !isapprox(first(r), -1)) && abs(alternatingsum(cvscale)) < htol
+    if (isempty(r) || !isapprox(first(r), -1)) && abs(alternatingsum(cvscale)) < vtol
         insert!(r, 1, -1.0)
     end
 

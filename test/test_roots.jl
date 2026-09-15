@@ -23,6 +23,9 @@ end
     @test findall(iszero, expand(T01, x -> x)) ≈ [0.0]
     @test findall(iszero, expand(T01, x -> x - 1)) ≈ [1.0]
     @test findall(iszero, expand(T01, x -> (x - 1) * (x - 0.25))) ≈ [0.25, 1.0]
+
+    Tbig = chebyshevt(1000..1001)
+    @test isempty(findall(iszero, expand(Tbig, x -> x - (1001 + 1e-12))))
 end
 
 @testset "high-degree roots" begin
