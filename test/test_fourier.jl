@@ -61,6 +61,21 @@ import QuasiArrays: MulQuasiArray
         θ = axes(F,1)
         @test F[:,Base.OneTo(5)] \ cos.(θ) ≈ [0,0,1,0,0]
         @test F[:,Block.(Base.OneTo(5))] \ cos.(θ) ≈ [0,0,1,0,0,0,0,0,0]
+        @test F[:,Block.(Base.OneTo(5))] \ cos.(θ) isa BlockedVector
+
+        θ₅ = grid(F, 5)
+        P = plan_transform(F, (Block(3),))
+        c = P * cos.(θ₅)
+        @test c isa BlockedVector
+        @test c ≈ [0,0,1,0,0]
+
+        X = [one.(θ₅) sin.(θ₅) cos.(θ₅)]
+        P = plan_transform(F, (Block(3), Block(2)), 1)
+        C = P * X
+        @test C isa BlockedMatrix
+        @test axes(C,1)[Block(2)] == 2:3
+        @test axes(C,2)[Block(2)] == 2:3
+        @test C ≈ [1 0 0; 0 1 0; 0 0 1; 0 0 0; 0 0 0]
 
         @test (F \ cos.(θ))[Block(2)] ≈ [0,1]
         u = F * (F \ exp.(cos.(θ)))
@@ -153,6 +168,12 @@ end
         @test F[:,Base.OneTo(5)] \ cos.(θ) ≈ [0,0.5,0.5,0,0]
         @test F[:,Block.(Base.OneTo(5))] \ cos.(θ) ≈ [0,0.5,0.5,0,0,0,0,0,0]
 
+        θ₅ = grid(F, 5)
+        P = plan_transform(F, (Block(3),))
+        c = P * cos.(θ₅)
+        @test c isa BlockedVector
+        @test c ≈ [0,0.5,0.5,0,0]
+
         @test (F \ cos.(θ))[Block(2)] ≈ [0.5,0.5]
         u = F * (F \ exp.(cos.(θ)))
         @test u[0.1] ≈ exp(cos(0.1))
@@ -178,5 +199,14 @@ end
         u = F * BlockedVector([[1,2,3,4,5]; zeros(∞)], (axes(F,2),));
         @test blockisequal(axes(D̃,2),axes(u.args[2],1))
         @test (D*u)[0.1] ≈ -2im*exp(-im*0.1) + 3im*exp(im*0.1) - 8im*exp(-im*2*0.1) + 10im*exp(im*2*0.1)
+    end
+
+    @testset "expand" begin
+        @test expand(Fourier(), θ -> exp(cos(θ-0.1)))[0.3] ≈ exp(cos(0.2))
+        @test expand(Laurent(), θ -> exp(cos(θ-0.1)))[0.3] ≈ exp(cos(0.2))
+
+        # no type-inference
+        @test expand(Fourier(), θ -> (θ > 10 ? "hi" : exp(cos(θ-0.1))) )[0.3] ≈ exp(cos(0.2))
+        @test expand(Laurent(), θ -> exp(cos(θ-0.1)))[0.3] ≈ exp(cos(0.2))
     end
 end

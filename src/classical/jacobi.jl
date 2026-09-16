@@ -318,8 +318,16 @@ end
         legendre_grammatrix(A,B)
     end
 end
+
+*(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::HalfWeighted{ab,<:Any,<:AbstractJacobi}) where ab = Ac * convert(WeightedBasis, B)
+*(Ac::QuasiAdjoint{<:Any,<:HalfWeighted{ab,<:Any,<:AbstractJacobi}}, B::AbstractJacobi) where ab = convert(WeightedBasis, parent(Ac))'  * B
+simplifiable(::typeof(*), ::QuasiAdjoint{<:Any,<:AbstractJacobi}, ::HalfWeighted{ab,<:Any,<:AbstractJacobi}) where ab = Val(true)
+simplifiable(::typeof(*), ::QuasiAdjoint{<:Any,<:HalfWeighted{ab,<:Any,<:AbstractJacobi}}, ::AbstractJacobi) where ab = Val(true)
+
+
 grammatrix(A::AbstractJacobi) = legendre_grammatrix(A)
 grammatrix(A::Weighted{<:Any,<:AbstractJacobi}) = legendre_grammatrix(A)
+grammatrix(A::HalfWeighted{ab,<:Any,<:AbstractJacobi}) where ab = legendre_grammatrix(A)
 
 @simplify function *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::AbstractQuasiVector)
     P = Legendre{eltype(Ac)}()
@@ -665,5 +673,4 @@ end
 ###
 
 _sum(P::AbstractJacobi{T}, dims::Int) where T = 2 * (Legendre{T}() \ P)[1:1,:]
-
 

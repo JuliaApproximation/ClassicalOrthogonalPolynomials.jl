@@ -15,7 +15,7 @@ padchop!(cfs::BlockedVector, tol, ax...) = padchop!(cfs.blocks, tol, ax...)
 
 
 padresize!(cfs, m, ax...) = pad(compatible_resize!(cfs, m), ax...)
-padresize!(cfs::BlockedVector, m, ax...) = padresize!(cfs.blocks, m, ax...)
+padresize!(cfs::BlockedVector, m, ax...) = BlockedArray(padresize!(cfs.blocks, m, ax...), ax)
 
 
 increasingtruncations(::OneToInf) = oneto.(2 .^ (4:∞))
