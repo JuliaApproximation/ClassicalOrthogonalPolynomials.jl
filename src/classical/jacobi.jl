@@ -321,6 +321,8 @@ end
 
 *(Ac::QuasiAdjoint{<:Any,<:AbstractJacobi}, B::HalfWeighted{ab,<:Any,<:AbstractJacobi}) where ab = Ac * convert(WeightedBasis, B)
 *(Ac::QuasiAdjoint{<:Any,<:HalfWeighted{ab,<:Any,<:AbstractJacobi}}, B::AbstractJacobi) where ab = convert(WeightedBasis, parent(Ac))'  * B
+simplifiable(::typeof(*), ::QuasiAdjoint{<:Any,<:AbstractJacobi}, ::HalfWeighted{ab,<:Any,<:AbstractJacobi}) where ab = Val(true)
+simplifiable(::typeof(*), ::QuasiAdjoint{<:Any,<:HalfWeighted{ab,<:Any,<:AbstractJacobi}}, ::AbstractJacobi) where ab = Val(true)
 
 
 grammatrix(A::AbstractJacobi) = legendre_grammatrix(A)
@@ -671,5 +673,4 @@ end
 ###
 
 _sum(P::AbstractJacobi{T}, dims::Int) where T = 2 * (Legendre{T}() \ P)[1:1,:]
-
 
