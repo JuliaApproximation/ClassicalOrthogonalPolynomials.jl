@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, QuasiArrays, LazyArrays, LazyBandedMatrices, FastGaussQuadrature, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted, grammatrix, singularities
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted, grammatrix, singularities, simplifiable
 
 @testset "Jacobi" begin
     @testset "JacobiWeight" begin
@@ -475,6 +475,15 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         L = Normalized(Jacobi(0, 0)) \ HalfWeighted{:a}(Jacobi(1, 0))
         @test Normalized(Jacobi(0, 0))[0.1,1:11]'*L[1:11,1:10] ≈ HalfWeighted{:a}(Jacobi(1, 0))[0.1,1:10]'
 
+        Hₐ = HalfWeighted{:a}(Jacobi(1.0, 0.0))
+        Hᵦ = HalfWeighted{:b}(Jacobi(0.0, 1.0))
+        Pₐ = Jacobi(1.0, 0.0)
+        Pᵦ = Jacobi(0.0, 1.0)
+        @test simplifiable(*, Pₐ', Hₐ) == Val(true)
+        @test simplifiable(*, Hᵦ', Pᵦ) == Val(true)
+        @test (Pₐ' * Hₐ)[1:5,1:5] ≈ [sum(Pₐ[x,k] * Hₐ[x,j] for x in -1..1) for k=1:5, j=1:5]
+        @test (Hᵦ' * Pᵦ)[1:5,1:5] ≈ [sum(Hᵦ[x,k] * Pᵦ[x,j] for x in -1..1) for k=1:5, j=1:5]
+
         @testset "different weighted" begin
             L = Weighted(Jacobi(0,0)) \ Weighted(Jacobi(1,1))
             @test L[1:10,1:10] ≈ (Legendre() \ Weighted(Jacobi(1,1)))[1:10,1:10]
@@ -569,5 +578,11 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test (expand(Legendre(), exp) + expand(Jacobi(2,1),cos))[0.1] ≈ exp(0.1)+cos(0.1)
         @test (expand(ChebyshevT(), exp) + expand(Jacobi(3/2,1/2),cos))[0.1] ≈ exp(0.1)+cos(0.1)
         @test (expand(Ultraspherical(2), exp) + expand(Jacobi(3/2,1/2),cos))[0.1] ≈ exp(0.1)+cos(0.1)
+    end
+
+    @testset "halfweighted grammatrix" begin
+        P = Jacobi(-1,1)
+        H = HalfWeighted{:b}(P)
+        @test grammatrix(H)[1:5,1:5] ≈ (H'H)[1:5,1:5] ≈ [sum(H[x,k]H[x,j] for x in -1..1) for k=1:5, j=1:5]
     end
 end

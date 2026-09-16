@@ -135,6 +135,9 @@ end
 plan_transform(F::Fourier{T}, szs::NTuple{N,Int}, dims...) where {T,N} = ShuffledR2HC{T}(szs, dims...)
 plan_transform(F::Laurent{T}, szs::NTuple{N,Int}, dims...) where {T,N} = ShuffledFFT{T}(szs, dims...)
 
+plan_transform(F::Union{Fourier, Laurent}, szs::NTuple{N,Block{1}}, dims...) where N =
+    ApplyPlan(M -> BlockedArray(M, getindex.(Ref(axes(F,2)), BlockRange.(tuple.(Int.(szs))))), plan_transform(F,  2 .* Int.(szs) .- 1, dims...))
+
 import BlockBandedMatrices: _BlockSkylineMatrix
 
 @simplify function *(A::QuasiAdjoint{<:Any,<:Fourier}, B::Fourier)
