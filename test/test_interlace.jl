@@ -88,6 +88,25 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             T = PiecewiseInterlace(T1, T2)
             @test plotgrid(T[:,1:5]) == sort([plotgrid(T1[:,1:3]); plotgrid(T2[:,1:3])])
         end
+
+        @testset "⊎" begin
+            T1,T2 = chebyshevt(0..1), chebyshevt(2..3)
+            f = expand(T1, exp)
+            g = expand(T2, sin)
+            h = f ⊎ g
+
+            @test basis(h) == PiecewiseInterlace(T1, T2)
+            @test h[0.1] ≈ exp(0.1)
+            @test h[2.1] ≈ sin(2.1)
+            @test coefficients(h)[Block(3)] ≈ [coefficients(f)[3], coefficients(g)[3]]
+            @test (basis(h) \ h)[1:10] ≈ coefficients(h)[1:10]
+            @test sum(h) ≈ sum(f) + sum(g)
+
+            T3 = chebyshevt(4..5)
+            h3 = ⊎(f, g, expand(T3, cos))
+            @test basis(h3) == PiecewiseInterlace(T1, T2, T3)
+            @test h3[4.1] ≈ cos(4.1)
+        end
     end
 
     @testset "SetindexInterlace" begin

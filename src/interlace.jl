@@ -125,6 +125,10 @@ axes(A::PiecewiseInterlace) = (union(axes.(A.args,1)...), LazyBandedMatrices._bl
 
 ==(A::PiecewiseInterlace, B::PiecewiseInterlace) = all(A.args .== B.args)
 
+# f ⊎ g interlaces the coefficients when the bases are infinite dimensional
+uplus_axes(::Tuple{Vararg{OneToInf}}, Ps::Tuple, cs::Tuple) =
+    PiecewiseInterlace(Ps...) * BlockBroadcastArray(vcat, unitblocks.(cs)...)
+
 """
     SetindexInterlace(z, args...)
 
