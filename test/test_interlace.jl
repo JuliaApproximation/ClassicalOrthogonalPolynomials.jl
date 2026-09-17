@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, StaticArrays, Test
-import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid, BroadcastQuasiVector
+import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid, BroadcastQuasiVector, components
 
 @testset "Interlace" begin
     @testset "Piecewise" begin
@@ -103,9 +103,23 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             @test sum(h) ≈ sum(f) + sum(g)
 
             T3 = chebyshevt(4..5)
-            h3 = ⊎(f, g, expand(T3, cos))
+            w = expand(T3, cos)
+            h3 = ⊎(f, g, w)
             @test basis(h3) == PiecewiseInterlace(T1, T2, T3)
             @test h3[4.1] ≈ cos(4.1)
+
+            @testset "components" begin
+                fc,gc = components(h)
+                @test fc[0.1] == f[0.1]
+                @test gc[2.1] == g[2.1]
+            end
+
+            @testset "associativity" begin
+                @test basis((f ⊎ g) ⊎ w) == basis(f ⊎ (g ⊎ w)) == basis(h3)
+                for x in (0.1, 2.1, 4.1)
+                    @test ((f ⊎ g) ⊎ w)[x] == (f ⊎ (g ⊎ w))[x] == h3[x]
+                end
+            end
         end
     end
 
