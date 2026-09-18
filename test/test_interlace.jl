@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, StaticArrays, Test
-import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid, BroadcastQuasiVector
+import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid, BroadcastQuasiVector, components
 
 @testset "Interlace" begin
     @testset "Piecewise" begin
@@ -87,6 +87,39 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             T1,T2 = chebyshevt(-1..0), chebyshevt(0..1)
             T = PiecewiseInterlace(T1, T2)
             @test plotgrid(T[:,1:5]) == sort([plotgrid(T1[:,1:3]); plotgrid(T2[:,1:3])])
+        end
+
+        @testset "⊎" begin
+            T1,T2 = chebyshevt(0..1), chebyshevt(2..3)
+            f = expand(T1, exp)
+            g = expand(T2, sin)
+            h = f ⊎ g
+
+            @test basis(h) == PiecewiseInterlace(T1, T2)
+            @test h[0.1] ≈ exp(0.1)
+            @test h[2.1] ≈ sin(2.1)
+            @test coefficients(h)[Block(3)] ≈ [coefficients(f)[3], coefficients(g)[3]]
+            @test (basis(h) \ h)[1:10] ≈ coefficients(h)[1:10]
+            @test sum(h) ≈ sum(f) + sum(g)
+
+            T3 = chebyshevt(4..5)
+            w = expand(T3, cos)
+            h3 = ⊎(f, g, w)
+            @test basis(h3) == PiecewiseInterlace(T1, T2, T3)
+            @test h3[4.1] ≈ cos(4.1)
+
+            @testset "components" begin
+                fc,gc = components(h)
+                @test fc[0.1] == f[0.1]
+                @test gc[2.1] == g[2.1]
+            end
+
+            @testset "associativity" begin
+                @test basis((f ⊎ g) ⊎ w) == basis(f ⊎ (g ⊎ w)) == basis(h3)
+                for x in (0.1, 2.1, 4.1)
+                    @test ((f ⊎ g) ⊎ w)[x] == (f ⊎ (g ⊎ w))[x] == h3[x]
+                end
+            end
         end
     end
 

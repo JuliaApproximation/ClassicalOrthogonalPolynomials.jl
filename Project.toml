@@ -1,6 +1,6 @@
 name = "ClassicalOrthogonalPolynomials"
 uuid = "b30e2e7b-c4ee-47da-9d5f-2c5c27239acd"
-version = "0.15.21"
+version = "0.15.22"
 authors = ["Sheehan Olver <solver@mac.com>"]
 
 [deps]
@@ -37,7 +37,7 @@ ArrayLayouts = "1.3.1"
 BandedMatrices = "1"
 BlockArrays = "1"
 BlockBandedMatrices = "0.13"
-ContinuumArrays = "0.21"
+ContinuumArrays = "0.21.1"
 DomainSets = "0.8.2"
 DynamicPolynomials = "0.6"
 FFTW = "1.1"
