@@ -1,4 +1,5 @@
-using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, StaticArrays, Test
+using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, Test
+using StaticArrays
 import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid, BroadcastQuasiVector, components
 
 @testset "Interlace" begin
