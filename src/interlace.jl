@@ -152,18 +152,24 @@ SetindexInterlace(z::T, args::AbstractVector) where T = SetindexInterlace{T}(z, 
 interlacebasis(S::SetindexInterlace, args...) = SetindexInterlace(S.z, args...)
 
 
-axes(A::SetindexInterlace) = (union(axes.(A.args,1)...), LazyBandedMatrices._block_vcat_axes(unitblocks.(axes.(A.args,2))...))
+setindexinterlace_axis(args) = union(axes.(args,1)...)
+setindexinterlace_axis(args::AbstractFill) = axes(getindex_value(args),1) # avoid union creating a UnionDomain
+axes(A::SetindexInterlace) = (setindexinterlace_axis(A.args), LazyBandedMatrices._block_vcat_axes(unitblocks.(axes.(A.args,2))...))
 
 ==(A::SetindexInterlace, B::SetindexInterlace) = A.z == B.z && all(A.args .== B.args)
 
 ArrayLayouts.zeroeltype(M::Mul{<:Any,<:Any,<:SetindexInterlace}) = convert(eltype(M),M.A.z)
+
+# Base.setindex is only defined for immutable arrays like SVector
+interlace_setindex(z, v, i) = setindex(z, v, i)
+interlace_setindex(z::Array, v, i) = setindex!(copy(z), v, i)
 
 function getindex(f::Mul{BasisLayout,<:AbstractPaddedLayout,<:SetindexInterlace{<:Any,<:AbstractFill}}, x::Number)
     P = getindex_value(f.A.args)
     d = length(f.A.args)
     X = reshape(paddeddata(f.B),d,:)
     X̃ = PaddedArray(transpose(X), size(P,2),d)
-    (P * X̃)[x,:]
+    reshape((P * X̃)[x,:], size(f.A.z)) # z may be a matrix
 end
 
 ###
@@ -184,7 +190,7 @@ function QuasiArrays._getindex(::Type{IND}, A::SetindexInterlace{T}, (x,j)::IND)
     @boundscheck x in axes(A,1) || throw(BoundsError(A, (x,j)))
     J = Int(block(Jj))
     i = blockindex(Jj)
-    x in axes(A.args[i],1) && return setindex(A.z, A.args[i][x, J], i)
+    x in axes(A.args[i],1) && return interlace_setindex(A.z, A.args[i][x, J], i)
     A.z
 end
 
@@ -237,9 +243,13 @@ end
 \(F::SetindexFactorization{T}, v::AbstractQuasiVector) where {T} =
     BlockBroadcastArray{eltype(T)}(vcat, unitblocks.((\).(F.factorizations, broadcast((w,i) -> getindex.(w,i), Ref(v), Base.OneTo(length(F.factorizations)))))...)
 
-# We assume matrix factorizations
-function \(F::SetindexFactorization{T,<:AbstractFill}, v::AbstractQuasiVector) where {T}
-    F̃ = getindex_value(F.factorizations)
+\(F::SetindexFactorization{T,<:AbstractFill}, v::AbstractQuasiVector) where {T} = setindex_fill_ldiv(F, getindex_value(F.factorizations), v)
+
+# factorizeall planned F̃ for all entries at once so we unwrap until we reach the transform
+setindex_fill_ldiv(F::SetindexFactorization, F̃::MappedFactorization, v) = setindex_fill_ldiv(F, F̃.F, view(v, F̃.map))
+setindex_fill_ldiv(F::SetindexFactorization, F̃::WeightedFactorization, v) = setindex_fill_ldiv(F, F̃.F, v ./ F̃.w)
+# a transform can be applied to all entries at once
+function setindex_fill_ldiv(F::SetindexFactorization, F̃::TransformFactorization, v)
     data = Matrix{eltype(eltype(v))}(undef, length(F̃.grid), length(F.factorizations))
     for (k,x) in enumerate(F̃.grid)
         data[k,:] = v[x]
@@ -277,6 +287,12 @@ end
 ###
 
 _sum(P::PiecewiseInterlace, dims::Int) = BlockBroadcastArray(hcat, unitblocks.(_sum.(P.args, dims))...)
+# sum each entry separately as the entries may not support zero, e.g. Matrix
+function sum_layout(::ExpansionLayout, f::ApplyQuasiVector{<:Any,typeof(*),<:Tuple{SetindexInterlace,AbstractVector}}, dims)
+    P,c = arguments(*, f)
+    d = length(P.args)
+    convert(typeof(P.z), reshape([sum(P.args[i] * c[i:d:end]) for i in Base.OneTo(d)], size(P.z)))
+end
 
 # undoes BlockBroadcastArray(vcat, unitblocks.(cs)...)
 blockvector2vectortuple(c::BlockBroadcastVector{<:Any,typeof(vcat)}) = map(a -> a.blocks, c.args)    

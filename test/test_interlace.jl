@@ -195,6 +195,11 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             @test U_N[0.1] ≈ cos.((1:10) .* 0.1)
             U = V / V \ broadcast(x -> cos.((1:10) .* x), x)
             @test U[0.1] ≈ cos.((1:10) .* 0.1)
+
+            W = SetindexInterlace(SVector(0.0,0.0), Fill(Weighted(ChebyshevU()), 2))
+            f = broadcast(x -> sqrt(1-x^2)*SVector(exp(x),cos(x)), x)
+            u = W / W \ f
+            @test u[0.1] ≈ f[0.1]
         end
 
         @testset "zero" begin
@@ -207,6 +212,35 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
             θ = axes(S,1)
             XY = S \ BroadcastQuasiVector{eltype(S)}(θ -> (I-X(exp(im*θ))^2)*(I-Y(exp(im*θ))^2), θ)
             @test iszero(norm(XY))
+        end
+
+        @testset "basis" begin
+            x = Inclusion(ChebyshevInterval())
+            v = broadcast(x -> SVector(exp(x),cos(x-0.1)), x)
+            @test basis(v) == SetindexInterlace(SVector(0.0,0.0), Fill(Legendre(), 2))
+            f = expand(v)
+            @test basis(f) == basis(v)
+            @test f[0.1] ≈ [exp(0.1),cos(0.1-0.1)]
+
+            @testset "mapped" begin
+                y = axes(chebyshevt(0..1),1)
+                g = expand(broadcast(y -> SVector(exp(y),cos(y)), y))
+                @test basis(g) == SetindexInterlace(SVector(0.0,0.0), Fill(legendre(0..1), 2))
+                @test axes(g,1) == y
+                @test g[0.3] ≈ [exp(0.3),cos(0.3)]
+            end
+
+            @testset "matrix" begin
+                F = expand(broadcast(x -> SMatrix{2,2}(1,x,exp(x),cos(x)), x))
+                @test basis(F) == SetindexInterlace(zero(SMatrix{2,2,Float64}), Fill(Legendre(), 4))
+                @test F[0.1] ≈ SMatrix{2,2}(1,0.1,exp(0.1),cos(0.1))
+            end
+
+            @testset "Vector" begin
+                h = expand(broadcast(x -> [exp(x),cos(x),sin(x)], x))
+                @test basis(h) == SetindexInterlace(zeros(3), Fill(Legendre(), 3))
+                @test h[0.1] ≈ [exp(0.1),cos(0.1),sin(0.1)]
+            end
         end
     end
 end

@@ -29,6 +29,10 @@ SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 [weakdeps]
 MutableArithmetics = "d8a4904e-b15c-11e9-3269-09a3773c0cb0"
 
+[sources]
+ContinuumArrays = {path = "/Users/solver/Projects/ContinuumArrays.jl/"}
+QuasiArrays = {path = "../QuasiArrays.jl"}
+
 [extensions]
 ClassicalOrthogonalPolynomialsMutableArithmeticsExt = "MutableArithmetics"
 
