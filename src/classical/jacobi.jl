@@ -1,6 +1,6 @@
 abstract type AbstractJacobiWeight{T} <: Weight{T} end
 
-axes(::AbstractJacobiWeight{T}) where T = (Inclusion(ChebyshevInterval{T}()),)
+axes(::AbstractJacobiWeight{T}) where T = (Inclusion(ChebyshevInterval{real(T)}()),)
 
 ==(w::AbstractJacobiWeight, v::AbstractJacobiWeight) = w.a == v.a && w.b == v.b
 function ==(a::AffineQuasiVector, w::AbstractJacobiWeight)

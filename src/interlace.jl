@@ -125,6 +125,10 @@ axes(A::PiecewiseInterlace) = (union(axes.(A.args,1)...), LazyBandedMatrices._bl
 
 ==(A::PiecewiseInterlace, B::PiecewiseInterlace) = all(A.args .== B.args)
 
+# f ⊎ g interlaces the coefficients when the bases are infinite dimensional
+uplus_basis_size(::NTuple{N,InfiniteCardinal{0}}, b) where N = PiecewiseInterlace(b...)
+coefficient_vcat(P::PiecewiseInterlace, cs) = BlockBroadcastArray(vcat, unitblocks.(cs)...)
+
 """
     SetindexInterlace(z, args...)
 
@@ -274,12 +278,11 @@ end
 
 _sum(P::PiecewiseInterlace, dims::Int) = BlockBroadcastArray(hcat, unitblocks.(_sum.(P.args, dims))...)
 
-# blockvector2vectortuple
+# undoes BlockBroadcastArray(vcat, unitblocks.(cs)...)
+blockvector2vectortuple(c::BlockBroadcastVector{<:Any,typeof(vcat)}) = map(a -> a.blocks, c.args)    
+blockvector2vectortuple(c::ApplyVector{<:Any,typeof(Base.setindex)}) = map(a -> pad(a, ∞), blockvector2vectortuple(c.args[2]))
+uplus_components_basis(P::PiecewiseInterlace, c) = P.args .* blockvector2vectortuple(c)
 
-function components(f::ApplyQuasiVector{<:Any,typeof(*),<:Tuple{PiecewiseInterlace,Any}})
-    P,c = arguments(*, f)
-    P.args .* blockvector2vectortuple(c)
-end
 
 ##
 # summary
