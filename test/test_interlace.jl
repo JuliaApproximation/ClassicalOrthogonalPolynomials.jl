@@ -113,6 +113,14 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
                 fc,gc = components(h)
                 @test fc[0.1] == f[0.1]
                 @test gc[2.1] == g[2.1]
+
+                # coefficients from a transform are padded
+                F = expand(PiecewiseInterlace(T1, T2), x -> x < 1.5 ? exp(x) : sin(x))
+                Fc,Gc = components(F)
+                @test Fc[0.1] ≈ exp(0.1)
+                @test Gc[2.1] ≈ sin(2.1)
+                @test basis(Fc) == T1
+                @test basis(Gc) == T2
             end
 
             @testset "associativity" begin
