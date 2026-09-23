@@ -38,7 +38,6 @@
 # I.e. (J[1:n,1:n] + [zeros(n-1,n); -J[n,n+1]*c[1:n]'])*P[x,1:n] = x*P[x,1:n]
 #
 
-    paddeddata(T \ f)
 function colleaguematrix(P, c)
     cₙ = paddeddata(c)
     isempty(cₙ) && return Matrix{eltype(P)}(undef, 0, 0)
