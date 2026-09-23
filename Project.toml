@@ -29,10 +29,6 @@ SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 [weakdeps]
 MutableArithmetics = "d8a4904e-b15c-11e9-3269-09a3773c0cb0"
 
-[sources]
-ContinuumArrays = {path = "/Users/solver/Projects/ContinuumArrays.jl/"}
-QuasiArrays = {path = "../QuasiArrays.jl"}
-
 [extensions]
 ClassicalOrthogonalPolynomialsMutableArithmeticsExt = "MutableArithmetics"
 
@@ -57,7 +53,7 @@ LazyArrays = "2.9.6"
 LazyBandedMatrices = "0.11"
 LinearAlgebra = "1.10"
 MutableArithmetics = "1"
-QuasiArrays = "0.13.2"
+QuasiArrays = "0.13.13"
 RecurrenceRelationshipArrays = "0.1.2"
 RecurrenceRelationships = "0.2"
 SpecialFunctions = "1.0, 2"

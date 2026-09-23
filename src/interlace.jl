@@ -291,7 +291,10 @@ _sum(P::PiecewiseInterlace, dims::Int) = BlockBroadcastArray(hcat, unitblocks.(_
 function sum_layout(::ExpansionLayout, f::ApplyQuasiVector{<:Any,typeof(*),<:Tuple{SetindexInterlace,AbstractVector}}, dims)
     P,c = arguments(*, f)
     d = length(P.args)
-    convert(typeof(P.z), reshape([sum(P.args[i] * c[i:d:end]) for i in Base.OneTo(d)], size(P.z)))
+    c̃ = paddeddata(c)
+    m = cld(length(c̃), d)
+    X = reshape([c̃; zeros(eltype(c̃), d*m - length(c̃))], d, m)
+    convert(typeof(P.z), reshape([sum(P.args[i][:,Base.OneTo(m)] * X[i,:]) for i in Base.OneTo(d)], size(P.z)))
 end
 
 # undoes BlockBroadcastArray(vcat, unitblocks.(cs)...)

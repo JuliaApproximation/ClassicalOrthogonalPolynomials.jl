@@ -240,6 +240,22 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
                 h = expand(broadcast(x -> [exp(x),cos(x),sin(x)], x))
                 @test basis(h) == SetindexInterlace(zeros(3), Fill(Legendre(), 3))
                 @test h[0.1] ≈ [exp(0.1),cos(0.1),sin(0.1)]
+                @test basis(h)[0.1,2] == [0,1,0]
+                @test basis(h)[0.1,6] == [0,0,Legendre()[0.1,2]]
+            end
+
+            @testset "generator" begin
+                g = expand(SVector(exp(x),cos(x)) for x in 0..1)
+                @test basis(g) == SetindexInterlace(SVector(0.0,0.0), Fill(legendre(0..1), 2))
+                @test g[0.3] ≈ [exp(0.3),cos(0.3)]
+            end
+
+            @testset "sum" begin
+                @test sum([exp(x) cos(x); sin(x) 1] for x in 0..1) ≈ [ℯ-1 sin(1); 1-cos(1) 1]
+                @test sum(SMatrix{2,2}(exp(x), sin(x), cos(x), 1) for x in 0..1) ≈ [ℯ-1 sin(1); 1-cos(1) 1]
+                @test sum(SMatrix{2,2}(exp(x), sin(x), cos(x), 1) for x in 0..1) isa SMatrix{2,2,Float64}
+                @test sum(SVector(exp(x), cos(x)) for x in ChebyshevInterval()) ≈ [ℯ-1/ℯ, 2sin(1)]
+                @test sum([exp(x), cos(x), 1] for x in ChebyshevInterval()) ≈ [ℯ-1/ℯ, 2sin(1), 2]
             end
         end
     end
