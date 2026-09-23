@@ -44,6 +44,7 @@ FFTW = "1.1"
 FastGaussQuadrature = "1"
 FastTransforms = "0.16.6, 0.17"
 FillArrays = "1"
+GenericLinearAlgebra = "0.3, 0.4"
 HypergeometricFunctions = "0.3.4"
 InfiniteArrays = " 0.15"
 InfiniteLinearAlgebra = "0.10.1"
@@ -63,6 +64,7 @@ julia = "1.10"
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 DynamicPolynomials = "7c1d4256-1411-5781-91ec-d7bc3513ac07"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+GenericLinearAlgebra = "14197337-ba66-59df-a3e3-ca00e7dcff7a"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SemiseparableMatrices = "f8ebbe35-cbfb-4060-bf7f-b10e4670cf57"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
@@ -70,4 +72,4 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Base64", "DynamicPolynomials", "ForwardDiff", "Random", "SemiseparableMatrices", "StaticArrays", "StatsBase", "Test"]
+test = ["Base64", "DynamicPolynomials", "ForwardDiff", "GenericLinearAlgebra", "Random", "SemiseparableMatrices", "StaticArrays", "StatsBase", "Test"]
