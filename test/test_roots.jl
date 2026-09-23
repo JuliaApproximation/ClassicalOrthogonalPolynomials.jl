@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, QuasiArrays, Random, StatsBase, Test
+using ClassicalOrthogonalPolynomials, QuasiArrays, Random, StatsBase, Test, GenericLinearAlgebra
 
 Random.seed!(5)
 
@@ -10,6 +10,40 @@ Random.seed!(5)
 
     g = x -> x + 0.001cos(x)
     @test searchsortedfirst(expand(T, g), 0.1) ≈ searchsortedfirst(expand(P, g), 0.1) ≈ findall(iszero, expand(T, x -> g(x)-0.1))[1]
+end
+
+@testset "roots of polynomial expansions" begin
+    for P in (Chebyshev(), Legendre(), Jacobi(0.2, 0.3))
+        @test findall(iszero, expand(P, x -> x - 1)) ≈ [1.0]
+        @test findall(iszero, expand(P, x -> x + 1)) ≈ [-1.0]
+        @test findall(iszero, expand(P, x -> x^2 - 1)) ≈ [-1.0, 1.0]
+    end
+
+    T01 = chebyshevt(0..1)
+    @test findall(iszero, expand(T01, x -> x)) ≈ [0.0]
+    @test findall(iszero, expand(T01, x -> x - 1)) ≈ [1.0]
+    @test findall(iszero, expand(T01, x -> (x - 1) * (x - 0.25))) ≈ [0.25, 1.0]
+
+    Tbig = chebyshevt(1000..1001)
+    @test isempty(findall(iszero, expand(Tbig, x -> x - (1001 + 1e-12))))
+
+    @test isempty(findall(iszero, expand(Chebyshev(), zero)))
+    @test findall(iszero, expand(Chebyshev(), x -> (x - 0.5)^2)) ≈ [0.5, 0.5] atol=1E-6
+end
+
+@testset "BigFloat roots" begin
+    r = findall(iszero, expand(ChebyshevT{BigFloat}(), x -> x^2 - big(1)/3))
+    @test r isa Vector{BigFloat}
+    @test r ≈ [-sqrt(big(1)/3), sqrt(big(1)/3)] atol=1E-70
+
+    r = findall(iszero, expand(chebyshevt(big(0)..big(1)), x -> x - big(1)/3))
+    @test r isa Vector{BigFloat}
+    @test r ≈ [big(1)/3] atol=1E-70
+end
+
+@testset "high-degree roots" begin
+    r = findall(iszero, expand(Chebyshev(), x -> cos(200x)))
+    @test r ≈ [(2k + 1) * π / 400 for k in -64:63 if -1 ≤ (2k + 1) * π / 400 ≤ 1]
 end
 
 @testset "sample" begin
