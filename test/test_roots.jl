@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, QuasiArrays, Random, StatsBase, Test
+using ClassicalOrthogonalPolynomials, QuasiArrays, Random, StatsBase, Test, GenericLinearAlgebra
 
 Random.seed!(5)
 
@@ -26,6 +26,19 @@ end
 
     Tbig = chebyshevt(1000..1001)
     @test isempty(findall(iszero, expand(Tbig, x -> x - (1001 + 1e-12))))
+
+    @test isempty(findall(iszero, expand(Chebyshev(), zero)))
+    @test findall(iszero, expand(Chebyshev(), x -> (x - 0.5)^2)) ≈ [0.5, 0.5] atol=1E-6
+end
+
+@testset "BigFloat roots" begin
+    r = findall(iszero, expand(ChebyshevT{BigFloat}(), x -> x^2 - big(1)/3))
+    @test r isa Vector{BigFloat}
+    @test r ≈ [-sqrt(big(1)/3), sqrt(big(1)/3)] atol=1E-70
+
+    r = findall(iszero, expand(chebyshevt(big(0)..big(1)), x -> x - big(1)/3))
+    @test r isa Vector{BigFloat}
+    @test r ≈ [big(1)/3] atol=1E-70
 end
 
 @testset "high-degree roots" begin
