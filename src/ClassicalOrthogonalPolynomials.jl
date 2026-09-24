@@ -35,7 +35,7 @@ import QuasiArrays: cardinality, checkindex, QuasiAdjoint, QuasiTranspose, Inclu
 import InfiniteArrays: OneToInf, InfAxes, Infinity, AbstractInfUnitRange, InfiniteCardinal, InfRanges
 import InfiniteLinearAlgebra: chop!, chop, pad, choplength, compatible_resize!, partialcholesky!, SymTridiagonalConjugation, TridiagonalConjugation
 import ContinuumArrays: Basis, Weight, basis_axes, @simplify, AbstractAffineQuasiVector, ProjectionFactorization,
-    grid, plotgrid, plotgrid_layout, plotvalues_layout, grid_layout, transform_ldiv, TransformFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
+    grid, plotgrid, plotgrid_layout, plotvalues_layout, grid_layout, transform_ldiv, TransformFactorization, MappedFactorization, WeightedFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, MappedWeightLayout, SubBasisLayout, broadcastbasis_layout,
     plan_grid_transform, plan_transform, MAX_PLOT_POINTS, MulPlan, ApplyPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout, _cumsum, uplus_components_basis, uplus_basis_size, coefficient_vcat
@@ -243,7 +243,13 @@ singularitiesbroadcast(::typeof(*), a, ::NoSingularities) = a
 
 
 
-basis_axes(ax::Inclusion{<:Any,<:AbstractInterval}, v) = convert(AbstractQuasiMatrix{ContinuumArrays._any_eltype(v)}, basis_singularities(ax, singularities(v)))
+basis_axes(ax::Inclusion{<:Any,<:AbstractInterval}, v) = basis_axes_eltype(ax, ContinuumArrays._any_eltype(v), v)
+basis_axes_eltype(ax, ::Type{T}, v) where T = convert(AbstractQuasiMatrix{T}, basis_singularities(ax, singularities(v)))
+# vector-valued functions are expanded entrywise
+function basis_axes_eltype(ax, ::Type{T}, v) where T<:AbstractArray
+    z = zero(v[choice(ax)])
+    SetindexInterlace(z, Fill(basis_axes_eltype(ax, eltype(T), v), length(z)))
+end
 
 
 singularities(::Number) = NoSingularities()
