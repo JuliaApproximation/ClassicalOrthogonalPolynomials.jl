@@ -107,7 +107,8 @@ checkpoints(A::AbstractInterlaceBasis) = _interlace_checkpoints(A.args)
 
 is an analogue of `Basis` that takes the union of the first axis,
 and the second axis is a blocked interlace of args.
-If there is overlap, it uses the first in order.
+The pieces are closed, so where they overlap, e.g. at a shared endpoint,
+every piece containing the point contributes to an expansion.
 """
 struct PiecewiseInterlace{T, Args} <: AbstractInterlaceBasis{T}
     args::Args
@@ -158,7 +159,11 @@ axes(A::SetindexInterlace) = (setindexinterlace_axis(A.args), LazyBandedMatrices
 
 ==(A::SetindexInterlace, B::SetindexInterlace) = A.z == B.z && all(A.args .== B.args)
 
-ArrayLayouts.zeroeltype(M::Mul{<:Any,<:Any,<:SetindexInterlace}) = convert(eltype(M),M.A.z)
+# zero(T) is not defined for, e.g., Vector so use the template z
+interlace_zero(P) = zero(eltype(P))
+interlace_zero(P::SetindexInterlace) = P.z
+interlace_zero(P::PiecewiseInterlace) = interlace_zero(first(P.args))
+ArrayLayouts.zeroeltype(M::Mul{<:Any,<:Any,<:AbstractInterlaceBasis}) = convert(eltype(M), interlace_zero(M.A))
 
 # Base.setindex is only defined for immutable arrays like SVector
 interlace_setindex(z, v, i) = setindex(z, v, i)
@@ -182,7 +187,7 @@ function QuasiArrays._getindex(::Type{IND}, A::PiecewiseInterlace{T}, (x,j)::IND
     J = Int(block(Jj))
     i = blockindex(Jj)
     x in axes(A.args[i],1) && return A.args[i][x, J]
-    zero(T)
+    interlace_zero(A)
 end
 
 function QuasiArrays._getindex(::Type{IND}, A::SetindexInterlace{T}, (x,j)::IND) where {IND,T}
@@ -237,8 +242,9 @@ for Typ in (:PiecewiseFactorization, :SetindexFactorization)
     end
 end
 
+# eltype(T) as the coefficients of array-valued bases are scalars
 \(F::PiecewiseFactorization{T}, v::AbstractQuasiVector) where {T} =
-    BlockBroadcastArray{T}(vcat, unitblocks.((\).(F.factorizations, getindex.(Ref(v), F.axes)))...)
+    BlockBroadcastArray{eltype(T)}(vcat, unitblocks.((\).(F.factorizations, getindex.(Ref(v), F.axes)))...)
 
 \(F::SetindexFactorization{T}, v::AbstractQuasiVector) where {T} =
     BlockBroadcastArray{eltype(T)}(vcat, unitblocks.((\).(F.factorizations, broadcast((w,i) -> getindex.(w,i), Ref(v), Base.OneTo(length(F.factorizations)))))...)
@@ -286,7 +292,7 @@ end
 # sum
 ###
 
-_sum(P::PiecewiseInterlace, dims::Int) = BlockBroadcastArray(hcat, unitblocks.(_sum.(P.args, dims))...)
+_sum(P::PiecewiseInterlace{T}, dims::Int) where T = BlockBroadcastArray{T}(hcat, unitblocks.(_sum.(P.args, dims))...)
 _sum(P::SetindexInterlace{T}, dims::Int) where T = BlockBroadcastArray{T}(hcat, map((i,a) -> unitblocks(interlace_setindex.(Ref(P.z), _sum(a, dims), i)), Base.OneTo(length(P.args)), P.args)...)
 
 # undoes BlockBroadcastArray(vcat, unitblocks.(cs)...)
