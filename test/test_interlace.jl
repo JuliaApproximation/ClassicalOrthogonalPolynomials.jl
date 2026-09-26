@@ -1,6 +1,8 @@
 using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArrays, ContinuumArrays, Test
 using StaticArrays
 import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid, BroadcastQuasiVector, components
+using ContinuumArrays: UnionDomain
+using LazyArrays: paddeddata
 
 @testset "Interlace" begin
     @testset "Piecewise" begin
@@ -128,6 +130,62 @@ import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, pl
                 for x in (0.1, 2.1, 4.1)
                     @test ((f ⊎ g) ⊎ w)[x] == (f ⊎ (g ⊎ w))[x] == h3[x]
                 end
+            end
+
+            @testset "differing lengths" begin
+                p = expand(T2, x -> 1 + x)
+                @test length(paddeddata(coefficients(p))) < length(paddeddata(coefficients(f)))
+                h = f ⊎ p
+                @test h[0.1] ≈ exp(0.1)
+                @test h[2.5] ≈ 3.5
+            end
+        end
+
+        @testset "vector-valued" begin
+            g = x -> [exp(-40(x-0.1)^2); cos(x-0.1)*exp(-40(x-0.1)^2)]
+            d = UnionDomain(-1..0, 0..1)
+            𝐟 = expand(g(x) for x in d)
+            @test basis(𝐟) == PiecewiseInterlace(SetindexInterlace(zeros(2), Fill(legendre(-1..0), 2)), SetindexInterlace(zeros(2), Fill(legendre(0..1), 2)))
+            @test 𝐟[-0.5] ≈ g(-0.5)
+            @test 𝐟[0.3] ≈ g(0.3)
+
+            𝐟₁ = expand(g(x) for x in -1..0)
+            𝐟₂ = expand(g(x) for x in 0..1)
+            @test sum(𝐟) ≈ sum(𝐟₁) + sum(𝐟₂)
+            a,b = components(𝐟)
+            @test basis(a) == basis(𝐟₁)
+            @test a[-0.5] ≈ g(-0.5)
+            @test b[0.3] ≈ g(0.3)
+            𝐡 = 𝐟₁ ⊎ 𝐟₂
+            @test basis(𝐡) == basis(𝐟)
+            @test 𝐡[-0.5] ≈ 𝐟[-0.5]
+            @test 𝐡[0.3] ≈ 𝐟[0.3]
+
+            @testset "SVector" begin
+                𝐬 = expand(SVector(exp(x), cos(x)) for x in d)
+                @test 𝐬[0.3] isa SVector{2,Float64}
+                @test 𝐬[0.3] ≈ [exp(0.3), cos(0.3)]
+                @test 𝐬[-0.5] ≈ [exp(-0.5), cos(-0.5)]
+                @test sum(𝐬) ≈ [ℯ - 1/ℯ, 2sin(1)]
+            end
+
+            @testset "Matrix, three intervals" begin
+                F = expand([exp(x) cos(x); sin(x) 1] for x in UnionDomain(-1..0, 0..1, 2..3))
+                @test F[2.5] ≈ [exp(2.5) cos(2.5); sin(2.5) 1]
+                @test F[-0.5] ≈ [exp(-0.5) cos(-0.5); sin(-0.5) 1]
+                @test sum(F) ≈ [ℯ^3-ℯ^2+ℯ-1/ℯ sin(3)-sin(2)+2sin(1); -cos(3)+cos(2) 3]
+                for (Fₖ, x) in zip(components(F), (-0.5, 0.3, 2.5))
+                    @test Fₖ[x] ≈ [exp(x) cos(x); sin(x) 1]
+                end
+            end
+
+            @testset "Matrix pieces not ending on a block boundary" begin
+                g = x -> [1 exp(-40x^2); 0.1exp(-40x^2) 1]
+                G = expand(g(x) for x in UnionDomain(-1..0, 0..1))
+                a,b = components(G)
+                @test a[-0.5] ≈ g(-0.5)
+                @test b[0.3] ≈ g(0.3)
+                @test a[[-0.5,-0.2]] ≈ g.([-0.5,-0.2])
             end
         end
     end
