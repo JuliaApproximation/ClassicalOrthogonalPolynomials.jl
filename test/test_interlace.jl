@@ -174,6 +174,18 @@ using LazyArrays: paddeddata
                 @test F[2.5] ≈ [exp(2.5) cos(2.5); sin(2.5) 1]
                 @test F[-0.5] ≈ [exp(-0.5) cos(-0.5); sin(-0.5) 1]
                 @test sum(F) ≈ [ℯ^3-ℯ^2+ℯ-1/ℯ sin(3)-sin(2)+2sin(1); -cos(3)+cos(2) 3]
+                for (Fₖ, x) in zip(components(F), (-0.5, 0.3, 2.5))
+                    @test Fₖ[x] ≈ [exp(x) cos(x); sin(x) 1]
+                end
+            end
+
+            @testset "Matrix pieces not ending on a block boundary" begin
+                g = x -> [1 exp(-40x^2); 0.1exp(-40x^2) 1]
+                G = expand(g(x) for x in UnionDomain(-1..0, 0..1))
+                a,b = components(G)
+                @test a[-0.5] ≈ g(-0.5)
+                @test b[0.3] ≈ g(0.3)
+                @test a[[-0.5,-0.2]] ≈ g.([-0.5,-0.2])
             end
         end
     end

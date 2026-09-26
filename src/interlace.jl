@@ -169,10 +169,13 @@ ArrayLayouts.zeroeltype(M::Mul{<:Any,<:Any,<:AbstractInterlaceBasis}) = convert(
 interlace_setindex(z, v, i) = setindex(z, v, i)
 interlace_setindex(z::Array, v, i) = setindex!(copy(z), v, i)
 
+# the padded data need not end on a block boundary, e.g. for a piece of a PiecewiseInterlace expansion
+_interlace_reshape(c, d) = iszero(mod(length(c), d)) ? reshape(c, d, :) : copyto!(zeros(eltype(c), d, cld(length(c), d)), c)
+
 function getindex(f::Mul{BasisLayout,<:AbstractPaddedLayout,<:SetindexInterlace{<:Any,<:AbstractFill}}, x::Number)
     P = getindex_value(f.A.args)
     d = length(f.A.args)
-    X = reshape(paddeddata(f.B),d,:)
+    X = _interlace_reshape(paddeddata(f.B), d)
     X̃ = PaddedArray(transpose(X), size(P,2),d)
     reshape((P * X̃)[x,:], size(f.A.z)) # z may be a matrix
 end
