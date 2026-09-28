@@ -456,6 +456,15 @@ function _op_ldiv(P::AbstractQuasiMatrix{V}, f::Inclusion{T}) where {T,V}
     Vcat(-B[1]c, c, Zeros{TV}(∞))
 end
 
+_op_ldiv(P::AbstractQuasiMatrix, a::AbstractAffineQuasiVector) = a.A * _op_ldiv(P, a.x) + a.b * _op_ldiv(P, QuasiOnes{eltype(a)}(axes(P,1)))
+
+# constants and polynomials such as x lie exactly in the span of an OP basis,
+# so broadcasting them with an expansion, e.g. f .+ 1, gives an expansion
+ContinuumArrays.expandsexactly_layout(::AbstractOPLayout, ::Union{ArrayLayouts.ScalarLayout,PolynomialLayout}, _, _) = true
+for Typ in (:AbstractQuasiFill, :Inclusion, :AbstractAffineQuasiVector)
+    @eval ContinuumArrays.exactexpansion_layout(::Union{OPLayout,MappedOPLayout}, P, a::$Typ) = P * _op_ldiv(P, a)
+end
+
 
 abstract type ClassicalOrthogonalPolynomial{T} <: OrthogonalPolynomial{T} end
 isreal(::ClassicalOrthogonalPolynomial) = true

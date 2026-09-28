@@ -186,6 +186,7 @@ end
 
 
 ldiv(P::Legendre{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
+ldiv(P::Legendre, f::AbstractAffineQuasiVector) = _op_ldiv(P, f)
 function transform_ldiv(::Legendre{V}, f::Union{AbstractQuasiVector,AbstractQuasiMatrix}) where V
     T = ChebyshevT{V}()
     dat = transform_ldiv(T, f)

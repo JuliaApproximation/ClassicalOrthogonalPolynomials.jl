@@ -297,6 +297,7 @@ function plan_transform(Q::Normalized{T,<:AbstractJacobi{T}}, szs::NTuple{N,Int}
 end
 
 ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
+ldiv(P::Jacobi, f::AbstractAffineQuasiVector) = _op_ldiv(P, f)
 ldiv(P::Jacobi{V}, f::AbstractQuasiFill{T,1}) where {T,V} = _op_ldiv(P, f)
 function transform_ldiv(P::Jacobi{V}, f::AbstractQuasiArray) where V
     T = ChebyshevT{V}()

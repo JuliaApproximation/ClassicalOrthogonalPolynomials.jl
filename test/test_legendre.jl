@@ -135,6 +135,39 @@ import QuasiArrays: MulQuasiArray
         @test Q \ (x .* Q) isa LazyBandedMatrices.Tridiagonal
     end
 
+    @testset "broadcasting expansions with polynomials" begin
+        isexpansion(f) = MemoryLayout(f) isa ContinuumArrays.ExpansionLayout
+        f = expand(cos(x) for x in ChebyshevInterval())
+        x = axes(f,1)
+        t = 0.3
+        for (g, v) in ((f .+ 1, cos(t)+1), (1 .- f, 1-cos(t)), (f .+ im, cos(t)+im), (x .+ f, t+cos(t)), (f .- x, cos(t)-t),
+                       ((2x .+ 1) .+ f, 2t+1+cos(t)), (f .* x, t*cos(t)), (-f, -cos(t)), (f .^ 3, cos(t)^3))
+            @test isexpansion(g)
+            @test basis(g) == Legendre()
+            @test g[t] ≈ v
+        end
+        # adding a constant only changes the first coefficient
+        c, d = coefficients(f .+ 1), coefficients(f)
+        @test c[1] ≈ d[1]+1
+        @test c[2:20] == d[2:20]
+        @test length(LazyArrays.paddeddata(c)) == length(LazyArrays.paddeddata(d))
+        @test Legendre() \ (2x .+ 1) == [1; 2; zeros(∞)]
+
+        T, J = ChebyshevT(), Jacobi(0.1,0.2)
+        for g in (T * (T \ exp.(x)), J * (J \ exp.(x)), Normalized(Legendre())[:,1:5] * [1,2,3,4,5.0], expand(exp(x) for x in 0..1))
+            y = axes(g,1)
+            @test isexpansion(g .+ 1) && isexpansion(y .* g) && isexpansion(g .^ 2)
+            @test (g .+ 1)[t] ≈ g[t] + 1
+            @test (y .* g .- 2)[t] ≈ t * g[t] - 2
+            @test (g .^ 2)[t] ≈ g[t]^2
+        end
+
+        # constants are not in the span of a weighted basis
+        w = Weighted(Jacobi(1,1)) * [1; zeros(∞)]
+        @test !isexpansion(w .+ 1)
+        @test (w .+ 1)[t] ≈ 2 - t^2
+    end
+
     @testset "sum" begin
         P = legendre()
         x = axes(P,1)
