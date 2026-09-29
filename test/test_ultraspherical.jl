@@ -71,6 +71,12 @@ using ClassicalOrthogonalPolynomials: grammatrix
                 @test bandwidths(U\C) == bandwidths(T\C) == (0,∞)
                 @test colsupport(U\C,5) == colsupport(T\C,5) == 1:5
                 @test rowsupport(U\C,5) == rowsupport(T\C,5) == 5:∞
+
+                x = ClassicalOrthogonalPolynomials.chebyshevpoints(Float64, 10, Val(1))
+                for λ in (0.5, 1.5, 0.25, -0.25)
+                    @test (T\Ultraspherical(λ))[1:10,1:10] ≈ T[x,1:10] \ Ultraspherical(λ)[x,1:10]
+                end
+                @test (T\Ultraspherical(0.5))[1:10,1:10] ≈ (T\Legendre())[1:10,1:10]
             end
             @testset "Legendre" begin
                 @test Ultraspherical(0.5) \ (UltrasphericalWeight(0.5) .* Ultraspherical(0.5)) == Eye(∞)

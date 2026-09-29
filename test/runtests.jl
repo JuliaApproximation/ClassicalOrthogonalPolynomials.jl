@@ -32,6 +32,7 @@ end
 include("test_chebyshev.jl")
 include("test_legendre.jl")
 include("test_ultraspherical.jl")
+include("test_connection.jl")
 include("test_jacobi.jl")
 include("test_hermite.jl")
 include("test_laguerre.jl")

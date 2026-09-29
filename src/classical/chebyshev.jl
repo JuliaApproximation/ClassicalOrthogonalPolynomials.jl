@@ -235,11 +235,13 @@ end
 
 function \(A::ChebyshevT, B::Jacobi)
     J = Jacobi(A)
+    _isintegerconversion(J, B) || return ConnectionMatrix(A, B)
     Diagonal(J[1,:]) * (J \ B)
 end
 
 function \(A::Jacobi, B::ChebyshevT)
     J = Jacobi(B)
+    _isintegerconversion(A, J) || return ConnectionMatrix(A, B)
     (A \ J) * Diagonal(inv.(J[1,:]))
 end
 
@@ -260,15 +262,8 @@ function \(A::Jacobi, B::ChebyshevU)
 end
 
 
-# TODO: Toeplitz dot Hankel will be faster to generate
-function \(A::ChebyshevT, B::Legendre)
-    T = promote_type(eltype(A), eltype(B))
-   UpperTriangular( BroadcastMatrix{T}((k,j) -> begin
-            (iseven(k) == iseven(j) && j ≥ k) || return zero(T)
-            k == 1 && return Λ(convert(T,j-1)/2)^2/π
-            2/π * Λ(convert(T,j-k)/2) * Λ(convert(T,k+j-2)/2)
-        end, convert(AbstractVector{T},1:∞), convert(AbstractVector{T},1:∞)'))
-end
+\(A::ChebyshevT, B::Legendre) = ConnectionMatrix(A, B)
+\(A::Legendre, B::ChebyshevT) = ConnectionMatrix(A, B)
 
 \(A::AbstractJacobi, B::Chebyshev) = ApplyArray(inv,B \ A)
 

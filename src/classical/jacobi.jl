@@ -432,15 +432,14 @@ function _jacobi_convert_b(a, b, k, T) # Jacobi(a, b+k) \ Jacobi(a, b)
 end
 
 isapproxinteger(x) = isinteger(x) || isapprox(x,round(Int,x)) || isapprox(x+1,round(Int,x+1))
+_isintegerconversion(A::Jacobi, B::Jacobi) = isapproxinteger(A.a-B.a) && isapproxinteger(A.b-B.b)
 
 
 function \(A::Jacobi, B::Jacobi)
     T = promote_type(eltype(A), eltype(B))
     aa, ab = A.a, A.b
     ba, bb = B.a, B.b
-    if !isapproxinteger(aa-ba) || !isapproxinteger(ab-bb)
-        throw(ArgumentError("non-integer conversions not supported"))
-    end
+    _isintegerconversion(A, B) || return ConnectionMatrix(A, B)
     ka = round(Integer, aa-ba)
     kb = round(Integer, ab-bb)
     if ka >= 0

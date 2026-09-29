@@ -18,7 +18,7 @@ import LazyArrays: MemoryLayout, Applied, ApplyStyle, flatten, _flatten, adjoint
                 _mul_arguments, CachedVector, CachedMatrix, LazyVector, LazyMatrix, axpy!, AbstractLazyLayout, BroadcastLayout,
                 AbstractCachedVector, AbstractCachedMatrix, paddeddata, cache_filldata!,
                 simplifiable, PaddedArray, converteltype, simplify
-import ArrayLayouts: MatMulVecAdd, materialize!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
+import ArrayLayouts: LayoutMatrix, MatMulVecAdd, materialize!, sublayout, sub_materialize, lmul!, ldiv!, ldiv, transposelayout, triangulardata,
                         subdiagonaldata, diagonaldata, supdiagonaldata, mul, rowsupport, colsupport
 import LazyBandedMatrices: SymTridiagonal, Bidiagonal, Tridiagonal, unitblocks, BlockRange1, AbstractLazyBandedLayout
 import LinearAlgebra: pinv, factorize, qr, adjoint, transpose, dot, mul!, reflectorApply!
@@ -39,7 +39,7 @@ import ContinuumArrays: Basis, Weight, basis_axes, @simplify, AbstractAffineQuas
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, MappedWeightLayout, SubBasisLayout, broadcastbasis_layout,
     plan_grid_transform, plan_transform, MAX_PLOT_POINTS, MulPlan, ApplyPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout, _cumsum, uplus_components_basis, uplus_basis_size, coefficient_vcat
-import FastTransforms: Λ, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg, pochhammer
+import FastTransforms: Λ, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg, th_leg2cheb, th_ultra2ultra, th_jac2jac, th_jac2cheb, th_cheb2jac, pochhammer
 import RecurrenceRelationships: forwardrecurrence, forwardrecurrence!, clenshaw, clenshaw!,
                         check_clenshaw_recurrences, polynomialtype
 import RecurrenceRelationshipArrays: initiateforwardrecurrence, Clenshaw
@@ -473,6 +473,7 @@ include("classical/hermite.jl")
 include("classical/jacobi.jl")
 include("classical/chebyshev.jl")
 include("classical/ultraspherical.jl")
+include("classical/connection.jl")
 include("classical/laguerre.jl")
 include("classical/fourier.jl")
 include("roots.jl")
