@@ -237,6 +237,7 @@ end
 
 
 function \(U::Ultraspherical, C::ChebyshevT)
+    isinteger(U.λ) || return ConnectionMatrix(U, C)
     T = promote_type(eltype(U), eltype(C))
     (U\Ultraspherical{T}(1)) * (ChebyshevU{T}()\C)
 end
@@ -249,6 +250,8 @@ end
 
 
 \(T::Chebyshev, C::Ultraspherical) = inv(C \ T)
+
+\(A::ChebyshevT, B::Ultraspherical) = isinteger(B.λ) ? inv(B \ A) : ConnectionMatrix(A, B)
 
 function \(C2::Ultraspherical{<:Any,<:Integer}, C1::Ultraspherical{<:Any,<:Integer})
     T = promote_type(eltype(C2), eltype(C1))
@@ -279,7 +282,7 @@ function \(C2::Ultraspherical, C1::Ultraspherical)
     elseif isinteger(C2.λ-λ_Int)
         inv(C1 \ C2)
     else
-        error("Not implemented")
+        ConnectionMatrix(C2, C1)
     end
 end
 

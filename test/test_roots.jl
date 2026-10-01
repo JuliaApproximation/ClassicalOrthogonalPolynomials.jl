@@ -10,6 +10,10 @@ Random.seed!(5)
 
     g = x -> x + 0.001cos(x)
     @test searchsortedfirst(expand(T, g), 0.1) ≈ searchsortedfirst(expand(P, g), 0.1) ≈ findall(iszero, expand(T, x -> g(x)-0.1))[1]
+
+    # derivative of a Legendre expansion is in Ultraspherical(3/2)
+    @test findall(iszero, expand(Ultraspherical(3/2), f)) ≈ [k*π/20 for k=-5:2:5]
+    @test findall(iszero, diff(expand(P, x -> sin(10x)))) ≈ [k*π/20 for k=-5:2:5]
 end
 
 @testset "roots of lazy functions" begin

@@ -545,8 +545,12 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test (P³ \ diff(P¹,2))[1:10,1:10] ≈ (P³ \ diff(diff(P¹)))[1:10,1:10]
     end
 
-    @testset "conversion not implemented" begin 
-        @test_throws ArgumentError Jacobi(0,0) \ Jacobi(1.1,2.1)
+    @testset "non-integer conversion" begin
+        A, B = Jacobi(0,0), Jacobi(1.1,2.1)
+        x = ClassicalOrthogonalPolynomials.chebyshevpoints(Float64, 10, Val(1))
+        @test (A \ B)[1:10,1:10] ≈ A[x,1:10] \ B[x,1:10]
+        f = B * [randn(5); zeros(∞)]
+        @test (A * (A \ f))[0.1] ≈ f[0.1]
     end
 
     @testset "broadcastbasis" begin
