@@ -12,6 +12,16 @@ Random.seed!(5)
     @test searchsortedfirst(expand(T, g), 0.1) ≈ searchsortedfirst(expand(P, g), 0.1) ≈ findall(iszero, expand(T, x -> g(x)-0.1))[1]
 end
 
+@testset "roots of lazy functions" begin
+    # lazy functions are expanded in their natural basis
+    f = [cos(10x) for x in -1.0..1.0]
+    @test findall(iszero, f) ≈ [k*π/20 for k=-5:2:5]
+    @test findfirst(iszero, f) ≈ -π/4
+    @test findlast(iszero, f) ≈ π/4
+    @test findall(iszero, [sin(x) for x in 1.0..10.0]) ≈ [π, 2π, 3π]
+    @test findfirst(iszero, [1+x^2 for x in -1.0..1.0]) === nothing
+end
+
 @testset "roots of polynomial expansions" begin
     for P in (Chebyshev(), Legendre(), Jacobi(0.2, 0.3))
         @test findall(iszero, expand(P, x -> x - 1)) ≈ [1.0]
