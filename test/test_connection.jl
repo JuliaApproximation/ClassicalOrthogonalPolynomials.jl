@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, LazyArrays, FillArrays, LinearAlgebra, Test
-using ClassicalOrthogonalPolynomials: ConnectionMatrix
+using ClassicalOrthogonalPolynomials: ConnectionMatrix, ℵ₀
 using LazyArrays: colsupport, rowsupport
 
 @testset "ConnectionMatrix" begin
@@ -11,13 +11,15 @@ using LazyArrays: colsupport, rowsupport
 
     for (A, B) in ((T, P), (P, T), (T, Ultraspherical(1.5)), (Ultraspherical(1.5), T),
                    (Ultraspherical(0.25), Ultraspherical(1.5)), (P, Ultraspherical(0.25)),
-                   (Jacobi(0.1,0.2), Jacobi(1.1,2.3)), (T, Jacobi(0.1,0.2)), (Jacobi(0.1,0.2), T))
+                   (Jacobi(0.1,0.2), Jacobi(1.1,2.3)), (Jacobi(1.1,0.2), Jacobi(0.1,2.3)), (T, Jacobi(0.1,0.2)), (Jacobi(0.1,0.2), T))
         C = A \ B
         @test C isa ConnectionMatrix
+        @test size(C) == (ℵ₀, ℵ₀)
+        @test copy(C) ≡ C
         @test C[1:n,1:n] ≈ ref(A, B)
         @test [C[k,j] for k=1:n, j=1:n] ≈ ref(A, B)
         @test C[3:5,2:7] ≈ ref(A, B)[3:5,2:7]
-        @test C[:,4][1:n] ≈ ref(A, B)[:,4]
+        @test C[:,4][1:n] ≈ C[1:n,4] ≈ ref(A, B)[:,4]
         @test colsupport(C, 4) == 1:4
         @test rowsupport(C, 4) == 4:∞
         @test colsupport(transpose(C), 4) == 4:∞
@@ -42,6 +44,13 @@ using LazyArrays: colsupport, rowsupport
         @test (C * M)[1:n,:] ≈ ref(A, B)[:,1:5] * M[1:5,:]
         c = [randn(ComplexF64,5); zeros(∞)]
         @test (C * c)[1:n] ≈ ref(A, B)[:,1:5] * c[1:5]
+        c = Vcat([1,2,3], Zeros{Int}(∞))
+        @test (C * c)[1:n] ≈ ref(A, B)[:,1:3] * [1,2,3]
+    end
+
+    @testset "explicit construction" begin
+        A, B = Ultraspherical(1.5), Jacobi(0.1,0.2)
+        @test ConnectionMatrix(A, B)[1:n,1:n] ≈ ref(A, B)
     end
 
     @testset "expansions" begin

@@ -28,7 +28,6 @@ rowsupport(::ConnectionLayout, C, k) = minimum(k):∞
 # transposes arise when indexing rows of products, e.g. stieltjes(Legendre(), z) * (Legendre() \ ChebyshevT())
 struct TransposeConnectionLayout <: AbstractLazyLayout end
 transposelayout(::ConnectionLayout) = TransposeConnectionLayout()
-transposelayout(::TransposeConnectionLayout) = ConnectionLayout()
 
 colsupport(::TransposeConnectionLayout, C, j) = minimum(j):∞
 rowsupport(::TransposeConnectionLayout, C, k) = oneto(maximum(k))
@@ -85,8 +84,6 @@ getindex(C::ConnectionMatrix{T}, k::Integer, j::Integer) where T = k > j ? zero(
 
 _connection_rows(C::ConnectionMatrix{T}, kr, jr) where T = connection_block(C.A, C.B, T, kr, jr)
 _connection_rows(C::Union{Adjoint{<:Real,<:ConnectionMatrix},Transpose{<:Any,<:ConnectionMatrix}}, kr, jr) = transpose(_connection_rows(parent(C), jr, kr))
-
-connection_block(A, B, ::Type{T}, kr, jr) where T = T[k > j ? zero(T) : connection_getindex(A, B, T, k, j) for k in kr, j in jr]
 
 sub_materialize(::ConnectionBlockLayout, V::AbstractMatrix, ::Tuple{OneTo{Int},OneTo{Int}}) = _connection_rows(parent(V), parentindices(V)...)
 sub_materialize(::ConnectionBlockLayout, V::AbstractVector, ::Tuple{OneTo{Int}}) = vec(_connection_rows(parent(V), parentindices(V)[1], parentindices(V)[2]:parentindices(V)[2]))
