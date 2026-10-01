@@ -1,4 +1,4 @@
-using ClassicalOrthogonalPolynomials, LazyArrays, FillArrays, Test
+using ClassicalOrthogonalPolynomials, LazyArrays, FillArrays, LinearAlgebra, Test
 using ClassicalOrthogonalPolynomials: ConnectionMatrix
 using LazyArrays: colsupport, rowsupport
 
@@ -28,6 +28,10 @@ using LazyArrays: colsupport, rowsupport
         @test C / 2 isa LazyArrays.BroadcastMatrix
         @test (C / 2)[1:n,1:n] ≈ ref(A, B)/2
         @test (ApplyArray(*, transpose(A[0.1,:]), C) / 2)[1,1:n] ≈ B[0.1,1:n]/2
+        # explicit formulas for entries agree with the transforms at high degree
+        N = 200
+        @test C[1:N,1:N] ≈ (C * [Matrix(1.0I, N, N); zeros(∞, N)])[1:N,:]
+        @test C[N-5,N] ≈ C[1:N,1:N][N-5,N]
 
         c = [randn(5); zeros(∞)]
         @test C * c isa LazyArrays.ApplyArray{Float64,1,typeof(vcat)}
