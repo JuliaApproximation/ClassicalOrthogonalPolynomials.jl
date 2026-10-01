@@ -245,3 +245,6 @@ ClassicalOrthogonalPolynomials.ConvertedOrthogonalPolynomial
 ClassicalOrthogonalPolynomials.PiecewiseInterlace
 ```
 
+```@docs
+ClassicalOrthogonalPolynomials.ConnectionMatrix
+```
