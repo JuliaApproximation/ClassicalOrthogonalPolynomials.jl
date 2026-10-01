@@ -20,6 +20,14 @@ using LazyArrays: colsupport, rowsupport
         @test C[:,4][1:n] ≈ ref(A, B)[:,4]
         @test colsupport(C, 4) == 1:4
         @test rowsupport(C, 4) == 4:∞
+        @test colsupport(transpose(C), 4) == 4:∞
+        @test rowsupport(transpose(C), 4) == 1:4
+        @test transpose(C)[1:n,1:n] ≈ C'[1:n,1:n] ≈ transpose(ref(A, B))
+        # rows of a product with infinite support
+        @test ApplyArray(*, transpose(A[0.1,:]), C)[1,1:n] ≈ B[0.1,1:n]
+        @test C / 2 isa LazyArrays.BroadcastMatrix
+        @test (C / 2)[1:n,1:n] ≈ ref(A, B)/2
+        @test (ApplyArray(*, transpose(A[0.1,:]), C) / 2)[1,1:n] ≈ B[0.1,1:n]/2
 
         c = [randn(5); zeros(∞)]
         @test C * c isa LazyArrays.ApplyArray{Float64,1,typeof(vcat)}

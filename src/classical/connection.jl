@@ -20,9 +20,22 @@ inv(C::ConnectionMatrix{T}) where T = ConnectionMatrix{T}(C.B, C.A)
 
 struct ConnectionLayout <: AbstractLazyLayout end
 MemoryLayout(::Type{<:ConnectionMatrix}) = ConnectionLayout()
+Base.BroadcastStyle(::Type{<:ConnectionMatrix}) = LazyArrays.LazyArrayStyle{2}()
 
 colsupport(::ConnectionLayout, C, j) = oneto(maximum(j))
 rowsupport(::ConnectionLayout, C, k) = minimum(k):∞
+
+# transposes arise when indexing rows of products, e.g. stieltjes(Legendre(), z) * (Legendre() \ ChebyshevT())
+struct TransposeConnectionLayout <: AbstractLazyLayout end
+transposelayout(::ConnectionLayout) = TransposeConnectionLayout()
+transposelayout(::TransposeConnectionLayout) = ConnectionLayout()
+
+colsupport(::TransposeConnectionLayout, C, j) = minimum(j):∞
+rowsupport(::TransposeConnectionLayout, C, k) = oneto(maximum(k))
+
+# finite sections, which are computed with a single transform
+struct ConnectionBlockLayout <: AbstractLazyLayout end
+sublayout(::Union{ConnectionLayout,TransposeConnectionLayout}, ::Type{<:Tuple{AbstractUnitRange{Int},Union{Int,AbstractUnitRange{Int}}}}) = ConnectionBlockLayout()
 
 ###
 # connection_transform(A, B, c) returns the coefficients in A of B*c, applied to the columns of c
@@ -76,13 +89,19 @@ function _connection_rows(C::ConnectionMatrix{T}, kr, jr) where T
     [k ≤ size(B,1) ? B[k,j] : zero(T) for k in kr, j in axes(B,2)]
 end
 
-sub_materialize(::ConnectionLayout, V::AbstractMatrix, ::Tuple{OneTo{Int},OneTo{Int}}) = _connection_rows(parent(V), parentindices(V)...)
-sub_materialize(::ConnectionLayout, V::AbstractVector, ::Tuple{OneTo{Int}}) = vec(_connection_rows(parent(V), parentindices(V)[1], parentindices(V)[2]:parentindices(V)[2]))
-function sub_materialize(::ConnectionLayout, V::AbstractVector, ::Tuple{OneToInf{Int}})
+_connection_rows(C::Union{Adjoint{<:Real,<:ConnectionMatrix},Transpose{<:Any,<:ConnectionMatrix}}, kr, jr) = transpose(_connection_rows(parent(C), jr, kr))
+
+sub_materialize(::ConnectionBlockLayout, V::AbstractMatrix, ::Tuple{OneTo{Int},OneTo{Int}}) = _connection_rows(parent(V), parentindices(V)...)
+sub_materialize(::ConnectionBlockLayout, V::AbstractVector, ::Tuple{OneTo{Int}}) = vec(_connection_rows(parent(V), parentindices(V)[1], parentindices(V)[2]:parentindices(V)[2]))
+function sub_materialize(::ConnectionBlockLayout, V::SubArray{<:Any,1,<:ConnectionMatrix}, ::Tuple{OneToInf{Int}})
     C = parent(V)
     j = parentindices(V)[2]
     Vcat(vec(_connection_block(C, j:j)), Zeros{eltype(C)}(∞))
 end
+
+# materialize finite sections of broadcasted arguments, e.g. in (Legendre() \ ChebyshevT()) / 2, as entries are expensive
+const ConnectionMatrices = Union{ConnectionMatrix, Adjoint{<:Real,<:ConnectionMatrix}, Transpose{<:Any,<:ConnectionMatrix}}
+LazyArrays._viewifmutable(C::ConnectionMatrices, kr, jr) = isfinite(length(kr)) && isfinite(length(jr)) ? C[kr, jr] : view(C, kr, jr)
 
 getindex(C::ConnectionMatrix{T}, k::Integer, j::Integer) where T = k > j ? zero(T) : connection_getindex(C.A, C.B, T, k, j)
 connection_getindex(A, B, ::Type{T}, k, j) where T = _connection_block(ConnectionMatrix{T}(A, B), j:j)[k]
