@@ -307,6 +307,13 @@ diff_layout(::MappedOPLayouts, A, order...; dims...) = diff_layout(MappedBasisLa
 
 diff_layout(::AbstractNormalizedOPLayout, A, order...; dims...) = diff_layout(ApplyLayout{typeof(*)}(), A, order...; dims...)
 
+# Normalized(P) == P * Diagonal(scaling) and Weighted(Normalized(P)) == Weighted(P) * Diagonal(scaling),
+# so (abs)laplacians reduce to those of the unnormalized basis. These also apply to multivariate bases.
+laplacian(Q::Normalized, order...; dims...) = laplacian(Q.P, order...; dims...) * Diagonal(Q.scaling)
+abslaplacian(Q::Normalized, order...; dims...) = abslaplacian(Q.P, order...; dims...) * Diagonal(Q.scaling)
+laplacian(W::Weighted{<:Any,<:Normalized}, order...; dims...) = laplacian(Weighted(W.P.P), order...; dims...) * Diagonal(W.P.scaling)
+abslaplacian(W::Weighted{<:Any,<:Normalized}, order...; dims...) = abslaplacian(Weighted(W.P.P), order...; dims...) * Diagonal(W.P.scaling)
+
 function qr(A::AbstractQuasiMatrix)
     P = normalized(basis(A))
     Q,R = qr(P \ A)

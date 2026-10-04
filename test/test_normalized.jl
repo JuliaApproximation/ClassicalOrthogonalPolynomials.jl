@@ -287,6 +287,42 @@ import ContinuumArrays: MappedWeightedBasisLayout
         @test P \ g ≈ transform(P, x -> g[x])
     end
 
+    @testset "laplacian" begin
+        x = 0.3
+        c = [1:6; zeros(∞)]
+        for P in (Legendre(), Chebyshev(), Jacobi(1.0,1.0), Jacobi(0.1,0.2))
+            Q = Normalized(P)
+            D = Diagonal(Q.scaling)
+            Δ = laplacian(Q)
+            @test eltype(Δ) == Float64
+            @test Δ[x,1:6] ≈ diff(Q,2)[x,1:6] ≈ laplacian(P)[x,1:6] .* Q.scaling[1:6]
+            @test (Δ * c)[x] ≈ (laplacian(P) * (D * c))[x]
+            @test (Laplacian(axes(Q,1)) * Q)[x,1:6] ≈ Δ[x,1:6]
+            @test abslaplacian(Q)[x,1:6] ≈ abslaplacian(Q,1)[x,1:6] ≈ -Δ[x,1:6]
+            @test laplacian(Q,2)[x,1:6] ≈ diff(Q,4)[x,1:6]
+        end
+        P = Legendre()
+        Q = Normalized(P)
+        @test (Ultraspherical(5/2) \ laplacian(Q))[1:5,1:7] ≈ (Ultraspherical(5/2) \ laplacian(P))[1:5,1:7] * Diagonal(Q.scaling[1:7])
+
+        for P in (Jacobi(1,1), Jacobi(2,2), Jacobi(2.0,3.0))
+            Q = Normalized(P)
+            W = Weighted(Q)
+            D = Diagonal(Q.scaling)
+            Δ = laplacian(W)
+            @test Δ[x,1:6] ≈ laplacian(Weighted(P))[x,1:6] .* Q.scaling[1:6]
+            @test (Δ * c)[x] ≈ (laplacian(Weighted(P)) * (D * c))[x]
+            @test (Laplacian(axes(W,1)) * W)[x,1:6] ≈ Δ[x,1:6]
+            @test abslaplacian(W)[x,1:6] ≈ abslaplacian(W,1)[x,1:6] ≈ abslaplacian(Weighted(P),1)[x,1:6] .* Q.scaling[1:6] ≈ -Δ[x,1:6]
+            @test (Legendre() \ Δ)[1:5,1:5] ≈ (Legendre() \ laplacian(Weighted(P)))[1:5,1:5] * D[1:5,1:5]
+            # compare with finite differences
+            f = W * c
+            h = 1E-3
+            @test (Δ * c)[x] ≈ (f[x+h] - 2f[x] + f[x-h])/h^2 rtol=1E-4
+        end
+        @test laplacian(Weighted(Normalized(Jacobi(1,1))))[x,1] ≈ -2Normalized(Jacobi(1,1)).scaling[1]
+    end
+
     @testset "inv bug (#182)" begin
         P = Jacobi(2.0, 0.5)
         Q = Jacobi(3.0, 0.5)
