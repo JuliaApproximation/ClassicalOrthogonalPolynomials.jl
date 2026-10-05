@@ -328,4 +328,18 @@ import ContinuumArrays: MappedWeightedBasisLayout
         Q = Jacobi(3.0, 0.5)
         @test (P \ Normalized(Q))[1:10,1:10] ≈ inv((Normalized(Q) \ P)[1:10,1:10])
     end
+
+    @testset "normalized_layout and evaluation" begin
+        P = Legendre()
+        Q = Normalized(P)
+        @test MemoryLayout(Q) == ClassicalOrthogonalPolynomials.normalized_layout(MemoryLayout(P)) == NormalizedOPLayout{typeof(MemoryLayout(P))}()
+        x = 0.1
+        @test Q[x, 5] ≈ P[x, 5] * Q.scaling[5]
+        @test Q[x, 2:5] ≈ P[x, 2:5] .* Q.scaling[2:5]
+        @test Q[[0.1,0.2], 1:5] ≈ P[[0.1,0.2], 1:5] .* Q.scaling[1:5]'
+        @test Q[[0.1,0.2], 2:5] ≈ P[[0.1,0.2], 2:5] .* Q.scaling[2:5]'
+        @test Q[[0.1,0.2], 1:∞][:, 1:5] ≈ Q[[0.1,0.2], 1:5]
+        @test Q \ Q isa Eye
+        @test (Q'P)[1:3,1:3] ≈ Diagonal(Q.scaling[1:3]) * (P'P)[1:3,1:3]
+    end
 end

@@ -37,7 +37,14 @@ represents OPs that are of the form P * R where P is another family of OPs and R
 abstract type AbstractNormalizedOPLayout <: AbstractOPLayout end
 struct NormalizedOPLayout{LAY<:AbstractBasisLayout} <: AbstractNormalizedOPLayout end
 
-MemoryLayout(::Type{<:Normalized{<:Any, OPs}}) where OPs = NormalizedOPLayout{typeof(MemoryLayout(OPs))}()
+"""
+    normalized_layout(lay)
+
+gives the `MemoryLayout` of `Normalized(P)` where `lay == MemoryLayout(P)`.
+"""
+normalized_layout(lay) = NormalizedOPLayout{typeof(lay)}()
+
+MemoryLayout(::Type{<:Normalized{<:Any, OPs}}) where OPs = normalized_layout(MemoryLayout(OPs))
 
 struct QuasiQR{T, QQ, RR} <: Factorization{T}
     Q::QQ
@@ -61,6 +68,9 @@ equals_layout(::AbstractOPLayout, ::AbstractNormalizedOPLayout, P, Q) = isnormal
 
 
 _p0(Q::Normalized) = Q.scaling[1]
+
+# Normalized(P) == P * Diagonal(scaling)
+_getindex(::Type{IND}, Q::Normalized, (x,j)::IND) where IND = Q.P[x,j] * Q.scaling[j]
 
 
 # x * p[n] = c[n-1] * p[n-1] + a[n] * p[n] + b[n] * p[n+1]
@@ -110,14 +120,14 @@ end
 arguments(::ApplyLayout{typeof(*)}, Q::Normalized) = Q.P, Diagonal(Q.scaling)
 _mul_arguments(Q::Normalized) = arguments(ApplyLayout{typeof(*)}(), Q)
 _mul_arguments(Q::QuasiAdjoint{<:Any,<:Normalized}) = arguments(ApplyLayout{typeof(*)}(), Q)
-copy(M::Mul{<:AdjointBasisLayout{<:NormalizedOPLayout},Blay}) where Blay<:AbstractBasisLayout = copy(Mul{ApplyLayout{typeof(*)}, Blay}(M.A, M.B))
 
 # table stable identity if A.P == B.P
 @inline _normalized_ldiv(An, C, Bn) = An \ (C * Bn)
 @inline _normalized_ldiv(An, C::Eye{T}, Bn) where T = FillArrays.SquareEye{promote_type(eltype(An),T,eltype(Bn))}(ℵ₀)
 
-simplifiable(::Ldiv{<:NormalizedOPLayout,<:NormalizedOPLayout}) = Val(true)
-@inline copy(L::Ldiv{<:NormalizedOPLayout,<:NormalizedOPLayout}) = _normalized_ldiv(Diagonal(L.A.scaling), L.A.P \ L.B.P, Diagonal(L.B.scaling))
+# these apply to the Normalized type, whose layout is determined by normalized_layout
+simplifiable(::Ldiv{<:AbstractNormalizedOPLayout,<:AbstractNormalizedOPLayout,<:Normalized,<:Normalized}) = Val(true)
+@inline copy(L::Ldiv{<:AbstractNormalizedOPLayout,<:AbstractNormalizedOPLayout,<:Normalized,<:Normalized}) = _normalized_ldiv(Diagonal(L.A.scaling), L.A.P \ L.B.P, Diagonal(L.B.scaling))
 @inline copy(L::Ldiv{<:AbstractNormalizedOPLayout,<:AbstractNormalizedOPLayout}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{Lay,<:AbstractNormalizedOPLayout}) where Lay = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{<:AbstractNormalizedOPLayout,Lay}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
@@ -233,7 +243,7 @@ weight(Q::OrthonormalWeighted) = sqrt.(orthogonalityweight(Q.P))
 broadcasted(::LazyQuasiArrayStyle{2}, ::typeof(*), x::Inclusion, Q::OrthonormalWeighted) = Q * (Q.P \ (x .* Q.P))
 
 grammatrix(A::OrthonormalWeighted{T}) where T = Eye{T}(∞)
-weightedgrammatrix_layout(::NormalizedOPLayout, P) = Eye{eltype(P)}(∞)
+weightedgrammatrix_layout(::AbstractNormalizedOPLayout, P::Normalized) = Eye{eltype(P)}(∞)
 
 
 """

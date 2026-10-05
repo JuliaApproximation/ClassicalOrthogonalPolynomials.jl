@@ -4,14 +4,17 @@ _p0(A) = one(eltype(A))
 
 
 for (get, vie) in ((:getindex, :view), (:(Base.unsafe_getindex), :(Base.unsafe_view)))
-    @eval begin
-        Base.@propagate_inbounds @inline $get(P::OrthogonalPolynomial{T}, x::Number, n::OneTo) where T =
-            copyto!(Vector{T}(undef,length(n)), $vie(P, x, n))
-
-        $get(P::OrthogonalPolynomial{T}, x::AbstractVector, n::AbstractUnitRange{Int}) where T =
-            copyto!(Matrix{T}(undef,length(x),length(n)), $vie(P, x, n))
-    end
+    @eval Base.@propagate_inbounds @inline $get(P::OrthogonalPolynomial{T}, x::Number, n::OneTo) where T =
+        copyto!(Vector{T}(undef,length(n)), $vie(P, x, n))
 end
+
+Base.unsafe_getindex(P::OrthogonalPolynomial{T}, x::AbstractVector, n::AbstractUnitRange{Int}) where T =
+    copyto!(Matrix{T}(undef,length(x),length(n)), Base.unsafe_view(P, x, n))
+
+# x is a vector of points only when the points are numbers: for multivariate OPs (e.g. Normalized of a
+# multivariate basis) a vector is a single point
+_getindex(::Type{<:Tuple{Number,Any}}, P::OrthogonalPolynomial{T}, (x,n)::Tuple{AbstractVector,AbstractUnitRange{Int}}) where T =
+    copyto!(Matrix{T}(undef,length(x),length(n)), view(P, x, n))
 
 function copyto!(dest::AbstractVector, V::SubArray{<:Any,1,<:OrthogonalPolynomial,<:Tuple{<:Number,<:OneTo}})
     P = parent(V)
@@ -71,7 +74,7 @@ function Base.unsafe_getindex(P::OrthogonalPolynomial, x::Number, n::Number)
 end
 
 getindex(P::OrthogonalPolynomial, x::Number, jr::AbstractInfUnitRange{Int}) = view(P, x, jr)
-getindex(P::OrthogonalPolynomial, x::AbstractVector, jr::AbstractInfUnitRange{Int}) = view(P, x, jr)
+_getindex(::Type{<:Tuple{Number,Any}}, P::OrthogonalPolynomial, (x,jr)::Tuple{AbstractVector,AbstractInfUnitRange{Int}}) = view(P, x, jr)
 Base.unsafe_getindex(P::OrthogonalPolynomial{T}, x::Number, jr::AbstractInfUnitRange{Int}) where T = 
     BroadcastVector{T}(Base.unsafe_getindex, Ref(P), x, jr)
 
