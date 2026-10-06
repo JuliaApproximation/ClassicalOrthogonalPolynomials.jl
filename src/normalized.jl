@@ -126,8 +126,8 @@ _mul_arguments(Q::QuasiAdjoint{<:Any,<:Normalized}) = arguments(ApplyLayout{type
 @inline _normalized_ldiv(An, C::Eye{T}, Bn) where T = FillArrays.SquareEye{promote_type(eltype(An),T,eltype(Bn))}(ℵ₀)
 
 # these apply to the Normalized type, whose layout is determined by normalized_layout
-simplifiable(::Ldiv{<:AbstractNormalizedOPLayout,<:AbstractNormalizedOPLayout,<:Normalized,<:Normalized}) = Val(true)
-@inline copy(L::Ldiv{<:AbstractNormalizedOPLayout,<:AbstractNormalizedOPLayout,<:Normalized,<:Normalized}) = _normalized_ldiv(Diagonal(L.A.scaling), L.A.P \ L.B.P, Diagonal(L.B.scaling))
+simplifiable(::typeof(\), ::Normalized, ::Normalized) = Val(true)
+@inline ldiv(A::Normalized, B::Normalized) = _normalized_ldiv(Diagonal(A.scaling), A.P \ B.P, Diagonal(B.scaling))
 @inline copy(L::Ldiv{<:AbstractNormalizedOPLayout,<:AbstractNormalizedOPLayout}) = copy(Ldiv{ApplyLayout{typeof(*)},ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{Lay,<:AbstractNormalizedOPLayout}) where Lay = copy(Ldiv{Lay,ApplyLayout{typeof(*)}}(L.A, L.B))
 @inline copy(L::Ldiv{<:AbstractNormalizedOPLayout,Lay}) where Lay = copy(Ldiv{ApplyLayout{typeof(*)},Lay}(L.A, L.B))
