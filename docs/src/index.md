@@ -220,6 +220,7 @@ ClassicalOrthogonalPolynomials.cholesky_jacobimatrix
 ```
 ```@docs
 ClassicalOrthogonalPolynomials.AbstractNormalizedOPLayout
+ClassicalOrthogonalPolynomials.normalized_layout
 ClassicalOrthogonalPolynomials.MappedOPLayout
 ClassicalOrthogonalPolynomials.WeightedOPLayout
 ```
