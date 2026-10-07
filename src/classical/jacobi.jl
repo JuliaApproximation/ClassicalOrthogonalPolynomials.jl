@@ -287,7 +287,6 @@ plotgrid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{2,T}(max(10, 
 plan_transform(::AbstractJacobi{T}, szs::NTuple{N,Int}, dims...) where {T,N} = error("Override")
 plan_transform(P::Jacobi{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_cheb2jac!(T, szs, P.a, P.b, dims...), plan_chebyshevtransform(T, szs, dims...))
 
-grid(P::Normalized{T,<:AbstractJacobi{T}}, n::Integer) where T = grid(P.P, n)
 function plan_transform(Q::Normalized{T,<:AbstractJacobi{T}}, szs::NTuple{N,Int}, dims=ntuple(identity,Val(N))) where {T,N}
     dimsz = tuple(getindex.(Ref(szs), dims)...) # get the sizes of transformed dimensions
     D = Q \ Q.P

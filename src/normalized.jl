@@ -329,3 +329,8 @@ function qr(A::AbstractQuasiMatrix)
     Q,R = qr(P \ A)
     P * Q[:, axes(A,2)], R # TODO: ContinuumFactorization
 end
+
+
+for (grid_lay, grd) in ((:grid_layout, :grid), (:plotgrid_layout, :plotgrid)), N in (:Integer, :(Block{1}))
+    @eval $grid_lay(::AbstractNormalizedOPLayout, Q, n::$N) = $grd(Q.P, n)
+end
