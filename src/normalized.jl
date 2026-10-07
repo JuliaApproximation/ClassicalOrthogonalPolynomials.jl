@@ -106,7 +106,7 @@ ArrayLayouts.mul(Q::Normalized, C::AbstractArray) = ApplyQuasiArray(*, Q, C)
 # this leverages fast transforms for Q.P
 function transform_ldiv(Q::Normalized, C::AbstractQuasiArray)
     c = paddeddata(Q.P \ C)
-    [Q.scaling[axes(c,1)] .\ c; zeros(eltype(c), ∞)]
+    padrows(Q.scaling[axes(c,1)] .\ c, axes(Q,2)) # keep the axes of Q, e.g. block structure
 end
 
 function transform_ldiv(V::SubQuasiArray{<:Any,2,<:Normalized}, C::AbstractQuasiArray)
@@ -328,4 +328,9 @@ function qr(A::AbstractQuasiMatrix)
     P = normalized(basis(A))
     Q,R = qr(P \ A)
     P * Q[:, axes(A,2)], R # TODO: ContinuumFactorization
+end
+
+
+for (grid_lay, grd) in ((:grid_layout, :grid), (:plotgrid_layout, :plotgrid)), N in (:Integer, :(Block{1}))
+    @eval $grid_lay(::NormalizedOPLayout, Q, n::$N) = $grd(Q.P, n)
 end
