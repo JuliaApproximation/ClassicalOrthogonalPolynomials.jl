@@ -349,10 +349,10 @@ import ContinuumArrays: MappedWeightedBasisLayout
         x = axes(Q,1)
         c = Q \ exp.(x)
         @test c[1:5] ≈ Q.scaling[1:5] .\ (Legendre() \ exp.(x))[1:5]
-        @test ClassicalOrthogonalPolynomials._padcoefficients([1.0, 2], axes(Q,2)) isa CachedVector
+        @test axes(ClassicalOrthogonalPolynomials.padrows([1.0, 2], axes(Q,2))) ≡ (axes(Q,2),)
         # e.g. for normalized multivariate OPs the coefficients are blocked
         ax = blockedrange(Base.oneto(∞))
-        d = ClassicalOrthogonalPolynomials._padcoefficients([1.0, 2, 3], ax)
+        d = ClassicalOrthogonalPolynomials.padrows([1.0, 2, 3], ax)
         @test axes(d,1) == ax
         @test d[Block(2)] == [2, 3]
         @test d[Block(3)] == zeros(3)
