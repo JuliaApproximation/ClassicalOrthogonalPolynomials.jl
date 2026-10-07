@@ -1,6 +1,7 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, ArrayLayouts, LazyArrays, Base64, LinearAlgebra, QuasiArrays, Test
 import ClassicalOrthogonalPolynomials: NormalizedOPLayout, recurrencecoefficients, Normalized, Clenshaw, weighted, grid, plotgrid
 import LazyArrays: CachedVector, PaddedColumns
+using BlockArrays: blockedrange, Block
 import ContinuumArrays: MappedWeightedBasisLayout
 
 @testset "Normalized" begin
@@ -341,5 +342,19 @@ import ContinuumArrays: MappedWeightedBasisLayout
         @test Q[[0.1,0.2], 1:∞][:, 1:5] ≈ Q[[0.1,0.2], 1:5]
         @test Q \ Q isa Eye
         @test (Q'P)[1:3,1:3] ≈ Diagonal(Q.scaling[1:3]) * (P'P)[1:3,1:3]
+    end
+
+    @testset "transform keeps axes" begin
+        Q = Normalized(Legendre())
+        x = axes(Q,1)
+        c = Q \ exp.(x)
+        @test c[1:5] ≈ Q.scaling[1:5] .\ (Legendre() \ exp.(x))[1:5]
+        @test ClassicalOrthogonalPolynomials._padcoefficients([1.0, 2], axes(Q,2)) isa CachedVector
+        # e.g. for normalized multivariate OPs the coefficients are blocked
+        ax = blockedrange(Base.oneto(∞))
+        d = ClassicalOrthogonalPolynomials._padcoefficients([1.0, 2, 3], ax)
+        @test axes(d,1) == ax
+        @test d[Block(2)] == [2, 3]
+        @test d[Block(3)] == zeros(3)
     end
 end

@@ -106,8 +106,12 @@ ArrayLayouts.mul(Q::Normalized, C::AbstractArray) = ApplyQuasiArray(*, Q, C)
 # this leverages fast transforms for Q.P
 function transform_ldiv(Q::Normalized, C::AbstractQuasiArray)
     c = paddeddata(Q.P \ C)
-    [Q.scaling[axes(c,1)] .\ c; zeros(eltype(c), ∞)]
+    _padcoefficients(Q.scaling[axes(c,1)] .\ c, axes(Q,2))
 end
+
+# keep the axes of Q, e.g. block structure
+_padcoefficients(c, ::OneToInf) = [c; zeros(eltype(c), ∞)]
+_padcoefficients(c, ax) = padrows(c, ax)
 
 function transform_ldiv(V::SubQuasiArray{<:Any,2,<:Normalized}, C::AbstractQuasiArray)
     Q = parent(V)
