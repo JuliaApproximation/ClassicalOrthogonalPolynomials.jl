@@ -9,6 +9,11 @@ Laurent() = Laurent{ComplexF64}()
 ==(::Fourier, ::Fourier) = true
 ==(::Laurent, ::Laurent) = true
 
+AbstractQuasiArray{T}(::Fourier) where T = Fourier{T}()
+AbstractQuasiMatrix{T}(::Fourier) where T = Fourier{T}()
+AbstractQuasiArray{T}(::Laurent) where T = Laurent{T}()
+AbstractQuasiMatrix{T}(::Laurent) where T = Laurent{T}()
+
 axes(F::AbstractFourier) = (Inclusion(ℝ), BlockedOneTo(1:2:∞))
 
 function getindex(F::Fourier{T}, x::Real, j::Int)::T where T
