@@ -5,6 +5,10 @@ import ClassicalOrthogonalPolynomials: Inclusion, ShuffledR2HC, ShuffledFFT
 import QuasiArrays: MulQuasiArray
 
 @testset "Fourier" begin
+    @testset "Conversion" begin
+        @test AbstractQuasiArray{Float32}(Fourier()) ≡ AbstractQuasiMatrix{Float32}(Fourier()) ≡ Fourier{Float32}()
+    end
+
     @testset "ShuffledR2HC" begin
         n = 5
         θ = range(0,2π; length=n+1)[1:end-1]
@@ -127,6 +131,10 @@ end
 
 
 @testset "Laurent" begin
+    @testset "Conversion" begin
+        @test AbstractQuasiArray{ComplexF32}(Laurent()) ≡ AbstractQuasiMatrix{ComplexF32}(Laurent()) ≡ Laurent{ComplexF32}()
+    end
+
     @testset "ShuffledFFT" begin
         ret = randn(3,5)
         p = ShuffledFFT{ComplexF64}(size(ret,1))
