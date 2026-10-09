@@ -90,8 +90,8 @@ Jacobi(C::Ultraspherical{T}) where T = Jacobi(C.λ-one(T)/2,C.λ-one(T)/2)
 
 # 2^(1-2λ)*π*gamma(n+2λ)/((n+λ)*gamma(λ)^2 * n!)
 function weightedgrammatrix(P::Ultraspherical{T}) where T
-    λ = P.λ
-    n = 0:∞
+    λ = convert(T, P.λ)
+    n = zero(T):∞
     c = 2^(1-2λ) * convert(T,π)/gamma(λ)^2
     Diagonal(c * exp.(loggamma.(n .+ 2λ) .- loggamma.(n .+ 1) ) ./ (n .+ λ))
 end

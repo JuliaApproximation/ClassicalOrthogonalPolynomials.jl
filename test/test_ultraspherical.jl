@@ -19,6 +19,15 @@ using ClassicalOrthogonalPolynomials: grammatrix
         @test (U * (U \ exp.(x)))[0.1] ≈ exp(0.1)
     end
 
+    @testset "Weighted Gram" begin
+        U = Ultraspherical(1)
+        @test (U'Weighted(U))[1:10,1:10] ≈ Diagonal(fill(π/2,10))
+        for λ in (2, 3)
+            @test (Ultraspherical(λ)'Weighted(Ultraspherical(λ)))[1:10,1:10] ≈ (Ultraspherical(float(λ))'Weighted(Ultraspherical(float(λ))))[1:10,1:10]
+        end
+        @test (Ultraspherical{BigFloat}(1)'Weighted(Ultraspherical{BigFloat}(1)))[1:5,1:5] ≈ Diagonal(fill(big(π)/2,5))
+    end
+
     @testset "Operators" begin
         @testset "Lowering" begin
             λ = 1
