@@ -5,6 +5,10 @@ import ClassicalOrthogonalPolynomials: Inclusion, ShuffledR2HC, ShuffledFFT
 import QuasiArrays: MulQuasiArray
 
 @testset "Fourier" begin
+    @testset "Conversion" begin
+        @test AbstractQuasiArray{Float32}(Fourier()) ≡ AbstractQuasiMatrix{Float32}(Fourier()) ≡ Fourier{Float32}()
+    end
+
     @testset "ShuffledR2HC" begin
         n = 5
         θ = range(0,2π; length=n+1)[1:end-1]
@@ -127,6 +131,10 @@ end
 
 
 @testset "Laurent" begin
+    @testset "Conversion" begin
+        @test AbstractQuasiArray{ComplexF32}(Laurent()) ≡ AbstractQuasiMatrix{ComplexF32}(Laurent()) ≡ Laurent{ComplexF32}()
+    end
+
     @testset "ShuffledFFT" begin
         ret = randn(3,5)
         p = ShuffledFFT{ComplexF64}(size(ret,1))
@@ -204,6 +212,11 @@ end
     @testset "expand" begin
         @test expand(Fourier(), θ -> exp(cos(θ-0.1)))[0.3] ≈ exp(cos(0.2))
         @test expand(Laurent(), θ -> exp(cos(θ-0.1)))[0.3] ≈ exp(cos(0.2))
+
+        # complex-valued function in a real basis
+        f = θ -> (z = exp(im*θ); -im*z*sqrt(1 - 0.81/z^2)) # analytic branch of sqrt(0.81 - z^2)
+        @test expand(Fourier(), f)[0.3] ≈ f(0.3)
+        @test expand(Fourier(), θ -> exp(im*θ))[0.3] ≈ exp(0.3im)
 
         # no type-inference
         @test expand(Fourier(), θ -> (θ > 10 ? "hi" : exp(cos(θ-0.1))) )[0.3] ≈ exp(cos(0.2))
