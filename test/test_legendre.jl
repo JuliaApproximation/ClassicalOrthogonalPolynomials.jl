@@ -255,6 +255,14 @@ import QuasiArrays: MulQuasiArray
         @test_throws MethodError ClassicalOrthogonalPolynomials.basis_singularities(nothing, nothing)
     end
 
+    @testset "diff of truncated basis" begin
+        n = 10; Pₙ = Legendre()[:,1:n]
+        @test diff(Pₙ)[0.1,:] ≈ diff(Legendre())[0.1,1:n]
+        # ∫ P_i' P_j' dx = k(k+1) where k = min(i,j) if i+j is even and 0 otherwise
+        @test diff(Pₙ)'diff(Pₙ) ≈ [iseven(i+j) ? min(i,j)*(min(i,j)+1) : 0 for i=0:n-1, j=0:n-1]
+        @test diff(Ultraspherical(1)[:,1:5])[0.1,:] ≈ diff(Ultraspherical(1))[0.1,1:5]
+    end
+
     @testset "singularities expand" begin
         x = Inclusion(1..2)
         @test basis(expand(fill(2, x))) == basis(expand(broadcast(+, exp.(x), cos.(x), x))) == legendre(x) 
