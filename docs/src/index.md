@@ -69,7 +69,7 @@ f(x) = \sum_{k=0}^∞ c_k T_k(x) = \begin{bmatrix}T_0(x) | T_1(x) | … \end{bma
 ```
 To be more precise, we think of functions as continuum-vectors. Here is a simple example:
 ```@repl userguide
-f = T * [1; 2; 3; zeros(∞)]; # T_0(x) + T_1(x) + T_2(x)
+f = T * [1; 2; 3; zeros(∞)]; # 1*T_0(x) + 2*T_1(x) + 3*T_2(x)
 f[0.1]
 ```
 To find the coefficients for a given function we consider this as the problem of finding `𝐜`
@@ -98,7 +98,7 @@ Orthogonal polynomials satisfy well-known three-term recurrences:
 ```math
 x p_n(x) = c_{n-1} p_{n-1}(x) + a_n p_n(x) + b_n p_{n+1}(x).
 ```
-In continuum-array language this has the  form of a comuting relationship:
+In continuum-array language this has the form of a commuting relationship:
 ```math
 x \begin{bmatrix} p_0 | p_1 | \cdots \end{bmatrix} = \begin{bmatrix} p_0 | p_1 | \cdots \end{bmatrix} \begin{bmatrix} a_0 & c_0  \\ b_0 & a_1 & c_1 \\ & b_1 & a_2 & \ddots \\ &&\ddots & \ddots \end{bmatrix}
 ```
@@ -106,7 +106,7 @@ We can therefore find the Jacobi matrix naturally as follows:
 ```@repl userguide
 T \ (x .* T)
 ```
-Alternatively, just call `jacobimatrix(T)` (noting its the transpose of the more traditional convention).
+Alternatively, just call `jacobimatrix(T)` (noting it's the transpose of the more traditional convention).
 
 
 ## Derivatives
