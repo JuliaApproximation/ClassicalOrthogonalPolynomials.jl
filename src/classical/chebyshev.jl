@@ -71,8 +71,8 @@ computes the `n`-th Chebyshev polynomial of the second kind at `z`.
 """
 chebyshevu(n::Integer, z) = Base.unsafe_getindex(ChebyshevU{polynomialtype(typeof(z))}(), z, n+1)
 
-chebyshevtweight(d::AbstractInterval{T}) where T = ChebyshevTWeight{float(T)}[affine(d,ChebyshevInterval{T}())]
-chebyshevuweight(d::AbstractInterval{T}) where T = ChebyshevUWeight{float(T)}[affine(d,ChebyshevInterval{T}())]
+chebyshevtweight(d::AbstractInterval{T}) where T = ChebyshevTWeight{float(T)}()[affine(d,ChebyshevInterval{T}())]
+chebyshevuweight(d::AbstractInterval{T}) where T = ChebyshevUWeight{float(T)}()[affine(d,ChebyshevInterval{T}())]
 
 ==(a::Chebyshev{kind}, b::Chebyshev{kind}) where kind = true
 ==(a::Chebyshev, b::Chebyshev) = false
