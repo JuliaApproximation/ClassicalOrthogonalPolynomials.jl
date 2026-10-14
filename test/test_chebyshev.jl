@@ -250,6 +250,16 @@ import BandedMatrices: isbanded
             @test (D*wU)[0.1,1:2] ≈ -1/sqrt(1-0.1^2) * [0.1, 4*0.1^2-2]
         end
 
+        @testset "chebyshevtweight/chebyshevuweight" begin
+            d = 0..1
+            wTd = chebyshevtweight(d)
+            wUd = chebyshevuweight(d)
+            @test axes(wTd,1) == axes(wUd,1) == Inclusion(d)
+            y = 0.3
+            @test wTd[y] ≈ ChebyshevTWeight()[2y-1]
+            @test wUd[y] ≈ ChebyshevUWeight()[2y-1]
+        end
+
         @testset "mapped" begin
             x = Inclusion(0..1)
             wT̃ = wT[2x .- 1, :]
