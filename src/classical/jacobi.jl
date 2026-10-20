@@ -336,10 +336,10 @@ grammatrix(A::HalfWeighted{ab,<:Any,<:AbstractJacobi}) where ab = legendre_gramm
 end
 
 # 2^{a + b + 1} {\Gamma(n+a+1) \Gamma(n+b+1) \over (2n+a+b+1) \Gamma(n+a+b+1) n!}.
-function weightedgrammatrix(P::Jacobi)
+function weightedgrammatrix(P::Jacobi{T}) where T
     a,b = P.a,P.b
     n = 0:∞
-    Diagonal(2^(a+b+1) .* (exp.(loggamma.(n .+ (a+1)) .+ loggamma.(n .+ (b+1)) .- loggamma.(n .+ (a+b+1)) .- loggamma.(n .+ 1)) ./ (2n .+ (a+b+1))))
+    Diagonal(convert(T,2)^(a+b+1) .* (exp.(loggamma.(n .+ (a+1)) .+ loggamma.(n .+ (b+1)) .- loggamma.(n .+ (a+b+1)) .- loggamma.(n .+ 1)) ./ (2n .+ (a+b+1))))
 end
 
 
