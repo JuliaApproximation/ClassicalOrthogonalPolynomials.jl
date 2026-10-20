@@ -22,32 +22,31 @@ increasingtruncations(::OneToInf) = oneto.(2 .^ (4:∞))
 increasingtruncations(::BlockedOneTo) = broadcast(n -> Block.(oneto(n)), (2 .^ (4:∞)))
 
 
-function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}) where {U,V}
+function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiVector{V}; atol=20eps(real(U))) where {U,V}
     r = checkpoints(A)
     fr = f[r]
     maxabsfr = norm(fr,Inf)
 
     # don't use V as eltype might be Any
     T = promote_type(eltype(U), eltype(typeof(first(fr))))
-    tol = 20eps(real(T))
     ax = axes(A,2)
 
     for jr in increasingtruncations(ax)
         An = A[:,jr]
         cfs = transform_ldiv(An, f)
         maxabsc = maximum(abs, cfs)
-        if maxabsc ≤ tol && maxabsfr ≤ tol # probably zero
+        if maxabsc ≤ atol && maxabsfr ≤ atol # probably zero
             return pad(similar(cfs,0), ax)
         end
 
         m = length(cfs)
-        m̃ = standardchoplength(cfs, tol)
+        m̃ = standardchoplength(cfs, atol)
 
         
         if m̃ < m-1 # coefficient tail is "zero" based on standard chop
             c = padresize!(cfs, m̃, ax)
             un = A * c
-            if all(norm.(un[r] - fr, 1) .<  m*tol*1000*max(maxabsfr, 1))
+            if all(norm.(un[r] - fr, 1) .<  m*atol*1000*max(maxabsfr, 1))
                 return c
             end
         end
