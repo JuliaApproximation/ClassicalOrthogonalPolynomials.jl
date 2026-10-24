@@ -2,7 +2,7 @@ using ClassicalOrthogonalPolynomials, BlockArrays, LazyBandedMatrices, FillArray
 using StaticArrays
 import ClassicalOrthogonalPolynomials: PiecewiseInterlace, SetindexInterlace, plotgrid, BroadcastQuasiVector, components
 using ContinuumArrays: UnionDomain
-using LazyArrays: paddeddata
+using LazyArrays: paddeddata, Vcat
 
 @testset "Interlace" begin
     @testset "Piecewise" begin
@@ -84,6 +84,17 @@ using LazyArrays: paddeddata
 
             F = factorize(T[:,Block.(Base.OneTo(N))])
             @test F \ exp.(x) ≈ (T \ exp.(x))[Block.(1:N)] ≈ u
+        end
+
+        @testset "infinite rows" begin
+            Q = PiecewiseInterlace(ultraspherical(-1/2, -2..0), ultraspherical(-1/2, 0..2))
+            Q₁,Q₂ = Q.args
+            R = [Q[-2,1:6]'; Q[2,1:6]']
+            @test Q[[-2,2],:][:,1:6] == R
+            @test [Q[-2,:]'; Q[2,:]'] isa Vcat
+            @test [Q[-2,:]'; Q[2,:]'][:,1:6] == R
+            @test diff(Q₁)[0,:][1:5] ≈ diff(Q₁)[0,1:5]
+            @test [Q₁[-2,:]'; (diff(Q₁)[0,:] - diff(Q₂)[0,:])'][2,1:5] ≈ diff(Q₁)[0,1:5] - diff(Q₂)[0,1:5]
         end
 
         @testset "plot" begin
