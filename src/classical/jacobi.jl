@@ -339,7 +339,8 @@ end
 function weightedgrammatrix(P::Jacobi)
     a,b = P.a,P.b
     n = 0:∞
-    Diagonal(2^(a+b+1) .* (exp.(loggamma.(n .+ (a+1)) .+ loggamma.(n .+ (b+1)) .- loggamma.(n .+ (a+b+1)) .- loggamma.(n .+ 1)) ./ (2n .+ (a+b+1))))
+    # exp2 avoids Int overflow in 2^(a+b+1) when a+b+1 ≥ 63
+    Diagonal(exp2(a+b+1) .* (exp.(loggamma.(n .+ (a+1)) .+ loggamma.(n .+ (b+1)) .- loggamma.(n .+ (a+b+1)) .- loggamma.(n .+ 1)) ./ (2n .+ (a+b+1))))
 end
 
 
