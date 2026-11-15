@@ -1,5 +1,5 @@
 using ClassicalOrthogonalPolynomials, FillArrays, BandedMatrices, ContinuumArrays, QuasiArrays, LazyArrays, LazyBandedMatrices, FastGaussQuadrature, Test
-import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted, grammatrix, singularities, simplifiable
+import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMatrix, arguments, Weighted, HalfWeighted, grammatrix, weightedgrammatrix, singularities, simplifiable
 
 @testset "Jacobi" begin
     @testset "JacobiWeight" begin
@@ -582,6 +582,17 @@ import ClassicalOrthogonalPolynomials: recurrencecoefficients, basis, MulQuasiMa
         @test (expand(Legendre(), exp) + expand(Jacobi(2,1),cos))[0.1] ≈ exp(0.1)+cos(0.1)
         @test (expand(ChebyshevT(), exp) + expand(Jacobi(3/2,1/2),cos))[0.1] ≈ exp(0.1)+cos(0.1)
         @test (expand(Ultraspherical(2), exp) + expand(Jacobi(3/2,1/2),cos))[0.1] ≈ exp(0.1)+cos(0.1)
+    end
+
+    @testset "weightedgrammatrix with large parameters" begin
+        # 2^(a+b+1) used to be computed with Ints, which overflows for a+b+1 ≥ 63
+        for b in (61, 62, 63, 64, 100)
+            @test weightedgrammatrix(Jacobi(0,b))[1:5,1:5] ≈ Diagonal(2.0^(b+1) ./ (2(0:4) .+ (b+1)))
+        end
+        a,b = 40,30
+        M = [big(2)^(a+b+1) * factorial(big(n+a)) * factorial(big(n+b)) / ((2n+a+b+1) * factorial(big(n+a+b)) * factorial(big(n))) for n = 0:4]
+        @test weightedgrammatrix(Jacobi(a,b))[1:5,1:5] ≈ Diagonal(M)
+        @test weightedgrammatrix(Jacobi(1,1))[1:5,1:5] ≈ Diagonal(8 .* (1:5) ./ ((3:2:11) .* (2:6)))
     end
 
     @testset "halfweighted grammatrix" begin
