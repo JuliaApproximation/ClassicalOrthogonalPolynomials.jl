@@ -381,6 +381,28 @@ function recurrencecoefficients(P::Jacobi)
     (A,B,C)
 end
 
+# The diagonal α and the square of the off-diagonal β of the (symmetric) Jacobi matrix of Normalized(Jacobi(a,b))
+# for k ≥ 2, where all factors are positive as a, b > -1. k = 1 is special to avoid dividing by zero.
+_normalizedjacobiβ²(k, a, b) = (s = 2k+a+b; 4k*(k+a)*(k+b)*(k+a+b)/(s^2*(s-1)*(s+1)))
+_normalizedjacobiα(k, a, b) = (s = 2k+a+b; (b^2-a^2)/((s-2)*s))
+_normalizedjacobiβ₁²(a, b) = 4(a+1)*(b+1)/((a+b+2)^2*(a+b+3))
+
+_normalizedjacobiA(k, a, b) = inv(sqrt(_normalizedjacobiβ²(k, a, b)))
+_normalizedjacobiB(k, a, b) = -_normalizedjacobiα(k, a, b)/sqrt(_normalizedjacobiβ²(k, a, b))
+_normalizedjacobiC(k, a, b) = sqrt((k == 2 ? _normalizedjacobiβ₁²(a, b) : _normalizedjacobiβ²(k-1, a, b))/_normalizedjacobiβ²(k, a, b))
+
+# The recurrence coefficients of the orthonormal Jacobi polynomials are A[k] = 1/β[k], B[k] = -α[k]/β[k] and
+# C[k] = β[k-1]/β[k]. These closed forms are much faster to index than the generic ones derived lazily from
+# jacobimatrix(Jacobi(a,b)).
+function recurrencecoefficients(Q::Normalized{T,<:Jacobi}) where T
+    a,b = convert(T, Q.P.a), convert(T, Q.P.b)
+    β₁ = sqrt(_normalizedjacobiβ₁²(a, b))
+    A = Vcat(inv(β₁), _normalizedjacobiA.(2:∞, a, b))
+    B = Vcat((a-b)/((a+b+2)*β₁), _normalizedjacobiB.(2:∞, a, b))
+    C = Vcat(zero(T), _normalizedjacobiC.(2:∞, a, b))
+    A, B, C
+end
+
 
 
 
