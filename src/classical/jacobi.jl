@@ -389,17 +389,20 @@ _normalizedjacobiβ₁²(a, b) = 4(a+1)*(b+1)/((a+b+2)^2*(a+b+3))
 
 _normalizedjacobiA(k, a, b) = inv(sqrt(_normalizedjacobiβ²(k, a, b)))
 _normalizedjacobiB(k, a, b) = -_normalizedjacobiα(k, a, b)/sqrt(_normalizedjacobiβ²(k, a, b))
-_normalizedjacobiC(k, a, b) = sqrt((k == 2 ? _normalizedjacobiβ₁²(a, b) : _normalizedjacobiβ²(k-1, a, b))/_normalizedjacobiβ²(k, a, b))
+_normalizedjacobiC(k, a, b) = sqrt(_normalizedjacobiβ²(k-1, a, b)/_normalizedjacobiβ²(k, a, b)) # k ≥ 3
 
 # The recurrence coefficients of the orthonormal Jacobi polynomials are A[k] = 1/β[k], B[k] = -α[k]/β[k] and
 # C[k] = β[k-1]/β[k]. These closed forms are much faster to index than the generic ones derived lazily from
-# jacobimatrix(Jacobi(a,b)).
-function recurrencecoefficients(Q::Normalized{T,<:Jacobi}) where T
+# jacobimatrix(Jacobi(a,b)). The special entries are put in a Vcat to avoid branching when indexing. Note C is
+# a nested Vcat as a Vcat with three arguments allocates. Inlining means that in
+# recurrencecoefficients(Normalized(Jacobi(a,b))) the normalization constants, which are unused, are not allocated.
+@inline function recurrencecoefficients(Q::Normalized{T,<:Jacobi}) where T
     a,b = convert(T, Q.P.a), convert(T, Q.P.b)
-    β₁ = sqrt(_normalizedjacobiβ₁²(a, b))
+    β₁² = _normalizedjacobiβ₁²(a, b)
+    β₁ = sqrt(β₁²)
     A = Vcat(inv(β₁), _normalizedjacobiA.(2:∞, a, b))
     B = Vcat((a-b)/((a+b+2)*β₁), _normalizedjacobiB.(2:∞, a, b))
-    C = Vcat(zero(T), _normalizedjacobiC.(2:∞, a, b))
+    C = Vcat(zero(T), Vcat(sqrt(β₁²/_normalizedjacobiβ²(2, a, b)), _normalizedjacobiC.(3:∞, a, b)))
     A, B, C
 end
 
