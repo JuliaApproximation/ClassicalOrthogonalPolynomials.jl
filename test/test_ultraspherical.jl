@@ -210,7 +210,15 @@ using ClassicalOrthogonalPolynomials: grammatrix
         @test sum(@.(ultrasphericalc(1, -1/2, x)/(z-x))) ≈ sum(C[:,2] ./ (z .- x))
     end
 
-    @testset "higher order diff" begin
+    @testset "diff rows" begin
+        for P in (Ultraspherical(-1/2), Legendre(), Jacobi(1,1))
+            D = diff(P)
+            @test D[0.1,:][1:10] ≈ D[0.1,1:10]
+            @test D[[0.1,0.2],:][:,1:10] ≈ D[[0.1,0.2],1:10]
+        end
+    end
+
+        @testset "higher order diff" begin
         T = ChebyshevT()
         U = ChebyshevU()
         C = Ultraspherical(2)
