@@ -2,14 +2,17 @@
 ContinuumArrays.transform_ldiv_size(::Tuple{<:Any,InfiniteCardinal{0}}, A::AbstractQuasiArray{T}, f::AbstractQuasiArray{V}) where {T,V}  =
     adaptivetransform_ldiv(A, f)
 
+const MappedOrPlainOP = Union{OrthogonalPolynomial,
+    SubQuasiArray{<:Any,2,<:OrthogonalPolynomial,<:Tuple{AbstractAffineQuasiVector,Slice}}}
+
 # Right division by Q' becomes the adjoint of Q \ (P \ f)'.
-function ContinuumArrays.basis_ldiv_size(::NTuple{2,InfiniteCardinal{0}}, Q::OrthogonalPolynomial,
-        L::QuasiAdjoint{<:Any,<:ApplyQuasiMatrix{<:Any,typeof(\),<:Tuple{OrthogonalPolynomial,AbstractQuasiMatrix}}})
+function ContinuumArrays.basis_ldiv_size(::NTuple{2,InfiniteCardinal{0}}, Q::MappedOrPlainOP,
+        L::QuasiAdjoint{<:Any,<:ApplyQuasiMatrix{<:Any,typeof(\),<:Tuple{MappedOrPlainOP,AbstractQuasiMatrix}}})
     P, f = arguments(parent(L))
     adaptivetransform_ldiv(P, f, Q)'
 end
 
-function adaptivetransform_ldiv(P::OrthogonalPolynomial, f::AbstractQuasiMatrix, Q::OrthogonalPolynomial)
+function adaptivetransform_ldiv(P::MappedOrPlainOP, f::AbstractQuasiMatrix, Q::MappedOrPlainOP)
     r, s = checkpoints(P), checkpoints(Q)
     samples = f[r,s]
     T = promote_type(eltype(P), eltype(Q), typeof(first(samples)))
