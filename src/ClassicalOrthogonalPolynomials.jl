@@ -65,13 +65,14 @@ import Base: oneto
 
 include("interlace.jl")
 include("standardchop.jl")
-include("adaptivetransform.jl")
 
 const WeightedBasis{T, A<:AbstractQuasiVector, B<:Basis} = BroadcastQuasiMatrix{T,typeof(*),<:Tuple{A,B}}
 abstract type OrthogonalPolynomial{T} <: Basis{T} end
 abstract type AbstractOPLayout <: AbstractBasisLayout end
 struct OPLayout <: AbstractOPLayout end
 MemoryLayout(::Type{<:OrthogonalPolynomial}) = OPLayout()
+
+include("adaptivetransform.jl")
 
 Base.isassigned(P::OrthogonalPolynomial, x, n) = (x ∈ axes(P,1)) && (n ∈ axes(P,2))
 
