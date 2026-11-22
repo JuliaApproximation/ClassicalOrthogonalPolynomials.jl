@@ -402,7 +402,7 @@ _normalizedjacobiC(k, a, b) = sqrt(_normalizedjacobiβ²(k-1, a, b)/_normalizedj
     β₁ = sqrt(β₁²)
     A = Vcat(inv(β₁), _normalizedjacobiA.(2:∞, a, b))
     B = Vcat((a-b)/((a+b+2)*β₁), _normalizedjacobiB.(2:∞, a, b))
-    C = Vcat(zero(T), Vcat(sqrt(β₁²/_normalizedjacobiβ²(2, a, b)), _normalizedjacobiC.(3:∞, a, b)))
+    C = Vcat(zero(T), sqrt(β₁²/_normalizedjacobiβ²(2, a, b)), _normalizedjacobiC.(3:∞, a, b))
     A, B, C
 end
 
