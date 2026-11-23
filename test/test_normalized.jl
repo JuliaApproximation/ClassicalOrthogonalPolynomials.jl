@@ -177,6 +177,21 @@ import ContinuumArrays: MappedWeightedBasisLayout
         L̄ = (Diagonal(P⁰⁰.scaling) \ L) * Diagonal(P¹⁰.scaling)
         L2 = P⁰⁰ \ Weighted(P¹⁰)
         @test L2[1:100, 1:100] ≈ L̄[1:100, 1:100]
+
+        @testset "closed form recurrence coefficients" begin
+            for (a,b) in ((0,0), (1/2,0), (0.1,0.2), (-1/2,-1/2), (-0.9,0.3), (-1/2,1/2), (2,5), (0,100))
+                Q = Normalized(Jacobi(a,b))
+                # compare with the generic ones derived from the Jacobi matrix
+                for (R, R̃) in zip(recurrencecoefficients(Q), ClassicalOrthogonalPolynomials.recurrencecoefficients_layout(MemoryLayout(Q), Q))
+                    @test R[1:200] ≈ R̃[1:200]
+                end
+                @test Q[0.3,1:100] ≈ Q.P[0.3,1:100] .* Q.scaling[1:100]
+                c = randn(100)
+                @test (Q * [c; zeros(∞)])[0.3] ≈ dot(Q[0.3,1:100], c)
+            end
+            @test eltype.(recurrencecoefficients(Normalized(Jacobi{Float32}(0,1)))) == (Float32, Float32, Float32)
+            @test eltype.(recurrencecoefficients(Normalized(Jacobi{BigFloat}(0,1)))) == (BigFloat, BigFloat, BigFloat)
+        end
     end
 
     @testset "Mapped" begin
