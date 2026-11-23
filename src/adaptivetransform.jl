@@ -7,7 +7,7 @@ ContinuumArrays.transform_ldiv_size(::Tuple{<:Any,InfiniteCardinal{0}}, A::Abstr
 function ContinuumArrays.transform_ldiv_size(::Tuple{<:Any,InfiniteCardinal{0}}, Q::AbstractQuasiMatrix,
         L::QuasiAdjoint{<:Any,<:ApplyQuasiMatrix{<:Any,typeof(\),<:Tuple{AbstractQuasiMatrix,AbstractQuasiMatrix}}})
     P, f = arguments(parent(L))
-    adaptivetransform_ldiv(P, f, Q)'
+    adaptivetransform_ldiv((P,Q), f)'
 end
 
 padchop!(cfs, tol, ax...) = pad(chop!(cfs, tol), ax...)
@@ -94,7 +94,7 @@ function adaptivetransform_ldiv(A::AbstractQuasiArray{U}, f::AbstractQuasiMatrix
     error("Have not converged")
 end
 
-function adaptivetransform_ldiv(P::AbstractQuasiMatrix, f::AbstractQuasiMatrix, Q::AbstractQuasiMatrix)
+function adaptivetransform_ldiv((P,Q)::NTuple{2,AbstractQuasiMatrix}, f::AbstractQuasiMatrix)
     r, s = checkpoints(P), checkpoints(Q)
     samples = f[r,s]
     T = promote_type(eltype(P), eltype(Q), typeof(first(samples)))
