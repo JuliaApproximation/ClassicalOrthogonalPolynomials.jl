@@ -30,6 +30,7 @@ Random.seed!(0)
 end
 
 include("test_chebyshev.jl")
+include("test_adaptivetransform.jl")
 include("test_legendre.jl")
 include("test_ultraspherical.jl")
 include("test_connection.jl")
