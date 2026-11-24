@@ -82,8 +82,8 @@ inv(P::ShuffledR2HC{T}) where T = ShuffledIR2HC{T}(inv(P.plan))
 inv(P::ShuffledFFT{T}) where T = ShuffledIFFT{T}(inv(P.plan))
 
 
-_shuffled_prescale!(_, ret::AbstractVector) = ret
-_shuffled_postscale!(_, ret::AbstractVector) = ret
+_shuffled_prescale!(::AbstractShuffledPlan, ret::AbstractVector) = ret
+_shuffled_postscale!(::AbstractShuffledPlan, ret::AbstractVector) = ret
 
 function _shuffled_postscale!(::ShuffledR2HC, ret::AbstractVector{T}) where T
     n = length(ret)
@@ -108,21 +108,25 @@ function _shuffled_postscale!(::ShuffledFFT, ret::AbstractVector{T}) where T
     reverseeven!(interlace!(cfs,1))
 end
 
+# inverts _shuffled_postscale!(::ShuffledFFT, ⋅), accounting for the 1/n in the inverse FFT
+function _shuffled_prescale!(::ShuffledIFFT, ret::AbstractVector{T}) where T
+    n = length(ret)
+    reverseeven!(ret)
+    ret .= [ret[1:2:end]; ret[2:2:end]] # todo: non-allocating
+    lmul!(convert(T,n), ret)
+end
+
 _region(F::Plan) = F.region
 _region(F::ScaledPlan) = F.p.region
 
+# the dimensions of an N-array other than d
+_otherdims(d::Int, ::Val{N}) where N = ntuple(k -> k < d ? k : k+1, Val(N-1))
+
+# shuffle the vectors along each transformed dimension, which may be in any order as they act on different dimensions
 for func in (:_shuffled_postscale!, :_shuffled_prescale!)
-    @eval function $func(F::AbstractShuffledPlan, ret::AbstractMatrix{T}) where T
-        d = _region(F.plan)
-        if isone(d)
-            for j in axes(ret,2)
-                $func(F, view(ret,:,j))
-            end
-        else
-            @assert d == 2
-            for k in axes(ret,1)
-                $func(F, view(ret,k,:))
-            end
+    @eval function $func(F::AbstractShuffledPlan, ret::AbstractArray{T,N}) where {T,N}
+        for d in _region(F.plan), v in eachslice(ret; dims=_otherdims(d, Val(N)))
+            $func(F, v)
         end
         ret
     end
@@ -135,7 +139,7 @@ function mul!(ret::AbstractArray{T}, F::AbstractShuffledPlan{T}, bin::AbstractAr
 end
 
 
-*(F::AbstractShuffledPlan{T}, b::AbstractVecOrMat) where T = mul!(similar(b, T), F, b)
+*(F::AbstractShuffledPlan{T}, b::AbstractArray) where T = mul!(similar(b, T), F, b)
 
 plan_transform(F::Fourier{T}, szs::NTuple{N,Int}, dims...) where {T,N} = ShuffledR2HC{T}(szs, dims...)
 plan_transform(F::Laurent{T}, szs::NTuple{N,Int}, dims...) where {T,N} = ShuffledFFT{T}(szs, dims...)

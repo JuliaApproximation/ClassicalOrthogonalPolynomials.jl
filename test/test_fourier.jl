@@ -4,6 +4,18 @@ import BlockBandedMatrices: _BlockBandedMatrix
 import ClassicalOrthogonalPolynomials: Inclusion, ShuffledR2HC, ShuffledFFT
 import QuasiArrays: MulQuasiArray
 
+# compare the shuffled plan S acting on A along dims with the vector plan applied along each dimension in turn
+function test_shuffled_dims(S, A, dims)
+    P = S(size(A), dims)
+    B = A
+    for d in dims
+        p = S(size(A, d))
+        B = mapslices(x -> p * x, B; dims=d)
+    end
+    @test P * A ≈ B
+    @test P \ B ≈ inv(P) * B ≈ A
+end
+
 @testset "Fourier" begin
     @testset "Conversion" begin
         @test AbstractQuasiArray{Float32}(Fourier()) ≡ AbstractQuasiMatrix{Float32}(Fourier()) ≡ Fourier{Float32}()
@@ -40,8 +52,21 @@ import QuasiArrays: MulQuasiArray
             @test (P * ret)[k,:] ≈ p * ret[k,:]
         end
         @test P \ (P*ret) ≈ P*(P\ret) ≈ ret
+
+        for dims in (1:2, (2,1))
+            test_shuffled_dims(ShuffledR2HC{Float64}, ret, dims)
+        end
+        @test ShuffledR2HC{Float64}(size(ret)) * ret ≈ ShuffledR2HC{Float64}(size(ret), 1:2) * ret
+
+        @testset "3-array" begin
+            A = randn(3, 4, 5)
+            for dims in (1, 2, 3, (1,3), (3,1), 1:3)
+                test_shuffled_dims(ShuffledR2HC{Float64}, A, dims)
+            end
+            @test ShuffledR2HC{Float64}(size(A)) * A ≈ ShuffledR2HC{Float64}(size(A), 1:3) * A
+        end
     end
-    
+
     @testset "Evaluation" begin
         F = Fourier()
 
@@ -72,6 +97,13 @@ import QuasiArrays: MulQuasiArray
         c = P * cos.(θ₅)
         @test c isa BlockedVector
         @test c ≈ [0,0,1,0,0]
+
+        # cos(θ)sin(φ)cos(2ψ) is the product of the 3rd, 2nd and 5th basis functions
+        θ₃ = grid(F, 3)
+        P = plan_transform(F, (Block(2), Block(2), Block(3)))
+        C = P * [cos(θ)sin(φ)cos(2ψ) for θ in θ₃, φ in θ₃, ψ in θ₅]
+        @test C isa BlockedArray{Float64,3}
+        @test C ≈ [(j,k,l) == (3,2,5) for j in 1:3, k in 1:3, l in 1:5]
 
         X = [one.(θ₅) sin.(θ₅) cos.(θ₅)]
         P = plan_transform(F, (Block(3), Block(2)), 1)
@@ -150,6 +182,32 @@ end
         for k = 1:size(ret,1)
             @test (P * ret)[k,:] ≈ p * ret[k,:]
         end
+        @test P \ (P*ret) ≈ P*(P\ret) ≈ ret
+
+        for dims in (1:2, (2,1))
+            test_shuffled_dims(ShuffledFFT{ComplexF64}, ret, dims)
+        end
+        @test ShuffledFFT{ComplexF64}(size(ret)) * ret ≈ ShuffledFFT{ComplexF64}(size(ret), 1:2) * ret
+
+        @testset "inverse" begin
+            for n in (4, 5)
+                θ = range(0, 2π; length=n+1)[1:end-1]
+                p = ShuffledFFT{ComplexF64}(n)
+                @test p \ [1; zeros(n-1)] ≈ ones(n)
+                @test p \ [0; 1; zeros(n-2)] ≈ exp.(-im*θ)
+                @test p \ [0; 0; 1; zeros(n-3)] ≈ exp.(im*θ)
+                v = randn(ComplexF64, n)
+                @test p \ (p * v) ≈ inv(p) * (p * v) ≈ p * (p \ v) ≈ v
+            end
+        end
+
+        @testset "3-array" begin
+            A = randn(ComplexF64, 3, 4, 5)
+            for dims in (1, 2, 3, (1,3), (3,1), 1:3)
+                test_shuffled_dims(ShuffledFFT{ComplexF64}, A, dims)
+            end
+            @test ShuffledFFT{ComplexF64}(size(A)) * A ≈ ShuffledFFT{ComplexF64}(size(A), 1:3) * A
+        end
     end
     
     @testset "Evaluation" begin
@@ -181,6 +239,13 @@ end
         c = P * cos.(θ₅)
         @test c isa BlockedVector
         @test c ≈ [0,0.5,0.5,0,0]
+
+        # exp(-im*φ)exp(2im*ψ) is the product of the 1st, 2nd and 5th basis functions
+        θ₃ = grid(F, 3)
+        P = plan_transform(F, (Block(2), Block(2), Block(3)))
+        C = P * [exp(-im*φ)exp(2im*ψ) for θ in θ₃, φ in θ₃, ψ in θ₅]
+        @test C isa BlockedArray{ComplexF64,3}
+        @test C ≈ [(j,k,l) == (1,2,5) for j in 1:3, k in 1:3, l in 1:5]
 
         @test (F \ cos.(θ))[Block(2)] ≈ [0.5,0.5]
         u = F * (F \ exp.(cos.(θ)))
