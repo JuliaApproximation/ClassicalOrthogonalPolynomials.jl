@@ -64,6 +64,12 @@ import QuasiArrays: MulQuasiArray
         F = plan_transform(P, X)
         @test F*X ≈ F2*(F1*X)
         @test F\(F*X) ≈ X
+        C = F*X; C₀ = copy(C)
+        F\C
+        @test C == C₀ # the input is not modified
+        c = p1*X[:,1]; c₀ = copy(c)
+        @test p1\c ≈ X[:,1]
+        @test c == c₀
     end
 
     @testset "operators" begin
