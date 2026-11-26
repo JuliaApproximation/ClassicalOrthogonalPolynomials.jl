@@ -194,6 +194,7 @@ function transform_ldiv(::Legendre{V}, f::Union{AbstractQuasiVector,AbstractQuas
 end
 
 plan_transform(::Legendre{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_cheb2leg!(T, szs, dims...), plan_chebyshevtransform(T, szs, dims...))
+plan_itransform(::Legendre{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiITransformPlan(FastTransforms.plan_th_leg2cheb!(T, szs, dims...), plan_ichebyshevtransform(T, szs, dims...))
 
 
 """

@@ -139,13 +139,16 @@ function mul!(ret::AbstractArray{T}, F::AbstractShuffledPlan{T}, bin::AbstractAr
 end
 
 
-*(F::AbstractShuffledPlan{T}, b::AbstractArray) where T = mul!(similar(b, T), F, b)
+*(F::AbstractShuffledPlan{T}, b::AbstractArray) where T = mul!(Array{T}(undef, size(b)), F, b) # FFTW needs a strided output, eg, not a BlockedArray
 
 plan_transform(F::Fourier{T}, szs::NTuple{N,Int}, dims...) where {T,N} = ShuffledR2HC{T}(szs, dims...)
 plan_transform(F::Laurent{T}, szs::NTuple{N,Int}, dims...) where {T,N} = ShuffledFFT{T}(szs, dims...)
 
 plan_transform(F::Union{Fourier, Laurent}, szs::NTuple{N,Block{1}}, dims...) where N =
     ApplyPlan(M -> BlockedArray(M, getindex.(Ref(axes(F,2)), BlockRange.(tuple.(Int.(szs))))), plan_transform(F,  2 .* Int.(szs) .- 1, dims...))
+
+plan_itransform(F::Union{Fourier, Laurent}, szs::NTuple{N,Int}, dims...) where N = inv(plan_transform(F, szs, dims...))
+plan_itransform(F::Union{Fourier, Laurent}, szs::NTuple{N,Block{1}}, dims...) where N = plan_itransform(F, 2 .* Int.(szs) .- 1, dims...)
 
 import BlockBandedMatrices: _BlockSkylineMatrix
 

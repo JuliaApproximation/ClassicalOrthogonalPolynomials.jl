@@ -124,6 +124,8 @@ Jacobi(C::ChebyshevU{T}) where T = Jacobi(one(T)/2,one(T)/2)
 
 plan_transform(::ChebyshevT{T}, szs::NTuple{N,Int}, dims...) where {T,N} = plan_chebyshevtransform(T, szs, dims...)
 plan_transform(::ChebyshevU{T}, szs::NTuple{N,Int}, dims...) where {T,N} = plan_chebyshevutransform(T, szs, dims...)
+plan_itransform(::ChebyshevT{T}, szs::NTuple{N,Int}, dims...) where {T,N} = plan_ichebyshevtransform(T, szs, dims...)
+plan_itransform(::ChebyshevU{T}, szs::NTuple{N,Int}, dims...) where {T,N} = plan_ichebyshevutransform(T, szs, dims...)
 
 
 ########
