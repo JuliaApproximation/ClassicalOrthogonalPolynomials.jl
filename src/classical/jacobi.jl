@@ -106,7 +106,8 @@ JacobiTransformPlan(c2l, ct) = JacobiTransformPlan{promote_type(eltype(c2l),elty
 size(P::JacobiTransformPlan, k...) = size(P.chebtransform, k...)
 
 *(P::JacobiTransformPlan, x::AbstractArray) = P.cheb2jac*(P.chebtransform*x)
-\(P::JacobiTransformPlan, x::AbstractArray) = P.chebtransform\(P.cheb2jac\x)
+# the inverse of cheb2jac acts in-place so we apply it to a copy
+\(P::JacobiTransformPlan{T}, x::AbstractArray) where T = P.chebtransform\(P.cheb2jac\Array{promote_type(T,eltype(x))}(x))
 
 # inverse of JacobiTransformPlan: converts to Chebyshev coefficients then applies an inverse Chebyshev transform
 struct JacobiITransformPlan{T, JAC2CHEB, IDCT} <: Plan{T}
