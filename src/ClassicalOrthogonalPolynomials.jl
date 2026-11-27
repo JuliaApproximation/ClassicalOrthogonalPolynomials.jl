@@ -38,7 +38,7 @@ import ContinuumArrays: Basis, Weight, basis_axes, @simplify, AbstractAffineQuas
     grid, plotgrid, plotgrid_layout, plotvalues_layout, grid_layout, transform_ldiv, TransformFactorization, MappedFactorization, WeightedFactorization, QInfAxes, broadcastbasis, ExpansionLayout, basismap,
     AffineQuasiVector, AffineMap, AbstractWeightLayout, AbstractWeightedBasisLayout, WeightedBasisLayout, WeightedBasisLayouts, demap, AbstractBasisLayout, BasisLayout,
     checkpoints, weight, unweighted, MappedBasisLayouts, sum_layout, invmap, plan_ldiv, layout_broadcasted, MappedBasisLayout, MappedWeightLayout, SubBasisLayout, broadcastbasis_layout,
-    plan_grid_transform, plan_transform, MAX_PLOT_POINTS, MulPlan, ApplyPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout, _cumsum, uplus_components_basis, uplus_basis_size, coefficient_vcat,
+    plan_grid_transform, plan_transform, plan_itransform, plan_itransform_layout, MAX_PLOT_POINTS, MulPlan, ApplyPlan, grammatrix, AdjointBasisLayout, grammatrix_layout, plan_transform_layout, _cumsum, uplus_components_basis, uplus_basis_size, coefficient_vcat,
     laplacian, abslaplacian
 import FastTransforms: Λ, ChebyshevGrid, chebyshevpoints, Plan, ScaledPlan, th_cheb2leg, th_leg2cheb, th_ultra2ultra, th_jac2jac, th_jac2cheb, th_cheb2jac, pochhammer
 import RecurrenceRelationships: forwardrecurrence, forwardrecurrence!, clenshaw, clenshaw!,
@@ -422,6 +422,7 @@ end
 
 
 plan_transform_layout(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=ntuple(identity,Val(N))) where N = plan_transform_layout(MappedBasisLayout(), L, szs, dims)
+plan_itransform_layout(::MappedOPLayout, L, szs::NTuple{N,Int}, dims=ntuple(identity,Val(N))) where N = plan_itransform_layout(MappedBasisLayout(), L, szs, dims)
 
 @simplify function \(A::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial}, B::SubQuasiArray{<:Any,2,<:OrthogonalPolynomial})
     axes(A,1) == axes(B,1) || throw(DimensionMismatch())

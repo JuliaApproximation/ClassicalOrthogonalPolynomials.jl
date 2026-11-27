@@ -109,6 +109,28 @@ size(P::JacobiTransformPlan, k...) = size(P.chebtransform, k...)
 # the inverse of cheb2jac acts in-place so we apply it to a copy
 \(P::JacobiTransformPlan{T}, x::AbstractArray) where T = P.chebtransform\(P.cheb2jac\Array{promote_type(T,eltype(x))}(x))
 
+# inverse of JacobiTransformPlan: converts to Chebyshev coefficients then applies an inverse Chebyshev transform
+struct JacobiITransformPlan{T, JAC2CHEB, IDCT} <: Plan{T}
+    jac2cheb::JAC2CHEB
+    ichebtransform::IDCT
+end
+
+JacobiITransformPlan(j2c, ict) = JacobiITransformPlan{promote_type(eltype(j2c),eltype(ict)),typeof(j2c),typeof(ict)}(j2c, ict)
+size(P::JacobiITransformPlan, k...) = size(P.ichebtransform, k...)
+
+# jac2cheb acts in-place so we apply it to a copy
+*(P::JacobiITransformPlan{T}, x::AbstractArray) where T = P.ichebtransform*(P.jac2cheb*Array{promote_type(T,eltype(x))}(x))
+
+# plans an inverse transform for a basis P == Q*D, where D is diagonal, by multiplying by D and then
+# applying the inverse transform for Q
+function _diagonal_plan_itransform(Q, D::Diagonal, szs::NTuple{N,Int}, dims=ntuple(identity,Val(N))) where N
+    dimsz = tuple(getindex.(Ref(szs), dims)...) # get the sizes of transformed dimensions
+    M = MulPlan(map(dimsz) do n
+        Diagonal(convert(Vector, D.diag[1:n])) # convert avoids lazy arrays
+    end, dims)
+    ApplyPlan(Base.Fix1(*, plan_itransform(Q, szs, dims)), M)
+end
+
 
 include("legendre.jl")
 
@@ -287,6 +309,7 @@ plotgrid(P::AbstractJacobi{T}, n::Integer) where T = ChebyshevGrid{2,T}(max(10, 
 
 plan_transform(::AbstractJacobi{T}, szs::NTuple{N,Int}, dims...) where {T,N} = error("Override")
 plan_transform(P::Jacobi{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_cheb2jac!(T, szs, P.a, P.b, dims...), plan_chebyshevtransform(T, szs, dims...))
+plan_itransform(P::Jacobi{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiITransformPlan(FastTransforms.plan_th_jac2cheb!(T, szs, P.a, P.b, dims...), plan_ichebyshevtransform(T, szs, dims...))
 
 grid(P::Normalized{T,<:AbstractJacobi{T}}, n::Integer) where T = grid(P.P, n)
 function plan_transform(Q::Normalized{T,<:AbstractJacobi{T}}, szs::NTuple{N,Int}, dims=ntuple(identity,Val(N))) where {T,N}
@@ -296,6 +319,8 @@ function plan_transform(Q::Normalized{T,<:AbstractJacobi{T}}, szs::NTuple{N,Int}
         Diagonal(convert(Vector, D.diag[1:n])) # convert avoids lazy arrays
     end, plan_transform(Q.P, szs, dims), dims)
 end
+
+plan_itransform(Q::Normalized{T,<:AbstractJacobi{T}}, szs::NTuple{N,Int}, dims...) where {T,N} = _diagonal_plan_itransform(Q.P, Q.P \ Q, szs, dims...)
 
 ldiv(P::Jacobi{V}, f::Inclusion{T}) where {T,V} = _op_ldiv(P, f)
 ldiv(P::Jacobi, f::AbstractAffineQuasiVector) = _op_ldiv(P, f)

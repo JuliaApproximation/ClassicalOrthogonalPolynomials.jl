@@ -75,6 +75,16 @@ ultraspherical(λ, d::ChebyshevInterval{T}) where T = Ultraspherical{float(promo
 ###
 
 plan_transform(P::Ultraspherical{T}, szs::NTuple{N,Int}, dims...) where {T,N} = JacobiTransformPlan(FastTransforms.plan_th_ultra2ultra!(T, szs, one(P.λ), P.λ, dims...), plan_chebyshevutransform(T, szs, dims...))
+function plan_itransform(P::Ultraspherical{T}, szs::NTuple{N,Int}, dims...) where {T,N}
+    if P.λ ≥ 1
+        JacobiITransformPlan(FastTransforms.plan_th_ultra2ultra!(T, szs, P.λ, one(P.λ), dims...), plan_ichebyshevutransform(T, szs, dims...))
+    else
+        # FastTransforms.plan_th_ultra2ultra! gives NaN when converting from λ < 1 to 1,
+        # so we convert to Jacobi coefficients instead
+        J = Jacobi(P)
+        _diagonal_plan_itransform(J, J \ P, szs, dims...)
+    end
+end
 
 ###
 # interrelationships
